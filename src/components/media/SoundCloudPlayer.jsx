@@ -14,11 +14,11 @@ const SoundCloudPlayer = ({ url }) => {
         >
             <iframe
                 width="100%"
-                height="20"
+                height="166"
                 scrolling="no"
                 frameBorder="no"
                 allow="autoplay"
-                src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`}
+                src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`}
                 style={{ borderRadius: '8px' }}
             ></iframe>
         </motion.div>
