@@ -68,6 +68,7 @@ const MusicManager = () => {
             setTimeout(() => setUploadStatus(''), 3000);
         } finally {
             setUploading(false);
+            e.target.value = ''; // Reset input so same file can be selected again if needed
         }
     };
 

@@ -77,19 +77,23 @@ function compressWithQuality(canvas, hasTransparency, maxSizeKB, resolve, reject
             if (quality < 0.3) {
                 // If quality is too low, reduce canvas size instead
                 const scale = Math.sqrt(maxSizeKB / sizeKB);
-                canvas.width = Math.floor(canvas.width * scale);
-                canvas.height = Math.floor(canvas.height * scale);
+                const newWidth = Math.floor(canvas.width * scale);
+                const newHeight = Math.floor(canvas.height * scale);
 
-                const ctx = canvas.getContext('2d');
+                // Create temp canvas to hold current image
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width / scale;
-                tempCanvas.height = canvas.height / scale;
-
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.drawImage(canvas, 0, 0);
 
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+                // Resize original canvas (clears content)
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+
+                // Draw from temp (original size) to main (scaled size)
+                ctx.drawImage(tempCanvas, 0, 0, newWidth, newHeight);
 
                 quality = 0.9; // Reset quality after resize
             }
