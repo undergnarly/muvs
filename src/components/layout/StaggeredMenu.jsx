@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegram } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
@@ -179,20 +179,43 @@ export const StaggeredMenu = () => {
     const playClose = useCallback(() => {
         openTlRef.current?.kill();
         const panel = panelRef.current;
-        const layers = preLayerElsRef.current;
         if (!panel) return;
 
-        const all = [...layers, panel];
+        const itemEls = Array.from(panel.querySelectorAll('.sm-panel-itemLabel'));
+        const numberEls = Array.from(panel.querySelectorAll('.sm-panel-list[data-numbering] .sm-panel-item'));
+        const socialLinks = Array.from(panel.querySelectorAll('.sm-socials-link'));
+        const preLayers = preLayerElsRef.current || [];
+
         closeTweenRef.current?.kill();
-        closeTweenRef.current = gsap.to(all, {
-            xPercent: 100,
-            duration: 0.32,
-            ease: 'power3.in',
-            overwrite: 'auto',
-            onComplete: () => {
-                busyRef.current = false;
-            }
+
+        // "Inverted" exit: Items disappear first (staggered), then panel slides out.
+        const tl = gsap.timeline({
+            onComplete: () => { busyRef.current = false; }
         });
+        closeTweenRef.current = tl;
+
+        // 1. Stagger items out
+        const allItems = [...itemEls, ...socialLinks];
+        if (allItems.length) {
+            tl.to(allItems, {
+                x: 50,
+                opacity: 0,
+                duration: 0.3,
+                ease: 'power2.in',
+                stagger: { each: 0.03, from: 'end' } // Reverse order
+            }, 0);
+        }
+
+        // 2. Slide panel and layers out
+        const panelExitStart = 0.3; // Start sliding after items start fading
+        const allLayers = [...preLayers, panel];
+        tl.to(allLayers, {
+            xPercent: 100,
+            duration: 0.5,
+            ease: 'power4.in',
+            stagger: 0.05
+        }, panelExitStart);
+
     }, []);
 
     const animateIcon = useCallback(opening => {
@@ -247,6 +270,30 @@ export const StaggeredMenu = () => {
         });
     }, []);
 
+    const navigate = useNavigate();
+
+    const handleLinkClick = (e, path) => {
+        e.preventDefault();
+        if (location.pathname === path) {
+            toggleMenu();
+            return;
+        }
+
+        // 1. Animate UI back to closed state
+        openRef.current = false;
+        setOpen(false);
+        playClose();
+        animateIcon(false);
+        animateColor(false);
+        animateText(false);
+
+        // 2. Wait for exit animation (approx 0.7s total duration of playClose timeline)
+        // items (0.3s) + panel (0.5s) with overlap. Total ~0.7-0.8s.
+        setTimeout(() => {
+            navigate(path);
+        }, 700);
+    };
+
     const toggleMenu = useCallback(() => {
         const target = !openRef.current;
         openRef.current = target;
@@ -260,18 +307,6 @@ export const StaggeredMenu = () => {
         animateColor(target);
         animateText(target);
     }, [playOpen, playClose, animateIcon, animateColor, animateText]);
-
-    // Close menu when route changes
-    React.useEffect(() => {
-        if (openRef.current) {
-            openRef.current = false;
-            setOpen(false);
-            playClose();
-            animateIcon(false);
-            animateColor(false);
-            animateText(false);
-        }
-    }, [location, playClose, animateIcon, animateColor, animateText]);
 
     return (
         <div
@@ -315,12 +350,13 @@ export const StaggeredMenu = () => {
                     <ul className="sm-panel-list" role="list">
                         {menuItems.map((it, idx) => (
                             <li className="sm-panel-itemWrap" key={it.label}>
-                                <Link
+                                <a
+                                    href={it.path}
                                     className={`sm-panel-item ${location.pathname === it.path ? 'active' : ''}`}
-                                    to={it.path}
+                                    onClick={(e) => handleLinkClick(e, it.path)}
                                 >
                                     <span className="sm-panel-itemLabel">{it.label}</span>
-                                </Link>
+                                </a>
                             </li>
                         ))}
                     </ul>

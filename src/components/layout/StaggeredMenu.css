@@ -189,7 +189,14 @@
 
 .sm-panel-item:hover,
 .sm-panel-item.active {
-    color: var(--sm-accent, #ccff00);
+    color: var(--sm-accent, #ccff00) !important;
+}
+
+/* ... */
+
+.sm-socials-link:hover {
+    color: var(--sm-accent, #ccff00) !important;
+    transform: translateY(-2px);
 }
 
 .sm-panel-list[data-numbering] {
