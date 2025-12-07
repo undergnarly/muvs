@@ -3,10 +3,11 @@ import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
 import SlideIndicators from '../navigation/SlideIndicators';
 import ProjectSlide from './ProjectSlide';
-import { projects } from '../../data/projects';
+import { useData } from '../../context/DataContext';
 import './CodePage.css';
 
 const CodePage = () => {
+    const { projects } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     return (

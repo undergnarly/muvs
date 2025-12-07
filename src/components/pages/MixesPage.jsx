@@ -3,10 +3,11 @@ import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
 import SlideIndicators from '../navigation/SlideIndicators';
 import MixSlide from './MixSlide';
-import { mixes } from '../../data/mixes';
+import { useData } from '../../context/DataContext';
 import './MixesPage.css';
 
 const MixesPage = () => {
+    const { mixes } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     return (

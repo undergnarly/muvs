@@ -3,10 +3,11 @@ import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
 import SlideIndicators from '../navigation/SlideIndicators';
 import ReleaseSlide from './ReleaseSlide';
-import { releases } from '../../data/releases';
+import { useData } from '../../context/DataContext';
 import './MusicPage.css';
 
 const MusicPage = () => {
+    const { releases } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     return (

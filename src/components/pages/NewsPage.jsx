@@ -3,9 +3,11 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import Header from '../layout/Header';
 import SplitText from '../ui/SplitText';
 
-import { news } from '../../data/news';
+import { useData } from '../../context/DataContext';
 
 const NewsPage = () => {
+    const { news } = useData();
+
     const CoverContent = (
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <h1 style={{ fontSize: '64px', color: 'var(--color-text-light)' }}>
