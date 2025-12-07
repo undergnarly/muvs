@@ -34,7 +34,7 @@ function App() {
     <>
       <TopBlur />
       <Routes>
-        <Route path={ROUTES.HOME} element={<HomePage />} />
+        <Route path={ROUTES.HOME} element={<MusicPage />} />
         <Route path={ROUTES.ABOUT} element={<AboutPage />} />
         <Route path={ROUTES.NEWS} element={<NewsPage />} />
         <Route path={ROUTES.MUSIC} element={<MusicPage />} />
