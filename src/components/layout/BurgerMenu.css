@@ -45,8 +45,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(26, 26, 26, 0.8);
-    /* Semi-transparent dark bg */
+    background-color: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     color: var(--color-text-light);
     z-index: 1000;
     display: flex;
@@ -54,6 +55,21 @@
     justify-content: center;
     align-items: center;
     padding: var(--spacing-xl);
+    animation: blurIn 0.3s ease-out forwards;
+}
+
+@keyframes blurIn {
+    from {
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+        background-color: rgba(26, 26, 26, 0);
+    }
+
+    to {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        background-color: rgba(26, 26, 26, 0.85);
+    }
 }
 
 .menu-nav {
