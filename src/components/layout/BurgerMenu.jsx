@@ -40,18 +40,22 @@ const BurgerMenu = () => {
                 {isOpen && (
                     <motion.div
                         className="menu-overlay"
-                        initial={{ opacity: 0, backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)" }}
-                        animate={{ opacity: 1, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
-                        exit={{ opacity: 0, backdropFilter: "blur(0px)", WebkitBackdropFilter: "blur(0px)" }}
-                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                        }}
                     >
                         <nav className="menu-nav">
                             {menuItems.map((item, index) => (
                                 <motion.div
                                     key={item.path}
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    transition={{ delay: 0.1 + index * 0.1, duration: 0.4, ease: "easeOut" }}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1, duration: 0.4 }}
                                 >
                                     <Link
                                         to={item.path}
@@ -64,10 +68,10 @@ const BurgerMenu = () => {
                         </nav>
 
                         <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.6, duration: 0.4 }}
                             className="menu-socials"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.4 }}
                         >
                             <SocialLinks />
                         </motion.div>
