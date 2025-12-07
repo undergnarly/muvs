@@ -12,8 +12,7 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path={ROUTES.HOME} element={<HomePage />} />
-        <Route path="/music" element={<MusicPage />} />
+        <Route path={ROUTES.HOME} element={<MusicPage />} />
         <Route path={ROUTES.MIXES} element={<MixesPage />} />
         <Route path={ROUTES.CODE} element={<CodePage />} />
         <Route path={ROUTES.NEWS} element={<NewsPage />} />
