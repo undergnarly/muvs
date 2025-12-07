@@ -17,6 +17,8 @@ export const DataProvider = ({ children }) => {
     const [mixes, setMixes] = useState(() => loadData('muvs_mixes', defaultMixes));
     const [projects, setProjects] = useState(() => loadData('muvs_projects', defaultProjects));
     const [news, setNews] = useState(() => loadData('muvs_news', defaultNews));
+    const [stats, setStats] = useState(() => loadData('muvs_stats', { visits: 0, plays: 0 }));
+    const [messages, setMessages] = useState(() => loadData('muvs_messages', []));
 
     // Persist changes to localStorage whenever state changes
     useEffect(() => {
@@ -35,6 +37,14 @@ export const DataProvider = ({ children }) => {
         localStorage.setItem('muvs_news', JSON.stringify(news));
     }, [news]);
 
+    useEffect(() => {
+        localStorage.setItem('muvs_stats', JSON.stringify(stats));
+    }, [stats]);
+
+    useEffect(() => {
+        localStorage.setItem('muvs_messages', JSON.stringify(messages));
+    }, [messages]);
+
     const updateData = (type, newData) => {
         switch (type) {
             case 'releases': setReleases(newData); break;
@@ -45,12 +55,27 @@ export const DataProvider = ({ children }) => {
         }
     };
 
+    const incrementStat = (key) => {
+        setStats(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+    };
+
+    const addMessage = (msg) => {
+        const newMessage = { id: Date.now(), timestamp: new Date().toLocaleString(), ...msg };
+        setMessages(prev => [newMessage, ...prev]);
+    };
+
+    const deleteMessage = (id) => {
+        setMessages(prev => prev.filter(m => m.id !== id));
+    };
+
     const resetData = () => {
         if (window.confirm('Are you sure you want to reset all data to defaults? This cannot be undone.')) {
             setReleases(defaultReleases);
             setMixes(defaultMixes);
             setProjects(defaultProjects);
             setNews(defaultNews);
+            setStats({ visits: 0, plays: 0 });
+            setMessages([]);
             localStorage.clear();
         }
     };
@@ -60,7 +85,12 @@ export const DataProvider = ({ children }) => {
         mixes,
         projects,
         news,
+        stats,
+        messages,
         updateData,
+        incrementStat,
+        addMessage,
+        deleteMessage,
         resetData
     };
 

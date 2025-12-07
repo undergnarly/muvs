@@ -3,6 +3,7 @@ import Header from '../layout/Header';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import SplitText from '../ui/SplitText';
 import SocialLinks from '../layout/SocialLinks';
+import ContactForm from '../forms/ContactForm';
 import './AboutPage.css';
 
 const AboutPage = () => {
@@ -24,6 +25,7 @@ const AboutPage = () => {
                 <div className="about-contact">
                     <h3>Connect</h3>
                     <SocialLinks />
+                    <ContactForm />
                 </div>
             </div>
         </div>

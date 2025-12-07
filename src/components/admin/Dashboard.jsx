@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
-import { FaMusic, FaNewspaper, FaCode, FaCompactDisc } from 'react-icons/fa';
+import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaChartLine, FaEnvelope } from 'react-icons/fa';
 
 const StatCard = ({ title, count, icon: Icon, color }) => (
     <div style={{
@@ -31,17 +31,19 @@ const StatCard = ({ title, count, icon: Icon, color }) => (
 );
 
 const Dashboard = () => {
-    const { releases, mixes, projects, news, resetData } = useData();
+    const { releases, mixes, projects, news, stats, messages, resetData } = useData();
 
     return (
         <div>
             <h1 style={{ fontSize: '32px', marginBottom: '32px', color: 'var(--color-text-light)' }}>Dashboard</h1>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+                <StatCard title="Total Visits" count={stats.visits} icon={FaChartLine} color="#ffffff" />
                 <StatCard title="Releases" count={releases.length} icon={FaCompactDisc} color="#ccff00" />
                 <StatCard title="Mixes" count={mixes.length} icon={FaMusic} color="#00ffcc" />
                 <StatCard title="Projects" count={projects.length} icon={FaCode} color="#ff00cc" />
                 <StatCard title="News Items" count={news.length} icon={FaNewspaper} color="#ffcc00" />
+                <StatCard title="Messages" count={messages.length} icon={FaEnvelope} color="#ff9900" />
             </div>
 
             <div style={{ background: 'rgba(255,50,50,0.1)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,50,50,0.3)' }}>
