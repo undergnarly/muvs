@@ -16,6 +16,7 @@ import MixesManager from './components/admin/MixesManager';
 import ProjectsManager from './components/admin/ProjectsManager';
 import MessagesManager from './components/admin/MessagesManager';
 import AdminSettings from './components/admin/AdminSettings';
+import TopBlur from './components/layout/TopBlur';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 import { useLocation } from 'react-router-dom';
@@ -30,24 +31,28 @@ function App() {
   }, [location.pathname]);
 
   return (
-    <Routes>
-      <Route path={ROUTES.HOME} element={<MusicPage />} />
-      <Route path={ROUTES.MIXES} element={<MixesPage />} />
-      <Route path={ROUTES.CODE} element={<CodePage />} />
-      <Route path={ROUTES.NEWS} element={<NewsPage />} />
-      <Route path={ROUTES.ABOUT} element={<AboutPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="news" element={<NewsManager />} />
-        <Route path="music" element={<MusicManager />} />
-        <Route path="mixes" element={<MixesManager />} />
-        <Route path="projects" element={<ProjectsManager />} />
-        <Route path="messages" element={<MessagesManager />} />
-        <Route path="settings" element={<AdminSettings />} />
-        {/* Sub-routes will be added here */}
-      </Route>
-    </Routes>
+    <>
+      <TopBlur />
+      <Routes>
+        <Route path={ROUTES.HOME} element={<HomePage />} />
+        <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+        <Route path={ROUTES.NEWS} element={<NewsPage />} />
+        <Route path={ROUTES.MUSIC} element={<MusicPage />} />
+        <Route path={ROUTES.MIXES} element={<MixesPage />} />
+        <Route path={ROUTES.CODE} element={<CodePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="news" element={<NewsManager />} />
+          <Route path="music" element={<MusicManager />} />
+          <Route path="mixes" element={<MixesManager />} />
+          <Route path="projects" element={<ProjectsManager />} />
+          <Route path="messages" element={<MessagesManager />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+        <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+      </Routes>
+    </>
   );
 }
 

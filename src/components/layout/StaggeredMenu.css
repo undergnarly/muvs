@@ -213,6 +213,7 @@
 
 .sm-socials {
     margin-top: auto;
+    margin-bottom: 20%;
     padding-top: 2rem;
     display: flex;
     flex-direction: column;
