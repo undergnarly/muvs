@@ -28,34 +28,27 @@ export const DataProvider = ({ children }) => {
     const [messages, setMessages] = useState(() => loadData('muvs_messages', []));
     const [adminSettings, setAdminSettings] = useState(() => loadData('muvs_admin_settings', { pin: '1234' }));
 
+    // Helper to safely save to localStorage
+    const saveToStorage = (key, data) => {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            console.error(`Error saving to ${key}:`, error);
+            // If quota exceeded, alert the user (only once to avoid spam)
+            if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                alert('Storage Limit Reached! Cannot save changes. Please delete some items (like unused images) to free up space.');
+            }
+        }
+    };
+
     // Persist changes to localStorage whenever state changes
-    useEffect(() => {
-        localStorage.setItem('muvs_releases', JSON.stringify(releases));
-    }, [releases]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_mixes', JSON.stringify(mixes));
-    }, [mixes]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_projects', JSON.stringify(projects));
-    }, [projects]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_news', JSON.stringify(news));
-    }, [news]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_stats', JSON.stringify(stats));
-    }, [stats]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_messages', JSON.stringify(messages));
-    }, [messages]);
-
-    useEffect(() => {
-        localStorage.setItem('muvs_admin_settings', JSON.stringify(adminSettings));
-    }, [adminSettings]);
+    useEffect(() => { saveToStorage('muvs_releases', releases); }, [releases]);
+    useEffect(() => { saveToStorage('muvs_mixes', mixes); }, [mixes]);
+    useEffect(() => { saveToStorage('muvs_projects', projects); }, [projects]);
+    useEffect(() => { saveToStorage('muvs_news', news); }, [news]);
+    useEffect(() => { saveToStorage('muvs_stats', stats); }, [stats]);
+    useEffect(() => { saveToStorage('muvs_messages', messages); }, [messages]);
+    useEffect(() => { saveToStorage('muvs_admin_settings', adminSettings); }, [adminSettings]);
 
     const updateData = (type, newData) => {
         switch (type) {

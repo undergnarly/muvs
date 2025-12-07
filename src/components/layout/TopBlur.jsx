@@ -1,8 +1,16 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import GradualBlur from '../ui/GradualBlur';
 import './TopBlur.css';
 
 const TopBlur = () => {
+    const location = useLocation();
+
+    // Don't show blur on admin pages or login
+    if (location.pathname.startsWith('/admin') || location.pathname === '/login') {
+        return null;
+    }
+
     return (
         <>
             <div className="top-blur-gradient" />
