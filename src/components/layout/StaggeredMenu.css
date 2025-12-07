@@ -229,7 +229,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
 }
 
@@ -239,13 +239,15 @@
     color: #fff;
     text-decoration: none;
     position: relative;
-    padding: 2px 0;
-    display: inline-block;
-    transition: color 0.3s ease, opacity 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, opacity 0.3s ease, transform 0.2s ease;
 }
 
 .sm-socials-link:hover {
     color: var(--sm-accent, #ccff00);
+    transform: translateY(-2px);
 }
 
 .sm-socials-list .sm-socials-link {
@@ -253,12 +255,13 @@
 }
 
 .sm-socials-list:hover .sm-socials-link:not(:hover) {
-    opacity: 0.35;
+    opacity: 0.5;
 }
 
 .sm-socials-link:focus-visible {
     outline: 2px solid var(--sm-accent, #ccff00);
     outline-offset: 3px;
+    border-radius: 4px;
 }
 
 @media (max-width: 1024px) {

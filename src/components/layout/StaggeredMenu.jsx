@@ -1,6 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
+import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegram } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
 import './StaggeredMenu.css';
 
@@ -13,9 +14,10 @@ const menuItems = [
 ];
 
 const socialItems = [
-    { label: 'Instagram', link: 'https://instagram.com/muvs' },
-    { label: 'SoundCloud', link: 'https://soundcloud.com/muvs' },
-    { label: 'GitHub', link: 'https://github.com/muvs' }
+    { label: 'Instagram', link: 'https://instagram.com/muvs', icon: 'FaInstagram' },
+    { label: 'SoundCloud', link: 'https://soundcloud.com/muvs', icon: 'FaSoundcloud' },
+    { label: 'Bandcamp', link: 'https://bandcamp.com/muvs', icon: 'FaBandcamp' },
+    { label: 'Telegram', link: 'https://t.me/muvs', icon: 'FaTelegram' }
 ];
 
 export const StaggeredMenu = () => {
@@ -310,13 +312,12 @@ export const StaggeredMenu = () => {
 
             <aside ref={panelRef} className="staggered-menu-panel" aria-hidden={!open}>
                 <div className="sm-panel-inner">
-                    <ul className="sm-panel-list" role="list" data-numbering>
+                    <ul className="sm-panel-list" role="list">
                         {menuItems.map((it, idx) => (
                             <li className="sm-panel-itemWrap" key={it.label}>
                                 <Link
                                     className={`sm-panel-item ${location.pathname === it.path ? 'active' : ''}`}
                                     to={it.path}
-                                    data-index={idx + 1}
                                 >
                                     <span className="sm-panel-itemLabel">{it.label}</span>
                                 </Link>
@@ -327,13 +328,25 @@ export const StaggeredMenu = () => {
                     <div className="sm-socials" aria-label="Social links">
                         <h3 className="sm-socials-title">Socials</h3>
                         <ul className="sm-socials-list" role="list">
-                            {socialItems.map((s, i) => (
-                                <li key={s.label} className="sm-socials-item">
-                                    <a href={s.link} target="_blank" rel="noopener noreferrer" className="sm-socials-link">
-                                        {s.label}
-                                    </a>
-                                </li>
-                            ))}
+                            {socialItems.map((s) => {
+                                const IconComponent = s.icon === 'FaInstagram' ? FaInstagram :
+                                    s.icon === 'FaSoundcloud' ? FaSoundcloud :
+                                        s.icon === 'FaBandcamp' ? FaBandcamp :
+                                            FaTelegram;
+                                return (
+                                    <li key={s.label} className="sm-socials-item">
+                                        <a
+                                            href={s.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="sm-socials-link"
+                                            aria-label={s.label}
+                                        >
+                                            <IconComponent size={24} />
+                                        </a>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                 </div>
