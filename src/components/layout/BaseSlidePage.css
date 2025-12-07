@@ -36,15 +36,15 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 50;
-    mix-blend-mode: difference;
-    color: white;
+    /* Removed mix-blend-mode to ensure visibility */
 }
 
 .scroll-arrow {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--color-text-dark);
+    color: #000000;
+    /* Explicitly black as requested */
     animation: bounce 2s infinite;
 }
 
