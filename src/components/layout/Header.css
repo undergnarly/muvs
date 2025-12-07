@@ -1,0 +1,28 @@
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    z-index: 100;
+    pointer-events: none;
+    /* Allow clicking through empty parts */
+    mix-blend-mode: difference;
+    color: #FFFFFF;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: auto;
+    /* Re-enable pointer events for children */
+    max-width: 1920px;
+    margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+    .header {
+        padding: var(--spacing-sm);
+    }
+}

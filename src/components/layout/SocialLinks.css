@@ -1,0 +1,19 @@
+.social-links {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.social-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: inherit;
+    transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.social-links a:hover {
+    color: var(--color-accent);
+    transform: scale(1.1);
+}

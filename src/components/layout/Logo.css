@@ -1,0 +1,11 @@
+.logo {
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    color: inherit;
+    z-index: 100;
+    transition: color var(--transition-medium);
+    user-select: none;
+}

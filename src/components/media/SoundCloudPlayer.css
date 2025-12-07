@@ -1,0 +1,24 @@
+.sc-player-wrapper {
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 20px;
+    z-index: 20;
+}
+
+.sc-player-placeholder {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 4px;
+    color: black;
+    text-align: center;
+    box-shadow: var(--shadow-light);
+}
+
+.sc-loading-bar {
+    height: 2px;
+    background: var(--color-accent);
+    width: 50%;
+    margin: 5px auto;
+}

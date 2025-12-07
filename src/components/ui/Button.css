@@ -1,0 +1,58 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    /* Minimalist rounded */
+    transition: all var(--transition-fast);
+    text-align: center;
+    font-family: inherit;
+}
+
+/* Light Variant (for Dark backgrounds usually, but spec says: 
+   "White Backround -> Black Button")
+   Wait, spec says:
+   On White BG: Black Button (#0A0A0A) + White Text
+   On Dark BG: Lime Button (#CCFF00) + Black Text
+*/
+
+/* This variant is for use on Light Backgrounds */
+.btn-dark {
+    background-color: var(--button-light-bg);
+    /* #0A0A0A */
+    color: var(--button-light-text);
+    /* #FFFFFF */
+}
+
+.btn-dark:hover {
+    transform: scale(1.05);
+    /* Spec requirement */
+    box-shadow: var(--shadow-dark);
+}
+
+.btn-dark:active {
+    transform: scale(0.98);
+}
+
+/* This variant is for use on Dark Backgrounds */
+.btn-accent {
+    background-color: var(--button-dark-bg);
+    /* #CCFF00 */
+    color: var(--button-dark-text);
+    /* #0A0A0A */
+}
+
+.btn-accent:hover {
+    background-color: var(--color-accent-hover);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-accent);
+}
+
+.btn-accent:active {
+    transform: scale(0.98);
+}

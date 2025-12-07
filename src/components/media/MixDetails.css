@@ -1,0 +1,62 @@
+.mix-details-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-bottom: var(--spacing-2xl);
+}
+
+.mix-title-lg {
+    font-size: 40px;
+    /* Slightly smaller than releases maybe, or same */
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-light);
+}
+
+.mix-date {
+    display: block;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--spacing-lg);
+    font-family: monospace;
+}
+
+.mix-description {
+    font-size: 18px;
+    margin-bottom: var(--spacing-xl);
+    max-width: 600px;
+}
+
+/* Reusing tracklist styles implicitly if global, but cleaner to define or reuse classes.
+   For now, I'll copy relevant styles to be safe and independent.
+*/
+
+.mix-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.media-links {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.media-icon-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--color-text-light);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.media-icon-link:hover {
+    background: var(--hover-color, var(--color-accent));
+    border-color: var(--hover-color, var(--color-accent));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,31 @@
+.slide-indicators {
+    position: absolute;
+    bottom: 80px;
+    /* Above scroll indicator */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--spacing-xs);
+    z-index: 50;
+    mix-blend-mode: difference;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: transparent;
+    border: 1px solid #FFFFFF;
+    /* always white via difference */
+    padding: 0;
+    transition: all var(--transition-medium);
+}
+
+.indicator-dot.active {
+    background-color: #FFFFFF;
+    transform: scale(1.2);
+}
+
+.indicator-dot:hover {
+    transform: scale(1.5);
+}

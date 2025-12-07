@@ -1,0 +1,68 @@
+.base-page {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+}
+
+.slide-section {
+    width: 100%;
+    position: relative;
+}
+
+.cover-section {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--color-bg-light);
+    color: var(--color-text-dark);
+    transition: background-color 0.5s ease;
+}
+
+.detail-section {
+    min-height: 100vh;
+    padding: var(--spacing-2xl) var(--spacing-md);
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    /* Ensure details cover the previous section nicely or transition */
+    z-index: 10;
+}
+
+/* Scroll Indicator */
+.scroll-indicator-wrapper {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    mix-blend-mode: difference;
+    color: white;
+}
+
+.scroll-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--color-text-dark);
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-10px);
+    }
+
+    60% {
+        transform: translateY(-5px);
+    }
+}

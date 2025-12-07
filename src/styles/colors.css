@@ -1,0 +1,35 @@
+:root {
+  /* Основные цвета */
+  --color-bg-light: #F5F5F0;
+  --color-bg-dark: #1A1A1A;
+  --color-text-light: #FFFFFF;
+  --color-text-dark: #0A0A0A;
+  
+  /* Акцентный цвет */
+  --color-accent: #CCFF00;
+  --color-accent-hover: #D4FF1A;
+  
+  /* Состояния кнопок */
+  --button-light-bg: #0A0A0A;
+  --button-light-text: #FFFFFF;
+  --button-dark-bg: #CCFF00;
+  --button-dark-text: #0A0A0A;
+  
+  /* Тени */
+  --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-dark: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-accent: 0 0 20px rgba(204, 255, 0, 0.3);
+  
+  /* Переходы */
+  --transition-fast: 200ms ease-out;
+  --transition-medium: 400ms ease-out;
+  --transition-slow: 600ms ease-out;
+  
+  /* Отступы */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+  --spacing-2xl: 64px;
+}
