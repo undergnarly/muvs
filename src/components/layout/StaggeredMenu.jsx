@@ -320,9 +320,14 @@ export const StaggeredMenu = () => {
             </div>
 
             <header className="staggered-menu-header" aria-label="Main navigation header">
-                <div className="sm-logo" aria-label="Logo">
-                    <img src="/images/logo.png" alt="MUVS" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
-                </div>
+                <a
+                    href={ROUTES.HOME || '/'}
+                    className="sm-logo"
+                    aria-label="Logo"
+                    onClick={(e) => handleLinkClick(e, ROUTES.HOME || '/')}
+                >
+                    <div className="sm-logo-img" />
+                </a>
                 <button
                     ref={toggleBtnRef}
                     className="sm-toggle"

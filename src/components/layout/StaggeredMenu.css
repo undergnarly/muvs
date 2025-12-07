@@ -38,6 +38,29 @@
     user-select: none;
     mix-blend-mode: difference;
     color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.sm-logo-img {
+    width: auto;
+    height: 32px;
+    background-color: #fff;
+    mask-image: url('/images/logo.png');
+    -webkit-mask-image: url('/images/logo.png');
+    mask-size: contain;
+    -webkit-mask-size: contain;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    aspect-ratio: 2/1;
+    /* Approx aspect ratio to ensure visibility */
+    transition: background-color 0.3s ease;
+}
+
+.sm-logo:hover .sm-logo-img {
+    background-color: var(--sm-accent, #ccff00);
 }
 
 .sm-toggle {
