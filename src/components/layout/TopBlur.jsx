@@ -9,7 +9,7 @@ const TopBlur = () => {
             <GradualBlur
                 target="page"
                 position="top"
-                height="20vh"
+                height="14vh"
                 strength={2}
                 divCount={5}
                 curve="bezier"
