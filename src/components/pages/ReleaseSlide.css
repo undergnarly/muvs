@@ -8,14 +8,41 @@
     align-items: center;
 }
 
+/* Background title text */
+.release-title-background {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+}
+
+.title-background-text {
+    font-size: clamp(48px, 10vw, 120px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    color: var(--color-text-light);
+    opacity: 0.15;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 20px;
+}
+
 .release-cover-wrapper {
+    position: relative;
     width: 300px;
     height: 300px;
     box-shadow: var(--shadow-dark);
     margin-bottom: var(--spacing-lg);
-    position: relative;
     background-color: #FFFFFF;
     padding: 10px;
+    z-index: 2;
     /* White frame */
 }
 

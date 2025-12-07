@@ -9,15 +9,25 @@ import './ReleaseSlide.css';
 const ReleaseSlide = ({ release }) => {
     const CoverContent = (
         <div className="release-cover-container">
+            {/* Background title text */}
+            <motion.div
+                className="release-title-background"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+                <h1 className="title-background-text">{release.title}</h1>
+            </motion.div>
+
+            {/* Cover image with transparency effect */}
             <motion.div
                 className="release-cover-wrapper"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             >
                 <div className="cover-placeholder">
-                    {/* Mock image if no real one */}
-                    {release.coverImage.startsWith('/images') ? (
+                    {release.coverImage.startsWith('/images') || !release.coverImage.startsWith('data:') ? (
                         <div className="mock-cover">
                             <span>{release.title}</span>
                             <span className="mock-label">ARTWORK</span>
@@ -32,9 +42,8 @@ const ReleaseSlide = ({ release }) => {
                 className="release-main-info"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
             >
-                <h1 className="main-title">{release.title}</h1>
                 <p className="main-artist">MUVS</p>
             </motion.div>
 

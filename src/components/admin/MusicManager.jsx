@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { compressImage, validateImageFile } from '../../utils/imageCompression';
 
 const MusicManager = () => {
     const { releases, updateData } = useData();
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [imagePreview, setImagePreview] = useState(null);
 
     // Initial State
     const initialForm = {
@@ -36,7 +39,26 @@ const MusicManager = () => {
     const handleAddNew = () => {
         setEditingItem(null);
         setFormData(initialForm);
+        setImagePreview(null);
         setIsFormOpen(true);
+    };
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            validateImageFile(file);
+
+            const compressedImage = await compressImage(file, 250);
+            setFormData({ ...formData, coverImage: compressedImage });
+            setImagePreview(compressedImage);
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -96,13 +118,39 @@ const MusicManager = () => {
                                 style={inputStyle}
                             />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Cover Image URL (e.g., /images/releases/cover.jpg)"
-                            value={formData.coverImage}
-                            onChange={e => setFormData({ ...formData, coverImage: e.target.value })}
-                            style={inputStyle}
-                        />
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                                Cover Image
+                            </label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1 }}>
+                                    <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        onChange={handleImageUpload}
+                                        style={{ display: 'none' }}
+                                        id="image-upload"
+                                    />
+                                    <label htmlFor="image-upload" style={uploadButtonStyle}>
+                                        <FaUpload style={{ marginRight: '8px' }} />
+                                        {uploading ? 'Compressing...' : 'Upload Image'}
+                                    </label>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
+                                        Max 10MB • Will be compressed to ~250KB
+                                    </div>
+                                </div>
+                                {(imagePreview || formData.coverImage) && (
+                                    <div style={{ width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)' }}>
+                                        <img
+                                            src={imagePreview || formData.coverImage}
+                                            alt="Preview"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                         <textarea
                             placeholder="Description"
                             value={formData.description}
@@ -200,6 +248,23 @@ const actionButtonStyle = {
     padding: '8px',
     fontSize: '16px',
     transition: 'color 0.2s'
+};
+
+const uploadButtonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '12px 20px',
+    background: 'rgba(204, 255, 0, 0.1)',
+    border: '1px solid var(--color-accent)',
+    borderRadius: '8px',
+    color: 'var(--color-accent)',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s',
+    ':hover': {
+        background: 'rgba(204, 255, 0, 0.2)'
+    }
 };
 
 export default MusicManager;
