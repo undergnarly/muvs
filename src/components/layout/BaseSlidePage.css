@@ -15,7 +15,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: var(--color-bg-light);
+    background-color: transparent;
     color: var(--color-text-dark);
     transition: background-color 0.5s ease;
 }
