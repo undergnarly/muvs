@@ -44,8 +44,10 @@
     top: 0;
     left: 0;
     width: 100vw;
+    width: 100vw;
     height: 100vh;
-    background-color: var(--color-bg-dark);
+    background-color: rgba(26, 26, 26, 0.8);
+    /* Semi-transparent dark bg */
     color: var(--color-text-light);
     z-index: 1000;
     display: flex;
