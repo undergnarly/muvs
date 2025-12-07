@@ -17,6 +17,7 @@ import ProjectsManager from './components/admin/ProjectsManager';
 import MessagesManager from './components/admin/MessagesManager';
 import AdminSettings from './components/admin/AdminSettings';
 import TopBlur from './components/layout/TopBlur';
+import PageGradient from './components/layout/PageGradient';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 import { useLocation } from 'react-router-dom';
@@ -33,6 +34,7 @@ function App() {
   return (
     <>
       <TopBlur />
+      <PageGradient />
       <Routes>
         <Route path={ROUTES.HOME} element={<MusicPage />} />
         <Route path={ROUTES.ABOUT} element={<AboutPage />} />
