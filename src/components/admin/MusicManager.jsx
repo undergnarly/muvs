@@ -142,10 +142,26 @@ const MusicManager = () => {
                                         style={{ display: 'none' }}
                                         id="image-upload"
                                     />
-                                    <label htmlFor="image-upload" style={uploadButtonStyle}>
-                                        <FaUpload style={{ marginRight: '8px' }} />
-                                        {uploading ? 'Uploading...' : 'Upload Image'}
-                                    </label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <label htmlFor="image-upload" style={uploadButtonStyle}>
+                                            <FaUpload style={{ marginRight: '8px' }} />
+                                            {uploading ? 'Uploading...' : 'Upload Image'}
+                                        </label>
+                                        {(imagePreview || formData.coverImage) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData({ ...formData, coverImage: '' });
+                                                    setImagePreview(null);
+                                                    setUploadStatus('');
+                                                }}
+                                                style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                            >
+                                                <FaTrash style={{ marginRight: '8px' }} />
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
                                     {uploadStatus && (
                                         <div style={{
                                             fontSize: '12px',

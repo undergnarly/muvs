@@ -321,7 +321,7 @@ export const StaggeredMenu = () => {
 
             <header className="staggered-menu-header" aria-label="Main navigation header">
                 <div className="sm-logo" aria-label="Logo">
-                    <span style={{ fontSize: '24px', fontWeight: '700', color: '#fff' }}>MUVS</span>
+                    <img src="/images/logo.png" alt="MUVS" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
                 </div>
                 <button
                     ref={toggleBtnRef}
