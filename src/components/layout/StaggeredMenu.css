@@ -7,6 +7,7 @@
     z-index: 2000;
     overflow: hidden;
     pointer-events: none;
+    color-scheme: only light;
 }
 
 .staggered-menu-wrapper>* {
@@ -35,6 +36,8 @@
     display: flex;
     align-items: center;
     user-select: none;
+    mix-blend-mode: difference;
+    color: #fff;
 }
 
 .sm-toggle {
@@ -51,6 +54,7 @@
     line-height: 1;
     overflow: visible;
     transition: color 0.3s ease;
+    mix-blend-mode: difference;
 }
 
 .sm-toggle:focus-visible {
@@ -110,12 +114,14 @@
     right: 0;
     width: clamp(260px, 38vw, 420px);
     height: 100%;
-    background: #1a1a1a;
+    background: #1a1a1a !important;
+    color: #ffffff !important;
     display: flex;
     flex-direction: column;
     padding: 6em 2em 2em 2em;
     overflow-y: auto;
     z-index: 10;
+    color-scheme: only light;
 }
 
 .sm-prelayers {
@@ -162,7 +168,7 @@
 
 .sm-panel-item {
     position: relative;
-    color: #fff;
+    color: #fff !important;
     font-weight: 600;
     font-size: clamp(2.5rem, 6vw, 3.5rem);
     cursor: pointer;
