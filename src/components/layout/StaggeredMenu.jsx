@@ -274,6 +274,13 @@ export const StaggeredMenu = () => {
 
     const handleLinkClick = (e, path) => {
         e.preventDefault();
+
+        // If menu is closed (e.g. clicking logo from top bar), navigate immediately
+        if (!open) {
+            navigate(path);
+            return;
+        }
+
         if (location.pathname === path) {
             toggleMenu();
             return;
