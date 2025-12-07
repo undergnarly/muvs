@@ -4,7 +4,7 @@ export const releases = [
         title: "Constants EP",
         coverImage: "/images/releases/constants-ep.webp", // Mock path
         releaseDate: "15.12.2024",
-        soundcloudUrl: "https://soundcloud.com/muvs/sets/constants-ep", // Needs real ID or URL handling
+        soundcloudUrl: "https://soundcloud.com/blocklab66/fkof-sessions-w-blocklab-subtle-radio-15012022",
         bandcampUrl: "https://muvs.bandcamp.com/album/constants-ep",
         tracks: [
             { id: 1, title: "Pi", duration: "5:32" },
