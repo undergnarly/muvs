@@ -38,12 +38,8 @@
     position: relative;
     width: 300px;
     height: 300px;
-    box-shadow: var(--shadow-dark);
     margin-bottom: var(--spacing-lg);
-    background-color: #FFFFFF;
-    padding: 10px;
     z-index: 2;
-    /* White frame */
 }
 
 .cover-placeholder {

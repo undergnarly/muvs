@@ -9,6 +9,7 @@ const MusicManager = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
 
     // Initial State
@@ -26,6 +27,7 @@ const MusicManager = () => {
     const handleEdit = (item) => {
         setEditingItem(item);
         setFormData({ ...item }); // Spread to copy fields
+        setImagePreview(item.coverImage || null);
         setIsFormOpen(true);
     };
 
@@ -40,6 +42,7 @@ const MusicManager = () => {
         setEditingItem(null);
         setFormData(initialForm);
         setImagePreview(null);
+        setUploadStatus('');
         setIsFormOpen(true);
     };
 
@@ -49,13 +52,20 @@ const MusicManager = () => {
 
         try {
             setUploading(true);
+            setUploadStatus('Validating image...');
             validateImageFile(file);
 
+            setUploadStatus('Compressing image...');
             const compressedImage = await compressImage(file, 250);
+
+            setUploadStatus('Upload complete!');
             setFormData({ ...formData, coverImage: compressedImage });
             setImagePreview(compressedImage);
+
+            setTimeout(() => setUploadStatus(''), 2000);
         } catch (error) {
-            alert(error.message);
+            setUploadStatus('Error: ' + error.message);
+            setTimeout(() => setUploadStatus(''), 3000);
         } finally {
             setUploading(false);
         }
@@ -134,11 +144,23 @@ const MusicManager = () => {
                                     />
                                     <label htmlFor="image-upload" style={uploadButtonStyle}>
                                         <FaUpload style={{ marginRight: '8px' }} />
-                                        {uploading ? 'Compressing...' : 'Upload Image'}
+                                        {uploading ? 'Uploading...' : 'Upload Image'}
                                     </label>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
-                                        Max 10MB • Will be compressed to ~250KB
-                                    </div>
+                                    {uploadStatus && (
+                                        <div style={{
+                                            fontSize: '12px',
+                                            color: uploadStatus.includes('Error') ? '#ff5555' : 'var(--color-accent)',
+                                            marginTop: '8px',
+                                            fontWeight: '500'
+                                        }}>
+                                            {uploadStatus}
+                                        </div>
+                                    )}
+                                    {!uploadStatus && (
+                                        <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
+                                            Max 10MB • Will be compressed to ~250KB
+                                        </div>
+                                    )}
                                 </div>
                                 {(imagePreview || formData.coverImage) && (
                                     <div style={{ width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)' }}>
