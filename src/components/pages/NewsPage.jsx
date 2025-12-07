@@ -1,5 +1,6 @@
 import React from 'react';
 import BaseSlidePage from '../layout/BaseSlidePage';
+import Header from '../layout/Header';
 import SplitText from '../ui/SplitText';
 
 import { news } from '../../data/news';
@@ -30,10 +31,13 @@ const NewsPage = () => {
     );
 
     return (
-        <BaseSlidePage
-            coverContent={CoverContent}
-            detailContent={DetailContent}
-        />
+        <>
+            <Header />
+            <BaseSlidePage
+                coverContent={CoverContent}
+                detailContent={DetailContent}
+            />
+        </>
     );
 };
 

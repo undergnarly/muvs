@@ -1,5 +1,5 @@
 import React from 'react';
-
+import Header from '../layout/Header';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import SplitText from '../ui/SplitText';
 import SocialLinks from '../layout/SocialLinks';
@@ -30,10 +30,13 @@ const AboutPage = () => {
     );
 
     return (
-        <BaseSlidePage
-            coverContent={CoverContent}
-            detailContent={DetailContent}
-        />
+        <>
+            <Header />
+            <BaseSlidePage
+                coverContent={CoverContent}
+                detailContent={DetailContent}
+            />
+        </>
     );
 };
 
