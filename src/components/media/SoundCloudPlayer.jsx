@@ -1,20 +1,27 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import './SoundCloudPlayer.css';
 
 const SoundCloudPlayer = ({ url }) => {
-    // Using generic embed for now, ideally would use SC Widget API for finding track ID
-    // For this mock, we'll try to embed based on URL if possible, or just a placeholder visual if API key is needed.
-    // Actually, visual "Player" request for top section is usually small.
-    // Spec said: "SoundCloud player: Embedded at bottom of page" in Main Slide.
+    if (!url) return null;
 
     return (
-        <div className="sc-player-wrapper">
-            <div className="sc-player-placeholder">
-                {/* Real integration would load iframe here */}
-                <span style={{ fontSize: '12px', opacity: 0.7 }}>SC PLAYER: {url}</span>
-                <div className="sc-loading-bar"></div>
-            </div>
-        </div>
+        <motion.div
+            className="sc-player-wrapper"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+        >
+            <iframe
+                width="100%"
+                height="166"
+                scrolling="no"
+                frameBorder="no"
+                allow="autoplay"
+                src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ccff00&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
+                style={{ borderRadius: '8px' }}
+            ></iframe>
+        </motion.div>
     );
 };
 

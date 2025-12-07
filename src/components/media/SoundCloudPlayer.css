@@ -1,24 +1,22 @@
 .sc-player-wrapper {
-    width: 100%;
     position: absolute;
-    bottom: 0;
-    left: 0;
-    padding: 20px;
-    z-index: 20;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    z-index: 30;
 }
 
-.sc-player-placeholder {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 4px;
-    color: black;
-    text-align: center;
-    box-shadow: var(--shadow-light);
+@media (min-width: 768px) {
+    .sc-player-wrapper {
+        max-width: 700px;
+    }
 }
 
-.sc-loading-bar {
-    height: 2px;
-    background: var(--color-accent);
-    width: 50%;
-    margin: 5px auto;
+@media (max-width: 480px) {
+    .sc-player-wrapper {
+        width: 95%;
+        bottom: 18%;
+    }
 }
