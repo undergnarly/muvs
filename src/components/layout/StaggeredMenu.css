@@ -111,8 +111,6 @@
     width: clamp(260px, 38vw, 420px);
     height: 100%;
     background: #1a1a1a;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
     padding: 6em 2em 2em 2em;
@@ -128,6 +126,7 @@
     width: clamp(260px, 38vw, 420px);
     pointer-events: none;
     z-index: 5;
+    display: none;
 }
 
 .sm-prelayer {
