@@ -1,6 +1,6 @@
 import React from 'react';
 import Logo from './Logo';
-import BurgerMenu from './BurgerMenu';
+import StaggeredMenu from './StaggeredMenu';
 import './Header.css';
 
 const Header = () => {
@@ -8,7 +8,7 @@ const Header = () => {
         <header className="header">
             <div className="header-content">
                 <Logo />
-                <BurgerMenu />
+                <StaggeredMenu />
             </div>
         </header>
     );
