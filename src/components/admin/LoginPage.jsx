@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 
 const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { adminSettings } = useData();
 
     const handleLogin = (e) => {
         e.preventDefault();
-        // Simple hardcoded PIN for now - in production this should be env var or real auth
-        if (password === '1234') { // Default simple PIN
+        if (password === adminSettings.pin) {
             sessionStorage.setItem('isAdmin', 'true');
             navigate('/admin');
         } else {

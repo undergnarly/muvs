@@ -15,17 +15,19 @@ import MusicManager from './components/admin/MusicManager';
 import MixesManager from './components/admin/MixesManager';
 import ProjectsManager from './components/admin/ProjectsManager';
 import MessagesManager from './components/admin/MessagesManager';
+import AdminSettings from './components/admin/AdminSettings';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
+import { useLocation } from 'react-router-dom';
 
 function App() {
-  const { incrementStat } = useData();
+  const { trackVisit } = useData();
+  const location = useLocation();
 
   React.useEffect(() => {
-    // Simple session check to avoid counting refresh as new visit? 
-    // For now, let's just count every load as requested "visits"
-    incrementStat('visits');
-  }, []);
+    // Track visit with current path and referrer
+    trackVisit(location.pathname, document.referrer);
+  }, [location.pathname]);
 
   return (
     <Routes>
@@ -42,6 +44,7 @@ function App() {
         <Route path="mixes" element={<MixesManager />} />
         <Route path="projects" element={<ProjectsManager />} />
         <Route path="messages" element={<MessagesManager />} />
+        <Route path="settings" element={<AdminSettings />} />
         {/* Sub-routes will be added here */}
       </Route>
     </Routes>

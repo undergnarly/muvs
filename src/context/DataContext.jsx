@@ -17,8 +17,16 @@ export const DataProvider = ({ children }) => {
     const [mixes, setMixes] = useState(() => loadData('muvs_mixes', defaultMixes));
     const [projects, setProjects] = useState(() => loadData('muvs_projects', defaultProjects));
     const [news, setNews] = useState(() => loadData('muvs_news', defaultNews));
-    const [stats, setStats] = useState(() => loadData('muvs_stats', { visits: 0, plays: 0 }));
+    const [stats, setStats] = useState(() => loadData('muvs_stats', {
+        totalVisits: 0,
+        totalPlays: 0,
+        daily: {}, // { "2024-12-07": 5, ... }
+        sources: {}, // { "google.com": 10, "direct": 5, ... }
+        pages: {}, // { "/music": 20, "/about": 10, ... }
+        detailViews: 0
+    }));
     const [messages, setMessages] = useState(() => loadData('muvs_messages', []));
+    const [adminSettings, setAdminSettings] = useState(() => loadData('muvs_admin_settings', { pin: '1234' }));
 
     // Persist changes to localStorage whenever state changes
     useEffect(() => {
@@ -45,6 +53,10 @@ export const DataProvider = ({ children }) => {
         localStorage.setItem('muvs_messages', JSON.stringify(messages));
     }, [messages]);
 
+    useEffect(() => {
+        localStorage.setItem('muvs_admin_settings', JSON.stringify(adminSettings));
+    }, [adminSettings]);
+
     const updateData = (type, newData) => {
         switch (type) {
             case 'releases': setReleases(newData); break;
@@ -55,8 +67,49 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    const incrementStat = (key) => {
-        setStats(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+    const trackVisit = (path, referrer = '') => {
+        const today = new Date().toISOString().split('T')[0]; // "2024-12-07"
+
+        setStats(prev => {
+            const newStats = { ...prev };
+
+            // Increment total visits
+            newStats.totalVisits = (newStats.totalVisits || 0) + 1;
+
+            // Track daily visits
+            newStats.daily = { ...prev.daily };
+            newStats.daily[today] = (newStats.daily[today] || 0) + 1;
+
+            // Track page views
+            newStats.pages = { ...prev.pages };
+            newStats.pages[path] = (newStats.pages[path] || 0) + 1;
+
+            // Track sources
+            newStats.sources = { ...prev.sources };
+            let source = 'direct';
+            if (referrer) {
+                try {
+                    const url = new URL(referrer);
+                    source = url.hostname.replace('www.', '');
+                } catch (e) {
+                    source = 'unknown';
+                }
+            }
+            newStats.sources[source] = (newStats.sources[source] || 0) + 1;
+
+            return newStats;
+        });
+    };
+
+    const trackDetailView = () => {
+        setStats(prev => ({
+            ...prev,
+            detailViews: (prev.detailViews || 0) + 1
+        }));
+    };
+
+    const updatePin = (newPin) => {
+        setAdminSettings({ pin: newPin });
     };
 
     const addMessage = (msg) => {
@@ -74,8 +127,16 @@ export const DataProvider = ({ children }) => {
             setMixes(defaultMixes);
             setProjects(defaultProjects);
             setNews(defaultNews);
-            setStats({ visits: 0, plays: 0 });
+            setStats({
+                totalVisits: 0,
+                totalPlays: 0,
+                daily: {},
+                sources: {},
+                pages: {},
+                detailViews: 0
+            });
             setMessages([]);
+            setAdminSettings({ pin: '1234' });
             localStorage.clear();
         }
     };
@@ -87,8 +148,11 @@ export const DataProvider = ({ children }) => {
         news,
         stats,
         messages,
+        adminSettings,
         updateData,
-        incrementStat,
+        trackVisit,
+        trackDetailView,
+        updatePin,
         addMessage,
         deleteMessage,
         resetData

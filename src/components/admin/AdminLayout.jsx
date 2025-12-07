@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
-import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaSignOutAlt, FaHome, FaEnvelope } from 'react-icons/fa';
+import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaSignOutAlt, FaHome, FaEnvelope, FaCog } from 'react-icons/fa';
 import './AdminLayout.css';
 
 const AdminLayout = () => {
@@ -26,6 +26,7 @@ const AdminLayout = () => {
         { path: '/admin/mixes', label: 'Mixes', icon: FaMusic },
         { path: '/admin/projects', label: 'Projects', icon: FaCode },
         { path: '/admin/messages', label: 'Messages', icon: FaEnvelope },
+        { path: '/admin/settings', label: 'Settings', icon: FaCog },
     ];
 
     return (
