@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipe } from '../../hooks/useSwipe';
 import { BiChevronLeft, BiChevronRight } from 'react-icons/bi';
+import GradualBlur from '../ui/GradualBlur';
 import './SlideContainer.css';
 
 const SlideContainer = ({ children, activeIndex, onChange }) => {
@@ -71,6 +72,16 @@ const SlideContainer = ({ children, activeIndex, onChange }) => {
                     className="slide-wrapper"
                 >
                     {React.Children.toArray(children)[activeIndex]}
+                    <GradualBlur
+                        target="parent"
+                        position="bottom"
+                        height="8rem"
+                        strength={2.5}
+                        divCount={6}
+                        curve="bezier"
+                        exponential={true}
+                        opacity={0.95}
+                    />
                 </motion.div>
             </AnimatePresence>
 
