@@ -42,4 +42,12 @@
     .about-title {
         font-size: 48px;
     }
+
+    .about-details-container {
+        padding: var(--spacing-md);
+    }
+
+    .about-content {
+        font-size: 16px;
+    }
 }
