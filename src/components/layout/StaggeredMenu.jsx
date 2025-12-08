@@ -91,10 +91,10 @@ export const StaggeredMenu = () => {
         const layerStates = layers.map(el => ({ el, start: Number(gsap.getProperty(el, 'xPercent')) }));
         const panelStart = Number(gsap.getProperty(panel, 'xPercent'));
 
-        if (itemEls.length) gsap.set(itemEls, { yPercent: 140, rotate: 10 });
+        if (itemEls.length) gsap.set(itemEls, { yPercent: 140, rotate: 10, x: 0, opacity: 1 });
         if (numberEls.length) gsap.set(numberEls, { '--sm-num-opacity': 0 });
         if (socialTitle) gsap.set(socialTitle, { opacity: 0 });
-        if (socialLinks.length) gsap.set(socialLinks, { y: 25, opacity: 0 });
+        if (socialLinks.length) gsap.set(socialLinks, { y: 25, opacity: 0, x: 0 });
 
         const tl = gsap.timeline({ paused: true });
 
