@@ -1,0 +1,125 @@
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const PORT = 3001;
+
+// Paths to persistent data
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+
+// Ensure directories exist
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Initialize DB if empty
+if (!fs.existsSync(DB_FILE)) {
+    const initialData = {
+        releases: [],
+        mixes: [],
+        projects: [],
+        news: [],
+        adminSettings: { pin: '1234' }, // Default PIN
+        stats: { visits: [], detailViews: [] }
+    };
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+}
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json({ limit: '50mb' })); // Support large payloads just in case
+
+// Image Storage Engine
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, UPLOADS_DIR);
+    },
+    filename: (req, file, cb) => {
+        // Sanitize filename and strip extension
+        const name = file.originalname.toLowerCase().split(' ').join('-');
+        const ext = path.extname(name);
+        // Unique filename: timestamp-name
+        cb(null, Date.now() + '-' + name);
+    }
+});
+const upload = multer({ storage: storage });
+
+// Database Helper
+const getDb = () => {
+    try {
+        const data = fs.readFileSync(DB_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Error reading DB:', e);
+        return {};
+    }
+};
+
+const saveDb = (data) => {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+        return true;
+    } catch (e) {
+        console.error('Error writing DB:', e);
+        return false;
+    }
+};
+
+// --- Routes ---
+
+// Get Data (All or Specific key)
+app.get('/api/data', (req, res) => {
+    const db = getDb();
+    res.json(db);
+});
+
+// Update Data (Full update of a key)
+app.post('/api/data', (req, res) => {
+    const { key, value } = req.body;
+    if (!key || value === undefined) {
+        return res.status(400).json({ error: 'Missing key or value' });
+    }
+
+    const db = getDb();
+    db[key] = value;
+
+    if (saveDb(db)) {
+        res.json({ success: true, count: Array.isArray(value) ? value.length : 1 });
+    } else {
+        res.status(500).json({ error: 'Failed to save data' });
+    }
+});
+
+// Validate PIN (Server-side check)
+app.post('/api/auth/validate-pin', (req, res) => {
+    const { pin } = req.body;
+    const db = getDb();
+    const correctPin = db.adminSettings?.pin || '1234';
+
+    if (pin === correctPin) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, error: 'Invalid PIN' });
+    }
+});
+
+// Upload File
+app.post('/api/upload', upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Return relative URL that Nginx will map to the file
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+});
+
+// Start Server
+app.listen(PORT, '127.0.0.1', () => { // Bind to localhost only for security
+    console.log(`Server running at http://127.0.0.1:${PORT}`);
+});

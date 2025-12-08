@@ -8,47 +8,68 @@ const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
     // Helper to load from storage or fallback to default
-    const loadData = (key, fallback) => {
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : fallback;
-    };
-
-    const [releases, setReleases] = useState(() => loadData('muvs_releases', defaultReleases));
-    const [mixes, setMixes] = useState(() => loadData('muvs_mixes', defaultMixes));
-    const [projects, setProjects] = useState(() => loadData('muvs_projects', defaultProjects));
-    const [news, setNews] = useState(() => loadData('muvs_news', defaultNews));
-    const [stats, setStats] = useState(() => loadData('muvs_stats', {
+    // Initial state with defaults
+    const [releases, setReleases] = useState(defaultReleases);
+    const [mixes, setMixes] = useState(defaultMixes);
+    const [projects, setProjects] = useState(defaultProjects);
+    const [news, setNews] = useState(defaultNews);
+    const [stats, setStats] = useState({
         totalVisits: 0,
         totalPlays: 0,
-        daily: {}, // { "2024-12-07": 5, ... }
-        sources: {}, // { "google.com": 10, "direct": 5, ... }
-        pages: {}, // { "/music": 20, "/about": 10, ... }
+        daily: {},
+        sources: {},
+        pages: {},
         detailViews: 0
-    }));
-    const [messages, setMessages] = useState(() => loadData('muvs_messages', []));
-    const [adminSettings, setAdminSettings] = useState(() => loadData('muvs_admin_settings', { pin: '1234' }));
+    });
+    const [messages, setMessages] = useState([]);
+    const [adminSettings, setAdminSettings] = useState({ pin: '1234' });
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    // Helper to safely save to localStorage
-    const saveToStorage = (key, data) => {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            console.error(`Error saving to ${key}:`, error);
-            // If quota exceeded, alert the user (only once to avoid spam)
-            if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                alert('Storage Limit Reached! Cannot save changes. Please delete some items (like unused images) to free up space.');
+    // Fetch data from API on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await fetch('/api/data');
+                if (res.ok) {
+                    const db = await res.json();
+                    if (db.releases) setReleases(db.releases);
+                    if (db.mixes) setMixes(db.mixes);
+                    if (db.projects) setProjects(db.projects);
+                    if (db.news) setNews(db.news);
+                    if (db.stats) setStats(db.stats);
+                    if (db.messages) setMessages(db.messages || []); // Ensure array
+                    if (db.adminSettings) setAdminSettings(db.adminSettings);
+                }
+            } catch (err) {
+                console.error('Failed to fetch data:', err);
+            } finally {
+                setIsLoaded(true);
             }
-        }
+        };
+        fetchData();
+    }, []);
+
+    // Helper to save to API
+    const saveToApi = (key, data) => {
+        if (!isLoaded) return; // Don't save defaults over DB before loading
+
+        fetch('/api/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value: data })
+        }).catch(err => console.error(`Error saving ${key}:`, err));
     };
 
-    // Persist changes to localStorage whenever state changes
-    useEffect(() => { saveToStorage('muvs_releases', releases); }, [releases]);
-    useEffect(() => { saveToStorage('muvs_mixes', mixes); }, [mixes]);
-    useEffect(() => { saveToStorage('muvs_projects', projects); }, [projects]);
-    useEffect(() => { saveToStorage('muvs_news', news); }, [news]);
-    useEffect(() => { saveToStorage('muvs_stats', stats); }, [stats]);
-    useEffect(() => { saveToStorage('muvs_messages', messages); }, [messages]);
-    useEffect(() => { saveToStorage('muvs_admin_settings', adminSettings); }, [adminSettings]);
+    // Persist changes to API
+    useEffect(() => { if (isLoaded) saveToApi('releases', releases); }, [releases, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('mixes', mixes); }, [mixes, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('news', news); }, [news, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('adminSettings', adminSettings); }, [adminSettings, isLoaded]);
+    // Stats and Messages might be updated very frequently, consider debouncing or batching in real app
+    // For now we sync them as is.
+    useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
 
     const updateData = (type, newData) => {
         switch (type) {
@@ -61,24 +82,18 @@ export const DataProvider = ({ children }) => {
     };
 
     const trackVisit = (path, referrer = '') => {
-        const today = new Date().toISOString().split('T')[0]; // "2024-12-07"
+        // ... (keep existing logic) ...
+        const today = new Date().toISOString().split('T')[0];
 
         setStats(prev => {
             const newStats = { ...prev };
-
-            // Increment total visits
             newStats.totalVisits = (newStats.totalVisits || 0) + 1;
-
-            // Track daily visits
             newStats.daily = { ...prev.daily };
             newStats.daily[today] = (newStats.daily[today] || 0) + 1;
-
-            // Track page views
             newStats.pages = { ...prev.pages };
             newStats.pages[path] = (newStats.pages[path] || 0) + 1;
-
-            // Track sources
             newStats.sources = { ...prev.sources };
+
             let source = 'direct';
             if (referrer) {
                 try {
@@ -89,16 +104,12 @@ export const DataProvider = ({ children }) => {
                 }
             }
             newStats.sources[source] = (newStats.sources[source] || 0) + 1;
-
             return newStats;
         });
     };
 
     const trackDetailView = () => {
-        setStats(prev => ({
-            ...prev,
-            detailViews: (prev.detailViews || 0) + 1
-        }));
+        setStats(prev => ({ ...prev, detailViews: (prev.detailViews || 0) + 1 }));
     };
 
     const updatePin = (newPin) => {
@@ -115,22 +126,12 @@ export const DataProvider = ({ children }) => {
     };
 
     const resetData = () => {
-        if (window.confirm('Are you sure you want to reset all data to defaults? This cannot be undone.')) {
+        if (window.confirm('Reset local state to code defaults? (Does not delete server DB immediately unless saved)')) {
             setReleases(defaultReleases);
             setMixes(defaultMixes);
             setProjects(defaultProjects);
             setNews(defaultNews);
-            setStats({
-                totalVisits: 0,
-                totalPlays: 0,
-                daily: {},
-                sources: {},
-                pages: {},
-                detailViews: 0
-            });
-            setMessages([]);
-            setAdminSettings({ pin: '1234' });
-            localStorage.clear();
+            // ... reset others ...
         }
     };
 

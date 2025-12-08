@@ -7,4 +7,10 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@appletosolutions/reactbits'],
   },
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:3001',
+      '/uploads': 'http://127.0.0.1:3001'
+    }
+  }
 })

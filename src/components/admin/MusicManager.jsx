@@ -55,12 +55,32 @@ const MusicManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing image...');
-            const compressedImage = await compressImage(file, 250);
+            setUploadStatus('Compressing...');
+            const compressedBase64 = await compressImage(file, 250);
+
+            setUploadStatus('Uploading to server...');
+            // Convert base64 to Blob
+            const response = await fetch(compressedBase64);
+            const blob = await response.blob();
+
+            // Upload
+            const uploadForm = new FormData();
+            // Use original name but with .jpg extension since compression output is JPEG/PNG
+            const ext = file.type === 'image/png' ? 'png' : 'jpg';
+            uploadForm.append('image', blob, `upload.${ext}`);
+
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadForm
+            });
+
+            if (!uploadRes.ok) throw new Error('Upload failed');
+
+            const { url } = await uploadRes.json();
 
             setUploadStatus('Upload complete!');
-            setFormData({ ...formData, coverImage: compressedImage });
-            setImagePreview(compressedImage);
+            setFormData({ ...formData, coverImage: url });
+            setImagePreview(url); // Preview the remote URL
 
             setTimeout(() => setUploadStatus(''), 2000);
         } catch (error) {
@@ -68,7 +88,7 @@ const MusicManager = () => {
             setTimeout(() => setUploadStatus(''), 3000);
         } finally {
             setUploading(false);
-            e.target.value = ''; // Reset input so same file can be selected again if needed
+            e.target.value = '';
         }
     };
 
