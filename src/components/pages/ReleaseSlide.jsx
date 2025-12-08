@@ -12,10 +12,13 @@ const ReleaseSlide = ({ release }) => {
             {/* Background title text */}
             <motion.div
                 className="release-title-background"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
             >
+                {release.artists && (
+                    <h2 className="title-background-artists">{release.artists}</h2>
+                )}
                 <h1 className="title-background-text">{release.title}</h1>
             </motion.div>
 

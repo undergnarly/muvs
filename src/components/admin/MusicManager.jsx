@@ -14,6 +14,7 @@ const MusicManager = () => {
 
     // Initial State
     const initialForm = {
+        artists: '',
         title: '',
         releaseDate: '',
         coverImage: '',
@@ -132,6 +133,13 @@ const MusicManager = () => {
                     </h3>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Artists"
+                                value={formData.artists || ''}
+                                onChange={e => setFormData({ ...formData, artists: e.target.value })}
+                                style={inputStyle}
+                            />
                             <input
                                 type="text"
                                 placeholder="Title"

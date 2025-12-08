@@ -79,27 +79,64 @@ const Dashboard = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '40px' }}>
                 {/* Daily Visits Chart */}
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <h3 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>Last 14 Days</h3>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px' }}>
-                        {last14Days.map(day => {
-                            const count = stats.daily[day] || 0;
-                            const height = maxDailyVisits > 0 ? (count / maxDailyVisits) * 100 : 0;
-                            return (
-                                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                    <div style={{
-                                        width: '100%',
-                                        height: `${height}%`,
-                                        background: 'linear-gradient(180deg, var(--color-accent) 0%, rgba(204,255,0,0.3) 100%)',
-                                        borderRadius: '4px 4px 0 0',
-                                        minHeight: count > 0 ? '4px' : '0',
-                                        transition: 'height 0.3s ease'
-                                    }} />
-                                    <span style={{ fontSize: '10px', color: 'var(--color-text-dim)', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-                                        {day.slice(5)}
-                                    </span>
-                                </div>
-                            );
-                        })}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, color: 'var(--color-text-light)' }}>Last 14 Days</h3>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>Max: {maxDailyVisits} visits</div>
+                    </div>
+
+                    <div style={{ display: 'flex', height: '220px', gap: '16px' }}>
+                        {/* Y-Axis */}
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            height: '200px', // Match bars height
+                            color: 'var(--color-text-dim)',
+                            fontSize: '11px',
+                            textAlign: 'right',
+                            paddingRight: '8px',
+                            borderRight: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <span>{Math.ceil(maxDailyVisits)}</span>
+                            <span>{Math.ceil(maxDailyVisits * 0.75)}</span>
+                            <span>{Math.ceil(maxDailyVisits * 0.5)}</span>
+                            <span>{Math.ceil(maxDailyVisits * 0.25)}</span>
+                            <span>0</span>
+                        </div>
+
+                        {/* Chart Bars */}
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px' }}>
+                            {last14Days.map(day => {
+                                const count = stats.daily[day] || 0;
+                                const height = maxDailyVisits > 0 ? (count / maxDailyVisits) * 100 : 0;
+                                return (
+                                    <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                                        {/* Tooltip on hover could go here, for now just bar */}
+                                        <div
+                                            title={`${day}: ${count} visits`}
+                                            style={{
+                                                width: '100%',
+                                                height: `${height}%`,
+                                                background: 'linear-gradient(180deg, var(--color-accent) 0%, rgba(204,255,0,0.3) 100%)',
+                                                borderRadius: '4px 4px 0 0',
+                                                minHeight: count > 0 ? '4px' : '0',
+                                                transition: 'height 0.3s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                        />
+                                        <span style={{
+                                            fontSize: '10px',
+                                            color: 'var(--color-text-dim)',
+                                            writingMode: 'vertical-rl',
+                                            transform: 'rotate(180deg)',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {day.slice(5)}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
