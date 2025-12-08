@@ -34,81 +34,95 @@
     padding: 0 20px;
 }
 
+/* Mobile: Full width */
 .release-cover-wrapper {
     position: relative;
-    width: 300px;
-    height: 300px;
+    width: 100vw;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    /* Safety to prevent horizontal scroll if parent has padding */
     margin-bottom: var(--spacing-lg);
     z-index: 2;
 }
 
-.cover-placeholder {
-    width: 100%;
-    height: 100%;
-    /* background-color: #ccc; Removed to support transparency */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.mock-cover {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, #1A1A1A, #444);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.mock-label {
-    font-size: 10px;
-    opacity: 0.5;
-    margin-top: 5px;
-}
-
-.release-cover-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.release-main-info {
-    text-align: center;
-    z-index: 10;
-}
-
-.main-title {
-    font-size: 36px;
-    text-transform: uppercase;
-    margin-bottom: var(--spacing-xs);
-    letter-spacing: -0.02em;
-}
-
-.main-artist {
-    font-size: 14px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    opacity: 0.6;
-}
+/* ... */
 
 @media (min-width: 768px) {
     .release-cover-wrapper {
-        width: 450px;
-        height: 450px;
+        width: 800px;
+        height: 800px;
+    }
+
+    /* ... */
+
+    .cover-placeholder {
+        width: 100%;
+        height: 100%;
+        /* background-color: #ccc; Removed to support transparency */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .mock-cover {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, #1A1A1A, #444);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .mock-label {
+        font-size: 10px;
+        opacity: 0.5;
+        margin-top: 5px;
+    }
+
+    .release-cover-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .release-main-info {
+        text-align: center;
+        z-index: 10;
     }
 
     .main-title {
-        font-size: 64px;
+        font-size: 36px;
+        text-transform: uppercase;
+        margin-bottom: var(--spacing-xs);
+        letter-spacing: -0.02em;
     }
 
     .main-artist {
-        font-size: 18px;
+        font-size: 14px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        opacity: 0.6;
     }
-}
+
+    @media (min-width: 768px) {
+        .release-cover-wrapper {
+            width: 800px;
+            height: 800px;
+        }
+
+        .main-title {
+            font-size: 64px;
+        }
+
+        .main-artist {
+            font-size: 18px;
+        }
+    }
