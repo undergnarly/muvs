@@ -27,13 +27,12 @@ const ReleaseSlide = ({ release }) => {
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             >
                 <div className="cover-placeholder">
-                    {release.coverImage.startsWith('/images') || !release.coverImage.startsWith('data:') ? (
+                    {release.coverImage ? (
+                        <img src={release.coverImage} alt={`Cover for ${release.title}`} className="release-cover-img" />
+                    ) : (
                         <div className="mock-cover">
                             <span>{release.title}</span>
-                            <span className="mock-label">ARTWORK</span>
                         </div>
-                    ) : (
-                        <img src={release.coverImage} alt={`Cover for ${release.title}`} className="release-cover-img" />
                     )}
                 </div>
             </motion.div>
@@ -44,7 +43,7 @@ const ReleaseSlide = ({ release }) => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
             >
-                <p className="main-artist">MUVS</p>
+                {/* Artist name removed to avoid hardcoding */}
             </motion.div>
 
             <SoundCloudPlayer url={release.soundcloudUrl} />
