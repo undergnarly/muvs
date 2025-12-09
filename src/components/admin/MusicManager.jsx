@@ -272,6 +272,85 @@ const MusicManager = () => {
                             />
                         </div>
 
+                        {/* Tracklist Section */}
+                        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Tracklist</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newTrack = { id: Date.now(), title: '', duration: '' };
+                                        setFormData({ ...formData, tracks: [...(formData.tracks || []), newTrack] });
+                                    }}
+                                    style={{
+                                        background: 'rgba(204, 255, 0, 0.1)',
+                                        border: '1px solid var(--color-accent)',
+                                        borderRadius: '6px',
+                                        color: 'var(--color-accent)',
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <FaPlus /> Add Track
+                                </button>
+                            </div>
+                            {formData.tracks && formData.tracks.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {formData.tracks.map((track, index) => (
+                                        <div key={track.id || index} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', gap: '12px', alignItems: 'center' }}>
+                                            <input
+                                                type="text"
+                                                placeholder={`Track ${index + 1} title`}
+                                                value={track.title || ''}
+                                                onChange={e => {
+                                                    const updatedTracks = [...formData.tracks];
+                                                    updatedTracks[index] = { ...track, title: e.target.value };
+                                                    setFormData({ ...formData, tracks: updatedTracks });
+                                                }}
+                                                style={inputStyle}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Duration (e.g. 3:45)"
+                                                value={track.duration || ''}
+                                                onChange={e => {
+                                                    const updatedTracks = [...formData.tracks];
+                                                    updatedTracks[index] = { ...track, duration: e.target.value };
+                                                    setFormData({ ...formData, tracks: updatedTracks });
+                                                }}
+                                                style={inputStyle}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const updatedTracks = formData.tracks.filter((_, i) => i !== index);
+                                                    setFormData({ ...formData, tracks: updatedTracks });
+                                                }}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#ff5555',
+                                                    cursor: 'pointer',
+                                                    fontSize: '16px',
+                                                    padding: '8px'
+                                                }}
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
+                                    No tracks added yet. Click "Add Track" to start.
+                                </div>
+                            )}
+                        </div>
+
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
                             <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
                             <Button variant="accent" type="submit">Save</Button>
