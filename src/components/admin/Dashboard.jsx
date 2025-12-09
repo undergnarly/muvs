@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
 import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaChartLine, FaEnvelope, FaEye } from 'react-icons/fa';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const StatCard = ({ title, count, icon: Icon, color }) => (
     <div style={{
@@ -45,7 +46,14 @@ const Dashboard = () => {
     };
 
     const last14Days = getLast14Days();
-    const maxDailyVisits = Math.max(...last14Days.map(day => stats.daily[day] || 0), 1);
+
+    // Prepare data for Recharts
+    const chartData = last14Days.map(day => ({
+        date: day.slice(5), // MM-DD format
+        visits: stats.daily[day] || 0
+    }));
+
+    const maxDailyVisits = Math.max(...chartData.map(d => d.visits), 1);
 
     // Get top sources
     const topSources = Object.entries(stats.sources || {})
@@ -89,60 +97,37 @@ const Dashboard = () => {
                         <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>Max: {maxDailyVisits} visits</div>
                     </div>
 
-                    <div style={{ display: 'flex', height: '220px', gap: '16px' }}>
-                        {/* Y-Axis */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            height: '200px', // Match bars height
-                            color: 'var(--color-text-dim)',
-                            fontSize: '11px',
-                            textAlign: 'right',
-                            paddingRight: '8px',
-                            borderRight: '1px solid rgba(255,255,255,0.1)'
-                        }}>
-                            <span>{Math.ceil(maxDailyVisits)}</span>
-                            <span>{Math.ceil(maxDailyVisits * 0.75)}</span>
-                            <span>{Math.ceil(maxDailyVisits * 0.5)}</span>
-                            <span>{Math.ceil(maxDailyVisits * 0.25)}</span>
-                            <span>0</span>
-                        </div>
-
-                        {/* Chart Bars */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '4px', height: '200px' }}>
-                            {last14Days.map(day => {
-                                const count = stats.daily[day] || 0;
-                                const heightPercent = maxDailyVisits > 0 ? (count / maxDailyVisits) * 100 : 0;
-                                return (
-                                    <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '20px' }}>
-                                        {/* Bar */}
-                                        <div
-                                            title={`${day}: ${count} visits`}
-                                            style={{
-                                                width: '100%',
-                                                height: `${heightPercent}%`,
-                                                background: 'linear-gradient(180deg, var(--color-accent) 0%, rgba(204,255,0,0.3) 100%)',
-                                                borderRadius: '4px 4px 0 0',
-                                                minHeight: count > 0 ? '4px' : '0',
-                                                transition: 'all 0.3s ease',
-                                                cursor: 'pointer'
-                                            }}
-                                        />
-                                        <span style={{
-                                            fontSize: '10px',
-                                            color: 'var(--color-text-dim)',
-                                            writingMode: 'vertical-rl',
-                                            transform: 'rotate(180deg)',
-                                            whiteSpace: 'nowrap'
-                                        }}>
-                                            {day.slice(5)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="date"
+                                stroke="var(--color-text-dim)"
+                                tick={{ fill: 'var(--color-text-dim)', fontSize: 11 }}
+                                angle={-45}
+                                textAnchor="end"
+                                height={60}
+                            />
+                            <YAxis
+                                stroke="var(--color-text-dim)"
+                                tick={{ fill: 'var(--color-text-dim)', fontSize: 11 }}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    background: 'rgba(0,0,0,0.9)',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: '8px',
+                                    color: 'white'
+                                }}
+                                labelStyle={{ color: 'var(--color-accent)' }}
+                            />
+                            <Bar
+                                dataKey="visits"
+                                fill="var(--color-accent)"
+                                radius={[4, 4, 0, 0]}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
 
                 {/* Engagement */}
