@@ -57,6 +57,11 @@ const Dashboard = () => {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
+    // Get top countries
+    const topCountries = Object.entries(stats.countries || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
     const engagementRate = stats.totalVisits > 0
         ? ((stats.detailViews / stats.totalVisits) * 100).toFixed(1)
         : 0;
@@ -105,22 +110,22 @@ const Dashboard = () => {
                         </div>
 
                         {/* Chart Bars */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '4px', height: '200px' }}>
                             {last14Days.map(day => {
                                 const count = stats.daily[day] || 0;
-                                const height = maxDailyVisits > 0 ? (count / maxDailyVisits) * 100 : 0;
+                                const heightPercent = maxDailyVisits > 0 ? (count / maxDailyVisits) * 100 : 0;
                                 return (
-                                    <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', position: 'relative' }}>
-                                        {/* Tooltip on hover could go here, for now just bar */}
+                                    <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '20px' }}>
+                                        {/* Bar */}
                                         <div
                                             title={`${day}: ${count} visits`}
                                             style={{
                                                 width: '100%',
-                                                height: `${height}%`,
+                                                height: `${heightPercent}%`,
                                                 background: 'linear-gradient(180deg, var(--color-accent) 0%, rgba(204,255,0,0.3) 100%)',
                                                 borderRadius: '4px 4px 0 0',
                                                 minHeight: count > 0 ? '4px' : '0',
-                                                transition: 'height 0.3s ease',
+                                                transition: 'all 0.3s ease',
                                                 cursor: 'pointer'
                                             }}
                                         />
@@ -157,8 +162,8 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Sources and Pages */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '40px' }}>
+            {/* Sources, Pages, and Countries */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '40px' }}>
                 {/* Top Sources */}
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <h3 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>Traffic Sources</h3>
@@ -184,6 +189,23 @@ const Dashboard = () => {
                             {topPages.map(([page, count]) => (
                                 <div key={page} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: 'var(--color-text-light)' }}>{page}</span>
+                                    <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ color: 'var(--color-text-dim)', textAlign: 'center', padding: '20px' }}>No data yet</div>
+                    )}
+                </div>
+
+                {/* Top Countries */}
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <h3 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>Top Countries</h3>
+                    {topCountries.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {topCountries.map(([country, count]) => (
+                                <div key={country} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--color-text-light)', textTransform: 'capitalize' }}>{country}</span>
                                     <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{count}</span>
                                 </div>
                             ))}

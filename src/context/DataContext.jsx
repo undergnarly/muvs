@@ -19,6 +19,7 @@ export const DataProvider = ({ children }) => {
         daily: {},
         sources: {},
         pages: {},
+        countries: {},
         detailViews: 0
     });
     const [messages, setMessages] = useState([]);
