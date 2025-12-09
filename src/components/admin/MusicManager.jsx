@@ -21,6 +21,7 @@ const MusicManager = () => {
         textTopPosition: '20%',
         releaseDate: '',
         coverImage: '',
+        audioPreview: '',
         soundcloudUrl: '',
         bandcampUrl: '',
         description: '',
@@ -85,6 +86,40 @@ const MusicManager = () => {
             setUploadStatus('Upload complete!');
             setFormData({ ...formData, coverImage: url });
             setImagePreview(url); // Preview the remote URL
+
+            setTimeout(() => setUploadStatus(''), 2000);
+        } catch (error) {
+            setUploadStatus('Error: ' + error.message);
+            setTimeout(() => setUploadStatus(''), 3000);
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleAudioUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            setUploadStatus('Uploading audio...');
+
+            // Upload audio file
+            const uploadForm = new FormData();
+            uploadForm.append('audio', file);
+
+            const uploadRes = await fetch('/api/upload-audio', {
+                method: 'POST',
+                body: uploadForm
+            });
+
+            if (!uploadRes.ok) throw new Error('Audio upload failed');
+
+            const { url } = await uploadRes.json();
+
+            setUploadStatus('Audio uploaded!');
+            setFormData({ ...formData, audioPreview: url });
 
             setTimeout(() => setUploadStatus(''), 2000);
         } catch (error) {
@@ -248,6 +283,45 @@ const MusicManager = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* Audio Preview Upload */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                                Audio Preview (30-60 sec highlight)
+                            </label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="file"
+                                    accept="audio/mp3,audio/mpeg,audio/wav"
+                                    onChange={handleAudioUpload}
+                                    style={{ display: 'none' }}
+                                    id="audio-upload"
+                                />
+                                <label htmlFor="audio-upload" style={uploadButtonStyle}>
+                                    <FaUpload style={{ marginRight: '8px' }} />
+                                    {uploading ? 'Uploading...' : 'Upload Audio'}
+                                </label>
+                                {formData.audioPreview && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, audioPreview: '' })}
+                                            style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                        >
+                                            <FaTrash style={{ marginRight: '8px' }} />
+                                            Remove Audio
+                                        </button>
+                                        <audio controls src={formData.audioPreview} style={{ maxWidth: '300px' }} />
+                                    </>
+                                )}
+                            </div>
+                            {!formData.audioPreview && (
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
+                                    MP3 or WAV • Recommended: 30-60 seconds
+                                </div>
+                            )}
+                        </div>
+
                         <textarea
                             placeholder="Description"
                             value={formData.description}

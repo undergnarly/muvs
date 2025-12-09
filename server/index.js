@@ -12,10 +12,12 @@ const PORT = 3001;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const AUDIO_UPLOADS_DIR = path.join(DATA_DIR, 'uploads', 'audio');
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(AUDIO_UPLOADS_DIR)) fs.mkdirSync(AUDIO_UPLOADS_DIR, { recursive: true });
 
 // Initialize DB if empty
 if (!fs.existsSync(DB_FILE)) {
@@ -48,6 +50,29 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
+// Audio Storage Engine
+const audioStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, AUDIO_UPLOADS_DIR);
+    },
+    filename: (req, file, cb) => {
+        const name = file.originalname.toLowerCase().split(' ').join('-');
+        cb(null, Date.now() + '-' + name);
+    }
+});
+const audioUpload = multer({
+    storage: audioStorage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid audio format. Only MP3 and WAV are allowed.'));
+        }
+    }
+});
 
 // Database Helper
 const getDb = () => {
@@ -116,6 +141,17 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 
     // Return relative URL that Nginx will map to the file
     const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+});
+
+// Upload Audio File
+app.post('/api/upload-audio', audioUpload.single('audio'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    // Return relative URL that Nginx will map to the file
+    const fileUrl = `/uploads/audio/${req.file.filename}`;
     res.json({ url: fileUrl });
 });
 

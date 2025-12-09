@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Button from '../ui/Button';
-import SoundCloudPlayer from '../media/SoundCloudPlayer';
+import AudioVisualizer from '../media/AudioVisualizer';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import ReleaseDetails from '../media/ReleaseDetails';
 import './ReleaseSlide.css';
@@ -60,7 +60,8 @@ const ReleaseSlide = ({ release }) => {
                 {/* Artist name removed to avoid hardcoding */}
             </motion.div>
 
-            <SoundCloudPlayer url={release.soundcloudUrl} />
+            {/* Audio Visualizer with Equalizer */}
+            <AudioVisualizer audioUrl={release.audioPreview} />
         </div>
     );
 

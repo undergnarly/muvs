@@ -1,0 +1,78 @@
+.audio-visualizer-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+}
+
+.audio-visualizer-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.audio-play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+
+    background: #000000;
+    border: none;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+    font-size: 32px;
+
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.audio-play-button:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
+}
+
+.audio-play-button:active {
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+.audio-play-button svg {
+    margin-left: 4px;
+    /* Slight offset for play icon to center it visually */
+}
+
+.audio-visualizer-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #999;
+    font-size: 16px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .audio-play-button {
+        width: 80px;
+        height: 80px;
+        font-size: 28px;
+    }
+}
