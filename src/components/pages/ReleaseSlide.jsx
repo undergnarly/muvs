@@ -9,6 +9,29 @@ import './ReleaseSlide.css';
 const ReleaseSlide = ({ release }) => {
     const CoverContent = (
         <div className="release-cover-container">
+            {/* Background title text - BEFORE wrapper so z-index works */}
+            <motion.div
+                className="release-title-background"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+                {release.artists && (
+                    <h2
+                        className="title-background-artists"
+                        style={{ fontSize: release.artistFontSize || 'min(12vw, 60px)' }}
+                    >
+                        {release.artists}
+                    </h2>
+                )}
+                <h1
+                    className="title-background-text"
+                    style={{ fontSize: release.titleFontSize || 'min(24vw, 120px)' }}
+                >
+                    {release.title}
+                </h1>
+            </motion.div>
+
             {/* Cover image with transparency effect */}
             <motion.div
                 className="release-cover-wrapper"
@@ -16,29 +39,6 @@ const ReleaseSlide = ({ release }) => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             >
-                {/* Background title text - Moved inside wrapper to stay aligned with image */}
-                <motion.div
-                    className="release-title-background"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                >
-                    {release.artists && (
-                        <h2
-                            className="title-background-artists"
-                            style={{ fontSize: release.artistFontSize || 'min(12vw, 60px)' }}
-                        >
-                            {release.artists}
-                        </h2>
-                    )}
-                    <h1
-                        className="title-background-text"
-                        style={{ fontSize: release.titleFontSize || 'min(24vw, 120px)' }}
-                    >
-                        {release.title}
-                    </h1>
-                </motion.div>
-
                 <div className="cover-placeholder">
                     {release.coverImage ? (
                         <img src={release.coverImage} alt={`Cover for ${release.title}`} className="release-cover-img" />
