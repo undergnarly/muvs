@@ -9,11 +9,10 @@
 }
 
 /* Background title text */
-/* Background title text */
 .release-title-background {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 30%;
+    /* left: 50%; - removed as requested */
     transform: translate(-50%, -50%);
     z-index: 10;
     width: 100%;
@@ -23,38 +22,41 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 16px;
-    /* Space between artist and title */
+    gap: 8px;
+    /* Reduced gap for tighter spacing */
 }
 
 .title-background-artists {
-    font-size: clamp(24px, 5vw, 60px);
-    /* Approx half of title size */
+    /* Adaptive font size - half of title, fills mobile width */
+    font-size: min(12vw, 60px);
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     color: var(--color-text-light);
     line-height: 1;
     margin: 0;
     padding: 0 20px;
     text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    /* Make it readable over cover */
+    width: 100%;
+    max-width: 100vw;
 }
 
 .title-background-text {
-    font-size: clamp(48px, 10vw, 120px);
+    /* Adaptive font size - fills mobile width (100vw) */
+    font-size: min(24vw, 120px);
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: -0.03em;
     color: var(--color-text-light);
     line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0 20px;
     margin: 0;
+    padding: 0 20px;
     text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    /* Make it readable over cover */
+    width: 100%;
+    max-width: 100vw;
+    /* Allow wrapping for very long titles */
+    white-space: normal;
+    word-break: break-word;
 }
 
 /* Mobile: Full width */
@@ -131,6 +133,17 @@
     .release-cover-wrapper {
         width: 800px;
         height: 800px;
+    }
+
+    /* Desktop: constrain to 800px width */
+    .title-background-artists {
+        font-size: min(calc(800px * 0.12), 60px);
+        /* 12% of 800px = 96px, capped at 60px */
+    }
+
+    .title-background-text {
+        font-size: min(calc(800px * 0.24), 120px);
+        /* 24% of 800px = 192px, capped at 120px */
     }
 
     .main-title {
