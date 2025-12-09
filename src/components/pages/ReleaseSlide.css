@@ -11,10 +11,10 @@
 /* Background title text */
 .release-title-background {
     position: absolute;
-    top: 30%;
+    top: 20%;
     /* left: 50%; - removed as requested */
     transform: translate(-50%, -50%);
-    z-index: 10;
+    z-index: 1;
     width: 100%;
     text-align: center;
     pointer-events: none;
@@ -22,7 +22,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
     /* Reduced gap for tighter spacing */
 }
 
