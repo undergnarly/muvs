@@ -25,7 +25,11 @@ const ReleaseDetails = ({ release }) => {
                             frameBorder="no"
                             allow="autoplay"
                             src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
-                            style={{ borderRadius: '8px', marginTop: '16px' }}
+                            style={{
+                                borderRadius: '8px',
+                                marginTop: '16px',
+                                marginBottom: '16px'
+                            }}
                         ></iframe>
                     </div>
                 ) : (

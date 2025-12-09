@@ -34,7 +34,8 @@ if (!fs.existsSync(DB_FILE)) {
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' })); // Support large payloads just in case
+app.use(bodyParser.json({ limit: '100mb' })); // Support large payloads
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 // Image Storage Engine
 const storage = multer.diskStorage({
@@ -63,7 +64,7 @@ const audioStorage = multer.diskStorage({
 });
 const audioUpload = multer({
     storage: audioStorage,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav'];
         if (allowedTypes.includes(file.mimetype)) {
