@@ -18,6 +18,7 @@ const MusicManager = () => {
         title: '',
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
+        textTopPosition: '20%',
         releaseDate: '',
         coverImage: '',
         soundcloudUrl: '',
@@ -173,6 +174,16 @@ const MusicManager = () => {
                                 placeholder="Artist Font Size (e.g. min(12vw, 60px))"
                                 value={formData.artistFontSize || ''}
                                 onChange={e => setFormData({ ...formData, artistFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
+                                value={formData.textTopPosition || ''}
+                                onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>
