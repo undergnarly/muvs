@@ -27,8 +27,9 @@
 }
 
 .title-background-artists {
-    /* Adaptive font size - half of title, fills mobile width */
+    /* Font size controlled via inline styles from admin */
     font-size: min(12vw, 60px);
+    /* Fallback */
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -36,14 +37,17 @@
     line-height: 1;
     margin: 0;
     padding: 0 20px;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     width: 100%;
     max-width: 100vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .title-background-text {
-    /* Adaptive font size - fills mobile width (100vw) */
+    /* Font size controlled via inline styles from admin */
     font-size: min(24vw, 120px);
+    /* Fallback */
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: -0.03em;
@@ -51,12 +55,11 @@
     line-height: 1;
     margin: 0;
     padding: 0 20px;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     width: 100%;
     max-width: 100vw;
-    /* Allow wrapping for very long titles */
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Mobile: Full width */
@@ -68,7 +71,8 @@
     max-width: 100%;
     /* Safety to prevent horizontal scroll if parent has padding */
     margin-bottom: var(--spacing-lg);
-    z-index: 2;
+    z-index: 5;
+    /* Higher than title background (z-index: 1) */
 }
 
 /* ... */

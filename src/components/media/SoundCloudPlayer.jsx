@@ -19,7 +19,7 @@ const SoundCloudPlayer = ({ url }) => {
                 frameBorder="no"
                 allow="autoplay"
                 src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`}
-                style={{ borderRadius: '8px', transform: 'scale(1.3)', transformOrigin: 'center' }}
+                style={{ borderRadius: '8px', maxWidth: '100%', display: 'block' }}
             ></iframe>
         </motion.div>
     );
