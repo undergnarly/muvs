@@ -14,6 +14,7 @@ import NewsManager from './components/admin/NewsManager';
 import MusicManager from './components/admin/MusicManager';
 import MixesManager from './components/admin/MixesManager';
 import ProjectsManager from './components/admin/ProjectsManager';
+import AboutManager from './components/admin/AboutManager';
 import MessagesManager from './components/admin/MessagesManager';
 import AdminSettings from './components/admin/AdminSettings';
 import TopBlur from './components/layout/TopBlur';
@@ -49,6 +50,7 @@ function App() {
           <Route path="music" element={<MusicManager />} />
           <Route path="mixes" element={<MixesManager />} />
           <Route path="projects" element={<ProjectsManager />} />
+          <Route path="about" element={<AboutManager />} />
           <Route path="messages" element={<MessagesManager />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>

@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { compressImage, validateImageFile } from '../../utils/imageCompression';
 
 const MixesManager = () => {
     const { mixes, updateData } = useData();
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState('');
+    const [imagePreview, setImagePreview] = useState(null);
 
     const initialForm = {
         title: '',
@@ -14,12 +18,14 @@ const MixesManager = () => {
         duration: '',
         soundcloudUrl: '',
         description: '',
+        backgroundImage: '',
     };
     const [formData, setFormData] = useState(initialForm);
 
     const handleEdit = (item) => {
         setEditingItem(item);
         setFormData({ ...item });
+        setImagePreview(item.backgroundImage || null);
         setIsFormOpen(true);
     };
 
@@ -33,7 +39,52 @@ const MixesManager = () => {
     const handleAddNew = () => {
         setEditingItem(null);
         setFormData(initialForm);
+        setImagePreview(null);
+        setUploadStatus('');
         setIsFormOpen(true);
+    };
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            setUploadStatus('Validating image...');
+            validateImageFile(file);
+
+            setUploadStatus('Compressing...');
+            const compressedBase64 = await compressImage(file, 250);
+
+            setUploadStatus('Uploading to server...');
+            const response = await fetch(compressedBase64);
+            const blob = await response.blob();
+
+            const uploadForm = new FormData();
+            const ext = file.type === 'image/png' ? 'png' : 'jpg';
+            uploadForm.append('image', blob, `upload.${ext}`);
+
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadForm
+            });
+
+            if (!uploadRes.ok) throw new Error('Upload failed');
+
+            const { url } = await uploadRes.json();
+
+            setUploadStatus('Upload complete!');
+            setFormData({ ...formData, backgroundImage: url });
+            setImagePreview(url);
+
+            setTimeout(() => setUploadStatus(''), 2000);
+        } catch (error) {
+            setUploadStatus('Error: ' + error.message);
+            setTimeout(() => setUploadStatus(''), 3000);
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
     };
 
     const handleSubmit = (e) => {
@@ -107,6 +158,44 @@ const MixesManager = () => {
                             style={inputStyle}
                         />
 
+                        {/* Background Image Upload */}
+                        <div style={{ marginTop: '16px' }}>
+                            <h4 style={{ color: 'var(--color-text-light)', marginBottom: '12px' }}>Background Image</h4>
+                            {imagePreview && (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }} />
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="file"
+                                    id="image-upload"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    disabled={uploading}
+                                    style={{ display: 'none' }}
+                                />
+                                <label htmlFor="image-upload" style={uploadButtonStyle}>
+                                    <FaUpload style={{ marginRight: '8px' }} />
+                                    {uploading ? 'Uploading...' : 'Upload Image'}
+                                </label>
+                                {formData.backgroundImage && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData({ ...formData, backgroundImage: '' });
+                                            setImagePreview(null);
+                                        }}
+                                        style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                    >
+                                        <FaTrash style={{ marginRight: '8px' }} />
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                            {uploadStatus && <div style={{ marginTop: '8px', color: 'var(--color-text-dim)', fontSize: '14px' }}>{uploadStatus}</div>}
+                        </div>
+
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
                             <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
                             <Button variant="accent" type="submit">Save</Button>
@@ -122,6 +211,7 @@ const MixesManager = () => {
                             <h3 style={{ color: 'var(--color-text-light)', marginBottom: '4px' }}>{item.title}</h3>
                             <div style={{ fontSize: '14px', color: 'var(--color-text-dim)' }}>
                                 {item.recordDate} • {item.duration}
+                                {item.backgroundImage && ' • Has background image'}
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -139,7 +229,6 @@ const MixesManager = () => {
     );
 };
 
-// Styles reused (in real app, move to CSS or shared component)
 const formContainerStyle = {
     marginBottom: '32px',
     padding: '24px',
@@ -156,6 +245,19 @@ const inputStyle = {
     color: 'white',
     outline: 'none',
     width: '100%'
+};
+
+const uploadButtonStyle = {
+    padding: '10px 16px',
+    background: 'rgba(204, 255, 0, 0.1)',
+    border: '1px solid rgba(204, 255, 0, 0.3)',
+    borderRadius: '8px',
+    color: '#ccff00',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    transition: 'all 0.3s'
 };
 
 const itemStyle = {
