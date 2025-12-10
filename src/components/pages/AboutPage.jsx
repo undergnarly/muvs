@@ -1,4 +1,5 @@
 import React from 'react';
+import { useData } from '../../context/DataContext';
 import Header from '../layout/Header';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import SplitText from '../ui/SplitText';
@@ -7,10 +8,17 @@ import ContactForm from '../forms/ContactForm';
 import './AboutPage.css';
 
 const AboutPage = () => {
+    const { about } = useData();
+
     const CoverContent = (
         <div className="about-cover-container">
+            {about.backgroundImage && (
+                <div className="about-background-image">
+                    <img src={about.backgroundImage} alt="About background" />
+                </div>
+            )}
             <h1 className="about-title">
-                <SplitText delay={0.2}>ABOUT</SplitText>
+                <SplitText delay={0.2}>{about.title || 'ABOUT'}</SplitText>
             </h1>
         </div>
     );
@@ -18,10 +26,7 @@ const AboutPage = () => {
     const DetailContent = (
         <div className="about-details-container">
             <div className="about-content">
-                <p>
-                    I am a developer and music enthusiast passionate about building immersive digital experiences.
-                    With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.
-                </p>
+                <p>{about.content}</p>
                 <div className="about-contact">
                     <h3>Connect</h3>
                     <SocialLinks />

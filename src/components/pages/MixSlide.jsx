@@ -7,6 +7,12 @@ import './MixSlide.css';
 const MixSlide = ({ mix }) => {
     const CoverContent = (
         <div className="mix-cover-container">
+            {mix.backgroundImage && (
+                <div className="mix-background-image">
+                    <img src={mix.backgroundImage} alt="Mix background" />
+                </div>
+            )}
+
             <motion.div
                 className="mix-player-wrapper"
                 initial={{ opacity: 0, scale: 0.95 }}
