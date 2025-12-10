@@ -18,14 +18,6 @@ const AudioVisualizer = ({ audioUrl }) => {
         setIsPlaying(!isPlaying);
     };
 
-    if (!audioUrl) {
-        return (
-            <div className="audio-visualizer-placeholder">
-                <p>No audio preview available</p>
-            </div>
-        );
-    }
-
     return (
         <div className="audio-visualizer-container">
             <button
