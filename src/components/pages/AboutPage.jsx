@@ -15,11 +15,16 @@ const AboutPage = () => {
             {/* Background Title */}
             <div
                 className="about-title-background"
-                style={{ top: about.titleTopPosition || '20%' }}
+                style={{
+                    top: about.titleTopPosition || '20%'
+                }}
             >
                 <h1
                     className="about-title-text"
-                    style={{ fontSize: about.titleFontSize || 'min(24vw, 120px)' }}
+                    style={{
+                        fontSize: about.titleFontSize || 'min(24vw, 120px)',
+                        visibility: 'visible' // Prevent flash
+                    }}
                 >
                     <SplitText delay={0.2}>{about.title || 'ABOUT'}</SplitText>
                 </h1>
@@ -62,26 +67,33 @@ const AboutPage = () => {
     );
 
     const DetailContent = (
-        <div className="about-details-container" style={{ width: '100%', maxWidth: '100%', padding: '40px 20px' }}>
+        <div className="about-details-container">
             <div className="about-content">
-                <div dangerouslySetInnerHTML={{ __html: about.content }}></div>
-                <div className="about-contact">
-                    <h3>Connect</h3>
+                <p
+                    className="about-text"
+                    dangerouslySetInnerHTML={{ __html: about.content }}
+                />
+
+                {/* Social Icons */}
+                <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    marginTop: '32px',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
                     <SocialLinks />
-                    <ContactForm />
                 </div>
             </div>
         </div>
     );
 
     return (
-        <>
-            <Header />
-            <BaseSlidePage
-                coverContent={CoverContent}
-                detailContent={DetailContent}
-            />
-        </>
+        <BaseSlidePage
+            coverContent={CoverContent}
+            detailContent={DetailContent}
+            pageId="about"
+        />
     );
 };
 
