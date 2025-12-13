@@ -145,7 +145,7 @@ export const StaggeredMenu = () => {
     }, []);
 
     const playOpen = useCallback(() => {
-        if (busyRef.current) return;
+        // Allow restarting/overwriting animation
         busyRef.current = true;
         const tl = buildOpenTimeline();
         openTlRef.current = tl;
@@ -153,7 +153,7 @@ export const StaggeredMenu = () => {
     }, [buildOpenTimeline]);
 
     const playClose = useCallback(() => {
-        if (busyRef.current) return;
+        // Allow interrupting opening animation to close immediately
         busyRef.current = true;
         if (openTlRef.current) {
             openTlRef.current.reverse();
