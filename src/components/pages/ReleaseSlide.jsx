@@ -102,6 +102,7 @@ const ReleaseSlide = ({ release, priority = false }) => {
             coverContent={CoverContent}
             detailContent={<ReleaseDetails release={release} />}
             textColor="black"
+            animationType="zoom-out"
         />
     );
 };

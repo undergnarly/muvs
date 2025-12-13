@@ -3,25 +3,67 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
 
-const BaseSlidePage = ({ coverContent, detailContent, theme = 'light', textColor = 'white' }) => {
+const BaseSlidePage = ({
+    coverContent,
+    detailContent,
+    theme = 'light',
+    textColor = 'white',
+    animationType = 'overlay' // 'zoom-out' | 'overlay'
+}) => {
     const wrapperRef = useRef(null);
+    const [scrollContainer, setScrollContainer] = React.useState(null);
 
-    // Track scroll progress relative to the wrapper element
+    // Find parent scrollable container
+    React.useEffect(() => {
+        if (wrapperRef.current) {
+            let parent = wrapperRef.current.parentElement;
+            while (parent) {
+                const overflowY = window.getComputedStyle(parent).overflowY;
+                if (overflowY === 'auto' || overflowY === 'scroll') {
+                    setScrollContainer(parent);
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+    }, []);
+
+    // Track scroll progress - use scrollContainer if found, otherwise wrapper
     const { scrollYProgress } = useScroll({
         target: wrapperRef,
+        container: scrollContainer || undefined,
         offset: ["start start", "end start"]
     });
 
-    // Phase 1 (0 → 0.5): Cover elements scale down and move up
-    const coverScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.5]);
-    const coverY = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
-    const coverOpacity = useTransform(scrollYProgress, [0, 0.4, 0.5], [1, 0.9, 0.85]);
+    // Zoom-out animation: Phase 1 (0 → 0.5) scale down, Phase 2 (0.5 → 1) overlay
+    // Overlay animation: Immediate overlay (no scale)
+    const isZoomOut = animationType === 'zoom-out';
+
+    const coverScale = useTransform(
+        scrollYProgress,
+        isZoomOut ? [0, 0.5] : [0, 1],
+        isZoomOut ? [1, 0.5] : [1, 1]
+    );
+    const coverY = useTransform(
+        scrollYProgress,
+        isZoomOut ? [0, 0.5] : [0, 1],
+        isZoomOut ? [0, -100] : [0, 0]
+    );
+    const coverOpacity = useTransform(
+        scrollYProgress,
+        isZoomOut ? [0, 0.4, 0.5] : [0, 0.3, 1],
+        isZoomOut ? [1, 0.9, 0.85] : [1, 0.95, 0.95]
+    );
 
     // Scroll indicator fade out
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-    // Phase 2 (0.5 → 1): Detail section slides up from bottom
-    const detailY = useTransform(scrollYProgress, [0.5, 1], ['100vh', '0vh']);
+    // Detail section: zoom-out starts at 0.5, overlay starts at 0
+    const detailY = useTransform(
+        scrollYProgress,
+        isZoomOut ? [0.5, 1] : [0, 1],
+        ['100vh', '0vh']
+    );
 
     return (
         <div className="base-page-wrapper" ref={wrapperRef}>
