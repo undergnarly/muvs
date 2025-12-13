@@ -24,13 +24,41 @@ import { useData } from './context/DataContext';
 import { useLocation } from 'react-router-dom';
 
 function App() {
-  const { trackVisit } = useData();
+  const { trackVisit, siteSettings } = useData();
   const location = useLocation();
 
   React.useEffect(() => {
     // Track visit with current path and referrer
     trackVisit(location.pathname, document.referrer);
   }, [location.pathname]);
+
+  // Update favicon dynamically
+  React.useEffect(() => {
+    if (siteSettings?.favicon) {
+      const favicon = document.querySelector('link[rel="icon"]');
+      if (favicon) {
+        favicon.href = siteSettings.favicon;
+      } else {
+        const newFavicon = document.createElement('link');
+        newFavicon.rel = 'icon';
+        newFavicon.type = 'image/png';
+        newFavicon.href = siteSettings.favicon;
+        document.head.appendChild(newFavicon);
+      }
+    }
+  }, [siteSettings?.favicon]);
+
+  // Update document title and meta description
+  React.useEffect(() => {
+    if (siteSettings?.siteName) {
+      document.title = `${siteSettings.siteName} | ${siteSettings.siteDescription || 'Audio • Visual • Code'}`;
+    }
+
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription && siteSettings?.siteDescription) {
+      metaDescription.content = siteSettings.siteDescription;
+    }
+  }, [siteSettings?.siteName, siteSettings?.siteDescription]);
 
   return (
     <>

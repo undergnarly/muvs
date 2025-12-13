@@ -1,5 +1,6 @@
 import React from 'react';
 import Button from '../ui/Button';
+import CircularGallery from './CircularGallery';
 import './ReleaseDetails.css';
 
 const ReleaseDetails = ({ release }) => {
@@ -59,6 +60,22 @@ const ReleaseDetails = ({ release }) => {
                         </Button>
                     )}
                 </div>
+
+                {/* Circular Gallery */}
+                {release.gallery && release.gallery.length > 0 && (
+                    <div style={{ marginTop: '48px' }}>
+                        <h3 style={{ marginBottom: '24px', color: 'var(--color-text-light)' }}>Gallery</h3>
+                        <div style={{ height: '600px', position: 'relative' }}>
+                            <CircularGallery
+                                items={release.gallery}
+                                bend={3}
+                                textColor="#ffffff"
+                                borderRadius={0.05}
+                                scrollEase={0.02}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -18,6 +18,11 @@ export const DataProvider = ({ children }) => {
         content: 'I am a developer and music enthusiast passionate about building immersive digital experiences. With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.',
         backgroundImage: ''
     });
+    const [siteSettings, setSiteSettings] = useState({
+        favicon: '',
+        siteName: 'MUVS',
+        siteDescription: 'Audio • Visual • Code'
+    });
     const [stats, setStats] = useState({
         totalVisits: 0,
         totalPlays: 0,
@@ -43,6 +48,7 @@ export const DataProvider = ({ children }) => {
                     if (db.projects) setProjects(db.projects);
                     if (db.news) setNews(db.news);
                     if (db.about) setAbout(db.about);
+                    if (db.siteSettings) setSiteSettings(db.siteSettings);
                     if (db.stats) setStats(db.stats);
                     if (db.messages) setMessages(db.messages || []); // Ensure array
                     if (db.adminSettings) setAdminSettings(db.adminSettings);
@@ -73,6 +79,7 @@ export const DataProvider = ({ children }) => {
     useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('news', news); }, [news, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('about', about); }, [about, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('siteSettings', siteSettings); }, [siteSettings, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('adminSettings', adminSettings); }, [adminSettings, isLoaded]);
     // Stats and Messages might be updated very frequently, consider debouncing or batching in real app
     // For now we sync them as is.
@@ -88,6 +95,10 @@ export const DataProvider = ({ children }) => {
             case 'about': setAbout(newData); break;
             default: console.warn(`Unknown data type: ${type}`);
         }
+    };
+
+    const updateSiteSettings = (newSettings) => {
+        setSiteSettings(newSettings);
     };
 
     const trackVisit = (path, referrer = '') => {
@@ -150,10 +161,12 @@ export const DataProvider = ({ children }) => {
         projects,
         news,
         about,
+        siteSettings,
         stats,
         messages,
         adminSettings,
         updateData,
+        updateSiteSettings,
         trackVisit,
         trackDetailView,
         updatePin,
