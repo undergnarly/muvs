@@ -6,36 +6,60 @@ import SplitText from '../ui/SplitText';
 import { useData } from '../../context/DataContext';
 
 const NewsPage = () => {
-    const { news } = useData();
+    const { news, newsSettings } = useData();
+    const settings = newsSettings || {};
 
-    // Use Mix/Release styling logic
+    // Default fallback values
+    const titleTop = settings.titleTopPosition || '20%';
+    const titleSize = settings.titleFontSize || '60px';
+
     const CoverContent = (
         <div className="mix-cover-container">
-            {/* Background Title */}
+            {/* Background Title - with explicit centering fix */}
             <div
                 className="mix-title-background"
-                style={{ top: news[0]?.titleTopPosition || '20%' }}
+                style={{
+                    top: titleTop,
+                    left: '50%', // Explicitly set left 50%
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1
+                }}
             >
                 <h1
                     className="mix-title-text"
-                    style={{ fontSize: news[0]?.titleFontSize || '60px' }}
+                    style={{
+                        fontSize: titleSize,
+                        visibility: 'visible',
+                        textAlign: 'center'
+                    }}
                 >
                     <SplitText delay={0.2}>NEWS</SplitText>
                 </h1>
             </div>
 
-            {/* Constrained Content Wrapper (acting like 'cover') */}
-            <div className="mix-cover-wrapper" style={{ border: 'none', background: 'transparent' }}>
-                <div style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column'
-                }}>
-                    {/* Placeholder text removed */}
-                </div>
+            {/* Constrained Image Wrapper - Logic from AboutPage */}
+            <div className="about-cover-wrapper">
+                {(settings.backgroundImageDesktop || settings.backgroundImageMobile) && (
+                    <div className="about-image-placeholder">
+                        {/* Show adaptive images if they exist */}
+                        {/* Desktop image - shown only on desktop */}
+                        {settings.backgroundImageDesktop && (
+                            <img
+                                src={settings.backgroundImageDesktop}
+                                alt="News background"
+                                className="about-image-desktop"
+                            />
+                        )}
+                        {/* Mobile image - shown only on mobile */}
+                        {settings.backgroundImageMobile && (
+                            <img
+                                src={settings.backgroundImageMobile}
+                                alt="News background"
+                                className="about-image-mobile"
+                            />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -101,6 +125,7 @@ const NewsPage = () => {
             <BaseSlidePage
                 coverContent={CoverContent}
                 detailContent={DetailContent}
+                pageId="news"
             />
         </>
     );

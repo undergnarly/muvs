@@ -13,6 +13,12 @@ export const DataProvider = ({ children }) => {
     const [mixes, setMixes] = useState(defaultMixes);
     const [projects, setProjects] = useState(defaultProjects);
     const [news, setNews] = useState(defaultNews);
+    const [newsSettings, setNewsSettings] = useState({
+        titleFontSize: '60px',
+        titleTopPosition: '20%',
+        backgroundImageDesktop: '',
+        backgroundImageMobile: ''
+    });
     const [about, setAbout] = useState({
         title: 'ABOUT',
         content: 'I am a developer and music enthusiast passionate about building immersive digital experiences. With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.',
@@ -48,19 +54,20 @@ export const DataProvider = ({ children }) => {
             try {
                 const res = await fetch('/api/data');
                 if (res.ok) {
-                    const db = await res.json();
-                    if (db.releases) setReleases(db.releases);
-                    if (db.mixes) setMixes(db.mixes);
-                    if (db.projects) setProjects(db.projects);
-                    if (db.news) setNews(db.news);
-                    if (db.about) setAbout(db.about);
-                    if (db.siteSettings) setSiteSettings(db.siteSettings);
-                    if (db.stats) setStats(db.stats);
-                    if (db.messages) setMessages(db.messages || []); // Ensure array
-                    if (db.adminSettings) setAdminSettings(db.adminSettings);
+                    const data = await res.json();
+                    if (data.releases) setReleases(data.releases);
+                    if (data.mixes) setMixes(data.mixes);
+                    if (data.projects) setProjects(data.projects);
+                    if (data.news) setNews(data.news);
+                    if (data.newsSettings) setNewsSettings(data.newsSettings);
+                    if (data.about) setAbout(data.about);
+                    if (data.siteSettings) setSiteSettings(data.siteSettings);
+                    if (data.messages) setMessages(data.messages);
+                    if (data.adminSettings) setAdminSettings(data.adminSettings);
+                    if (data.stats) setStats(data.stats);
                 }
-            } catch (err) {
-                console.error('Failed to fetch data:', err);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
             } finally {
                 setIsLoaded(true);
             }
