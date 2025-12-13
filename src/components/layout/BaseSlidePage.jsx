@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValue } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
 
@@ -12,6 +12,7 @@ const BaseSlidePage = ({
 }) => {
     const wrapperRef = useRef(null);
     const [scrollContainer, setScrollContainer] = useState(null);
+    const manualScrollProgress = useMotionValue(0);
 
     // Find parent scrollable container
     useEffect(() => {
@@ -26,28 +27,53 @@ const BaseSlidePage = ({
                 }
                 parent = parent.parentElement;
             }
-            if (!scrollContainer) {
-                console.log('[BaseSlidePage] No scroll container found, using default');
-            }
         }
     }, []);
 
-    // Track scroll progress - use scrollContainer if found, otherwise wrapper
-    const { scrollYProgress } = useScroll({
+    // Manual scroll tracking for containers that don't work with useScroll
+    useEffect(() => {
+        if (!scrollContainer || !wrapperRef.current) return;
+
+        const handleScroll = () => {
+            const container = scrollContainer;
+            const wrapper = wrapperRef.current;
+
+            const containerRect = container.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+
+            // Calculate progress based on wrapper position relative to container
+            const containerHeight = containerRect.height;
+            const wrapperHeight = wrapperRect.height;
+
+            // How far the wrapper has scrolled relative to container top
+            const scrolled = containerRect.top - wrapperRect.top;
+
+            // Total scrollable distance
+            const totalScroll = wrapperHeight - containerHeight;
+
+            // Calculate progress (0 to 1)
+            const progress = Math.max(0, Math.min(1, scrolled / totalScroll));
+
+            manualScrollProgress.set(progress);
+
+            if (animationType === 'zoom-out') {
+                console.log('[BaseSlidePage] Manual scroll progress:', progress.toFixed(3));
+            }
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll);
+        handleScroll(); // Initial call
+
+        return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }, [scrollContainer, animationType, manualScrollProgress]);
+
+    // Use manual scroll progress if container found, otherwise use useScroll
+    const { scrollYProgress: autoScrollProgress } = useScroll({
         target: wrapperRef,
-        container: scrollContainer,
         offset: ["start end", "end start"]
     });
 
-    // Debug scroll progress
-    useEffect(() => {
-        const unsubscribe = scrollYProgress.on('change', (latest) => {
-            if (animationType === 'zoom-out') {
-                console.log('[BaseSlidePage] Scroll progress:', latest);
-            }
-        });
-        return () => unsubscribe();
-    }, [scrollYProgress, animationType]);
+    const scrollYProgress = scrollContainer ? manualScrollProgress : autoScrollProgress;
 
     // Zoom-out animation: Phase 1 (0 → 0.5) scale down, Phase 2 (0.5 → 1) overlay
     // Overlay animation: Immediate overlay (no scale)
