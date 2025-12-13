@@ -47,13 +47,20 @@ const BaseSlidePage = ({
             const maxScroll = scrollHeight - clientHeight;
 
             // Calculate progress (0 to 1) based on actual scroll position
-            const progress = Math.max(0, Math.min(1, scrollTop / maxScroll));
+            const progress = maxScroll > 0 ? Math.max(0, Math.min(1, scrollTop / maxScroll)) : 0;
 
             manualScrollProgress.set(progress);
 
             if (animationType === 'zoom-out') {
-                console.log('[BaseSlidePage] Manual scroll progress:', progress.toFixed(3),
-                    `(${scrollTop.toFixed(0)}/${maxScroll.toFixed(0)})`);
+                const percentScrolled = ((scrollTop / maxScroll) * 100).toFixed(1);
+                console.log('[BaseSlidePage] Scroll:', {
+                    progress: progress.toFixed(3),
+                    scrollTop: scrollTop.toFixed(0),
+                    maxScroll: maxScroll.toFixed(0),
+                    scrollHeight: scrollHeight.toFixed(0),
+                    clientHeight: clientHeight.toFixed(0),
+                    percent: `${percentScrolled}%`
+                });
             }
         };
 
@@ -102,11 +109,13 @@ const BaseSlidePage = ({
     // Scroll indicator fade out
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-    // Detail section: zoom-out starts at 0.5, overlay starts at 0
+    // Detail section slides up from below
+    // For zoom-out: starts sliding at 0.5, fully visible at 1
+    // For overlay: starts immediately at 0, fully visible at 1
     const detailY = useTransform(
         scrollYProgress,
-        isZoomOut ? [0.5, 1] : [0, 1],
-        ['100vh', '0vh']
+        isZoomOut ? [0, 0.5, 1] : [0, 1],
+        isZoomOut ? ['0vh', '0vh', '-100vh'] : ['0vh', '-100vh']
     );
 
     return (

@@ -1,11 +1,9 @@
 /* Main wrapper - natural height, no artificial scroll space */
 .base-page-wrapper {
     width: 100%;
-    min-height: 100vh;
-    /* Natural height - cover + detail content */
+    min-height: 200vh;
+    /* Cover (100vh) + minimum detail content (100vh) */
     position: relative;
-    display: flex;
-    flex-direction: column;
 }
 
 /* Cover Section - Sticky positioning */
@@ -34,18 +32,15 @@
     color: var(--color-text-dark);
 }
 
-/* Detail Section - Overlay that slides from bottom */
+/* Detail Section - Normal flow, stacks after cover */
 .detail-section-overlay {
     position: relative;
-    /* Changed from fixed to relative - normal flow */
     width: 100%;
     min-height: 100vh;
     padding: var(--spacing-2xl) var(--spacing-md);
     background-color: var(--color-bg-dark);
     color: var(--color-text-light);
     z-index: 10;
-    margin-top: -100vh;
-    /* Pull up to overlay cover section */
     will-change: transform;
 }
 
