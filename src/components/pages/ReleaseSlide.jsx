@@ -7,26 +7,26 @@ import PulsingPlayButton from '../media/PulsingPlayButton';
 import './ReleaseSlide.css';
 
 const ReleaseSlide = ({ release, priority = false }) => {
-    const containerRef = useRef(null);
+    const titleRef = useRef(null);
     const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start start", "end start"]
+        target: titleRef,
+        offset: ["start end", "end start"]
     });
 
     // Parallax strength from release settings or default
     const parallaxStrength = release.parallaxStrength || 100;
-    const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
+    const yParallax = useTransform(scrollYProgress, [0, 1], [-parallaxStrength, parallaxStrength]);
 
     const CoverContent = (
-        <div className="release-cover-container" ref={containerRef}>
+        <div className="release-cover-container">
             {/* Background title text - BEFORE wrapper so z-index works */}
             <motion.div
+                ref={titleRef}
                 className="release-title-background"
                 style={{
                     top: release.textTopPosition || '20%',
-                    y: yParallax, // Parallax effect
-                    display: 'flex',
-                    flexDirection: 'column',
+                    x: '-50%',
+                    y: yParallax,
                     gap: release.titleGap || '0px'
                 }}
                 initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}

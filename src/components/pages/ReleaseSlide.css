@@ -11,9 +11,7 @@
 /* Background title text */
 .release-title-background {
     position: absolute;
-    top: 20%;
-    /* left: 50%; - removed as requested */
-    transform: translate(-50%, -50%);
+    left: 50%;
     z-index: 1;
     width: 100%;
     text-align: center;
@@ -23,7 +21,7 @@
     justify-content: center;
     align-items: center;
     gap: 16px;
-    /* Reduced gap for tighter spacing */
+    /* Note: top and transform handled by inline styles for parallax */
 }
 
 .title-background-artists {
