@@ -19,7 +19,7 @@ const NewsManager = () => {
         date: '',
         excerpt: '',
         image: '',
-        titleFontSize: 'min(24vw, 120px)',
+        titleFontSize: '60px',
         titleTopPosition: '20%'
     });
 
@@ -30,7 +30,7 @@ const NewsManager = () => {
             date: item.date,
             excerpt: item.excerpt,
             image: item.image || '',
-            titleFontSize: item.titleFontSize || 'min(24vw, 120px)',
+            titleFontSize: item.titleFontSize || '60px',
             titleTopPosition: item.titleTopPosition || '20%'
         });
         setImagePreview(item.image || null);
@@ -51,7 +51,7 @@ const NewsManager = () => {
             date: '',
             excerpt: '',
             image: '',
-            titleFontSize: 'min(24vw, 120px)',
+            titleFontSize: '60px',
             titleTopPosition: '20%'
         });
         setImagePreview(null);

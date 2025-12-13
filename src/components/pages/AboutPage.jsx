@@ -1,3 +1,4 @@
+```javascript
 import React from 'react';
 import { useData } from '../../context/DataContext';
 import Header from '../layout/Header';
@@ -22,7 +23,7 @@ const AboutPage = () => {
                 <h1
                     className="about-title-text"
                     style={{
-                        fontSize: about.titleFontSize || 'min(24vw, 120px)',
+                        fontSize: about.titleFontSize || '60px',
                         visibility: 'visible' // Prevent flash
                     }}
                 >
@@ -89,12 +90,16 @@ const AboutPage = () => {
     );
 
     return (
-        <BaseSlidePage
-            coverContent={CoverContent}
-            detailContent={DetailContent}
-            pageId="about"
-        />
+        <>
+            <Header />
+            <BaseSlidePage
+                coverContent={CoverContent}
+                detailContent={DetailContent}
+                pageId="about"
+            />
+        </>
     );
 };
 
 export default AboutPage;
+```

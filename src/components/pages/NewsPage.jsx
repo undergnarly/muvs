@@ -18,7 +18,7 @@ const NewsPage = () => {
             >
                 <h1
                     className="mix-title-text"
-                    style={{ fontSize: news[0]?.titleFontSize || 'min(24vw, 120px)' }}
+                    style={{ fontSize: news[0]?.titleFontSize || '60px' }}
                 >
                     <SplitText delay={0.2}>NEWS</SplitText>
                 </h1>

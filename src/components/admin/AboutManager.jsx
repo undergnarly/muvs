@@ -113,8 +113,8 @@ const AboutManager = () => {
                             <label style={{ color: 'var(--color-text-light)', marginBottom: '8px', display: 'block' }}>Title Font Size</label>
                             <input
                                 type="text"
-                                placeholder="e.g. min(24vw, 120px)"
-                                value={formData.titleFontSize || 'min(24vw, 120px)'}
+                                placeholder="e.g. 60px"
+                                value={formData.titleFontSize || '60px'}
                                 onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
                                 style={inputStyle}
                             />

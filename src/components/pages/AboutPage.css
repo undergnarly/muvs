@@ -25,7 +25,7 @@
 }
 
 .about-title-text {
-    font-size: min(24vw, 120px);
+    font-size: 60px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: -0.03em;
