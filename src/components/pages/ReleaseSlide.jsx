@@ -11,7 +11,12 @@ const ReleaseSlide = ({ release }) => {
             {/* Background title text - BEFORE wrapper so z-index works */}
             <motion.div
                 className="release-title-background"
-                style={{ top: release.textTopPosition || '20%' }}
+                style={{
+                    top: release.textTopPosition || '20%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: release.titleGap || '0px'
+                }}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}

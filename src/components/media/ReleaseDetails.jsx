@@ -18,7 +18,6 @@ const ReleaseDetails = ({ release }) => {
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
                 {hasPlaylist ? (
                     <div className="soundcloud-playlist">
-                        <h3>Tracklist</h3>
                         <iframe
                             width="100%"
                             height="450"
@@ -35,7 +34,6 @@ const ReleaseDetails = ({ release }) => {
                     </div>
                 ) : (
                     <div className="tracklist">
-                        <h3>Tracklist</h3>
                         <ul>
                             {release.tracks && release.tracks.map((track, index) => (
                                 <li key={track.id || index} className="track-item">
@@ -64,7 +62,6 @@ const ReleaseDetails = ({ release }) => {
                 {/* Circular Gallery */}
                 {release.gallery && release.gallery.length > 0 && (
                     <div className="gallery-container-full">
-                        <h3 className="gallery-title">Gallery</h3>
                         <div className="gallery-wrapper">
                             <CircularGallery
                                 items={release.gallery}

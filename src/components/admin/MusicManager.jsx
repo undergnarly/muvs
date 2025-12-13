@@ -18,6 +18,7 @@ const MusicManager = () => {
         title: '',
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
+        titleGap: '0px',
         textTopPosition: '20%',
         releaseDate: '',
         order: 0,
