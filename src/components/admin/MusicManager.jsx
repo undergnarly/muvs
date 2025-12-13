@@ -334,10 +334,10 @@ const MusicManager = () => {
                         </div>
 
                         <textarea
-                            placeholder="Description"
+                            placeholder="Description (supports HTML for links)"
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            rows={3}
+                            rows={4}
                             style={{ ...inputStyle, resize: 'vertical' }}
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

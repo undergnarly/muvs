@@ -15,8 +15,6 @@ const ReleaseDetails = ({ release }) => {
 
                 <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
 
-                <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
-
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
                 {hasPlaylist ? (
                     <div className="soundcloud-playlist">

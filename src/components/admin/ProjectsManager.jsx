@@ -111,7 +111,7 @@ const ProjectsManager = () => {
                             />
                         </div>
                         <textarea
-                            placeholder="Short Description"
+                            placeholder="Short Description (supports HTML for links)"
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                             rows={2}
@@ -119,7 +119,7 @@ const ProjectsManager = () => {
                             style={{ ...inputStyle, resize: 'vertical' }}
                         />
                         <textarea
-                            placeholder="Full Description"
+                            placeholder="Full Description (supports HTML)"
                             value={formData.fullDescription}
                             onChange={e => setFormData({ ...formData, fullDescription: e.target.value })}
                             rows={4}

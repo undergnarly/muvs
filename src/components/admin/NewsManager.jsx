@@ -89,7 +89,7 @@ const NewsManager = () => {
                             style={inputStyle}
                         />
                         <textarea
-                            placeholder="Excerpt"
+                            placeholder="Excerpt (supports HTML for links)"
                             value={formData.excerpt}
                             onChange={e => setFormData({ ...formData, excerpt: e.target.value })}
                             required

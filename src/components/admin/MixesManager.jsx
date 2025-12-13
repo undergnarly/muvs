@@ -144,7 +144,7 @@ const MixesManager = () => {
                             />
                         </div>
                         <textarea
-                            placeholder="Description"
+                            placeholder="Description (supports HTML for links)"
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                             rows={3}
