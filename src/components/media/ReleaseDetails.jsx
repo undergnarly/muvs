@@ -1,6 +1,7 @@
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
 import TechTag from '../ui/TechTag';
+import { fixLinks } from '../../utils/linkUtils';
 import './ReleaseDetails.css';
 
 const ReleaseDetails = ({ release }) => {
@@ -22,7 +23,7 @@ const ReleaseDetails = ({ release }) => {
 
                 <span className="release-date" style={{ display: 'block', marginBottom: '16px' }}>Released: {release.releaseDate}</span>
 
-                <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
+                <p className="release-description" dangerouslySetInnerHTML={{ __html: fixLinks(release.description) }}></p>
 
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
                 {hasPlaylist ? (
@@ -39,8 +40,8 @@ const ReleaseDetails = ({ release }) => {
                                 marginTop: '16px',
                                 marginBottom: '16px'
                             }}
-                        ></iframe>
-                    </div>
+                        ></iframe >
+                    </div >
                 ) : (
                     <div className="tracklist">
                         <ul>
@@ -69,22 +70,24 @@ const ReleaseDetails = ({ release }) => {
                 </div>
 
                 {/* Circular Gallery */}
-                {release.gallery && release.gallery.length > 0 && (
-                    <div className="gallery-container-full">
-                        <div className="gallery-wrapper">
-                            <CircularGallery
-                                items={release.gallery}
-                                bend={1}
-                                textColor="#ffffff"
-                                borderRadius={0.05}
-                                scrollEase={0.05}
-                                scrollSpeed={1.5}
-                            />
+                {
+                    release.gallery && release.gallery.length > 0 && (
+                        <div className="gallery-container-full">
+                            <div className="gallery-wrapper">
+                                <CircularGallery
+                                    items={release.gallery}
+                                    bend={1}
+                                    textColor="#ffffff"
+                                    borderRadius={0.05}
+                                    scrollEase={0.05}
+                                    scrollSpeed={1.5}
+                                />
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
-        </div>
+                    )
+                }
+            </div >
+        </div >
     );
 };
 

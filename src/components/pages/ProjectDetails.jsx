@@ -4,6 +4,7 @@ import TechTag from '../ui/TechTag';
 import CircularGallery from '../media/CircularGallery';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 import { sanitizeUrl } from '../../utils/linkHelpers';
+import { fixLinks } from '../../utils/linkUtils';
 import './ProjectDetails.css';
 
 const ProjectDetails = ({ project }) => {
@@ -28,14 +29,14 @@ const ProjectDetails = ({ project }) => {
                     ))}
                 </div>
 
-                <div className="project-description" dangerouslySetInnerHTML={{ __html: project.fullDescription }}></div>
+                <div className="project-description" dangerouslySetInnerHTML={{ __html: fixLinks(project.fullDescription) }}></div>
 
                 {project.features && (
                     <div className="project-features">
                         <h3>Key Features</h3>
                         <ul>
                             {project.features.map((feature, idx) => (
-                                <li key={idx} dangerouslySetInnerHTML={{ __html: `• ${feature}` }}></li>
+                                <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks(`• ${feature}`) }}></li>
                             ))}
                         </ul>
                     </div>
