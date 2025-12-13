@@ -46,7 +46,14 @@ const ReleaseSlide = ({ release }) => {
             >
                 <div className="cover-placeholder">
                     {release.coverImage ? (
-                        <img src={release.coverImage} alt={`Cover for ${release.title}`} className="release-cover-img" />
+                        <img
+                            src={release.coverImage}
+                            alt={`Cover for ${release.title}`}
+                            className="release-cover-img"
+                            loading="eager"
+                            fetchPriority="high"
+                            decoding="async"
+                        />
                     ) : (
                         <div className="mock-cover">
                             <span>{release.title}</span>

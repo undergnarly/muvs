@@ -37,7 +37,12 @@ const MixSlide = ({ mix }) => {
             >
                 {mix.backgroundImage && (
                     <div className="mix-image-placeholder">
-                        <img src={mix.backgroundImage} alt="Mix background" />
+                        <img
+                            src={mix.backgroundImage}
+                            alt="Mix background"
+                            loading="eager"
+                            decoding="async"
+                        />
                     </div>
                 )}
             </motion.div>
