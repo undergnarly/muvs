@@ -12,19 +12,26 @@ const AboutPage = () => {
 
     const CoverContent = (
         <div className="about-cover-container">
-            {about.backgroundImage && (
-                <div className="about-background-image">
-                    <img src={about.backgroundImage} alt="About background" />
-                </div>
-            )}
-            <h1 className="about-title">
-                <SplitText delay={0.2}>{about.title || 'ABOUT'}</SplitText>
-            </h1>
+            {/* Background Title */}
+            <div className="about-title-background">
+                <h1 className="about-title-text">
+                    <SplitText delay={0.2}>{about.title || 'ABOUT'}</SplitText>
+                </h1>
+            </div>
+
+            {/* Constrained Image Wrapper */}
+            <div className="about-cover-wrapper">
+                {about.backgroundImage && (
+                    <div className="about-image-placeholder">
+                        <img src={about.backgroundImage} alt="About background" />
+                    </div>
+                )}
+            </div>
         </div>
     );
 
     const DetailContent = (
-        <div className="about-details-container">
+        <div className="about-details-container" style={{ width: '100%', maxWidth: '100%', padding: '40px 20px' }}>
             <div className="about-content">
                 <div dangerouslySetInnerHTML={{ __html: about.content }}></div>
                 <div className="about-contact">

@@ -43,6 +43,31 @@ a {
     text-decoration: none;
     color: inherit;
     cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+/* Links inside text content should be accented */
+p a,
+li a,
+.description a,
+.project-description a,
+.news-item a,
+.about-content a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+p a:hover,
+li a:hover,
+.description a:hover,
+.project-description a:hover,
+.news-item a:hover,
+.about-content a:hover {
+    color: var(--color-accent-hover, #ccff00);
+    /* Fallback or defined var */
+    text-decoration-thickness: 2px;
 }
 
 ul,
