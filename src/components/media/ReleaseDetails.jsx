@@ -68,10 +68,11 @@ const ReleaseDetails = ({ release }) => {
                         <div style={{ height: '600px', position: 'relative' }}>
                             <CircularGallery
                                 items={release.gallery}
-                                bend={3}
+                                bend={1}
                                 textColor="#ffffff"
                                 borderRadius={0.05}
-                                scrollEase={0.02}
+                                scrollSpeed={1.4}
+                                scrollEase={0.14}
                             />
                         </div>
                     </div>

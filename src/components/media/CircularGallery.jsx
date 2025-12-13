@@ -457,12 +457,12 @@ class App {
 
 export default function CircularGallery({
   items,
-  bend = 3,
+  bend = 1,
   textColor = '#ffffff',
   borderRadius = 0.05,
   font = 'bold 30px Figtree',
-  scrollSpeed = 2,
-  scrollEase = 0.05
+  scrollSpeed = 1.4,
+  scrollEase = 0.14
 }) {
   const containerRef = useRef(null);
   useEffect(() => {
