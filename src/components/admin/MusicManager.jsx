@@ -187,12 +187,22 @@ const MusicManager = () => {
                                 required
                                 style={inputStyle}
                             />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
                                 placeholder="Release Date"
                                 value={formData.releaseDate}
                                 onChange={e => setFormData({ ...formData, releaseDate: e.target.value })}
                                 required
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="BPM (e.g. 160)"
+                                value={formData.bpm || ''}
+                                onChange={e => setFormData({ ...formData, bpm: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>
