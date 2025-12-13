@@ -21,6 +21,7 @@ const ProjectsManager = () => {
         liveUrl: '',
         githubUrl: '',
         features: '', // Will split by comma
+        parallaxStrength: 50,
         gallery: []
     };
     const [formData, setFormData] = useState(initialForm);
@@ -197,6 +198,13 @@ const ProjectsManager = () => {
                             placeholder="Key Features (comma separated)"
                             value={formData.features}
                             onChange={e => setFormData({ ...formData, features: e.target.value })}
+                            style={inputStyle}
+                        />
+                        <input
+                            type="number"
+                            placeholder="Parallax Strength (0-200, default 50)"
+                            value={formData.parallaxStrength || ''}
+                            onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 50 })}
                             style={inputStyle}
                         />
 

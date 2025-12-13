@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Button from '../ui/Button';
 import BaseSlidePage from '../layout/BaseSlidePage';
@@ -6,11 +6,17 @@ import ProjectDetails from './ProjectDetails';
 import './ProjectSlide.css';
 
 const ProjectSlide = ({ project, priority = false }) => {
-    const { scrollY } = useScroll();
-    const yParallax = useTransform(scrollY, [0, 500], [0, 100]); // Subtle parallax for project title block
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end start"]
+    });
+
+    const parallaxStrength = project.parallaxStrength || 50;
+    const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
 
     const CoverContent = (
-        <div className="project-cover-container">
+        <div className="project-cover-container" ref={containerRef}>
             <motion.div
                 className="project-preview-wrapper"
                 initial={{ opacity: 0, y: 20 }}

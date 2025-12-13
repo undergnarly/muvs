@@ -1,4 +1,5 @@
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { useRef } from 'react';
 import Button from '../ui/Button';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import ReleaseDetails from '../media/ReleaseDetails';
@@ -6,11 +7,18 @@ import PulsingPlayButton from '../media/PulsingPlayButton';
 import './ReleaseSlide.css';
 
 const ReleaseSlide = ({ release, priority = false }) => {
-    const { scrollY } = useScroll();
-    const yParallax = useTransform(scrollY, [0, 500], [0, 200]); // Move down slower than scroll
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end start"]
+    });
+
+    // Parallax strength from release settings or default
+    const parallaxStrength = release.parallaxStrength || 100;
+    const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
 
     const CoverContent = (
-        <div className="release-cover-container">
+        <div className="release-cover-container" ref={containerRef}>
             {/* Background title text - BEFORE wrapper so z-index works */}
             <motion.div
                 className="release-title-background"

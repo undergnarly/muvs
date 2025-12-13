@@ -20,6 +20,7 @@ const MusicManager = () => {
         artistFontSize: 'min(12vw, 60px)',
         titleGap: '0px',
         textTopPosition: '20%',
+        parallaxStrength: 100,
         releaseDate: '',
         order: 0,
         bpm: 0,
@@ -227,13 +228,22 @@ const MusicManager = () => {
                             />
                         </div>
 
-                        <input
-                            type="text"
-                            placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
-                            value={formData.textTopPosition || ''}
-                            onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
-                            style={inputStyle}
-                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
+                                value={formData.textTopPosition || ''}
+                                onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Parallax Strength (0-200, default 100)"
+                                value={formData.parallaxStrength || ''}
+                                onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
+                                style={inputStyle}
+                            />
+                        </div>
 
                         {/* Genres Section */}
                         <div style={{ marginBottom: '16px' }}>

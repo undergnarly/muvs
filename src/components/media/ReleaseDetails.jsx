@@ -11,16 +11,16 @@ const ReleaseDetails = ({ release }) => {
         <div className="release-details-container">
             <div className="release-info">
                 <h2 className="release-title-lg">{release.title}</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    <span className="release-date">Released: {release.releaseDate}</span>
-                    {release.genres && release.genres.length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {release.genres.map((genre, idx) => (
-                                <TechTag key={idx} label={genre} />
-                            ))}
-                        </div>
-                    )}
-                </div>
+
+                {release.genres && release.genres.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                        {release.genres.map((genre, idx) => (
+                            <TechTag key={idx} label={genre} />
+                        ))}
+                    </div>
+                )}
+
+                <span className="release-date" style={{ display: 'block', marginBottom: '16px' }}>Released: {release.releaseDate}</span>
 
                 <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
 

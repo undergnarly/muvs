@@ -17,6 +17,7 @@ const MixesManager = () => {
         titleFontSize: 'min(24vw, 120px)',
         textTopPosition: '20%',
         titleGap: '0px',
+        parallaxStrength: 100,
         recordDate: '',
         duration: '',
         soundcloudUrl: '',
@@ -163,6 +164,13 @@ const MixesManager = () => {
                                 placeholder="Title Gap"
                                 value={formData.titleGap || ''}
                                 onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Parallax Strength (0-200, default 100)"
+                                value={formData.parallaxStrength || ''}
+                                onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
                                 style={inputStyle}
                             />
                         </div>

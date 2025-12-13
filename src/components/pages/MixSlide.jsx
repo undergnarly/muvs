@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import MixDetails from '../media/MixDetails';
 import './MixSlide.css';
 
 const MixSlide = ({ mix, priority = false }) => {
-    const { scrollY } = useScroll();
-    const yParallax = useTransform(scrollY, [0, 500], [0, 200]);
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end start"]
+    });
+
+    const parallaxStrength = mix.parallaxStrength || 100;
+    const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
 
     const CoverContent = (
-        <div className="mix-cover-container">
+        <div className="mix-cover-container" ref={containerRef}>
             {/* Background title text */}
             <motion.div
                 className="mix-title-background"
