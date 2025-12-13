@@ -241,13 +241,19 @@ export const StaggeredMenu = () => {
 
     const handleLogoClick = (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Stop bubbling to prevent any parent interactions
+
         const homePath = ROUTES.HOME || '/';
 
+        // If menu is open, close it
+        if (open) {
+            toggleMenu();
+        }
+
+        // Always navigate to home if not already there
+        // Optionally, if on home, scrolling to top is a common pattern, but for now just navigate (which does nothing or replaces)
         if (location.pathname !== homePath) {
             navigate(homePath);
-            if (open) toggleMenu(); // Close it if currently open
-        } else {
-            toggleMenu(); // Toggle menu if already on home page
         }
     };
 
