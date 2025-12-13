@@ -114,9 +114,23 @@ export const DataProvider = ({ children }) => {
         setSiteSettings(newSettings);
     };
 
-    const trackVisit = (path, referrer = '') => {
-        // ... (keep existing logic) ...
+    const trackVisit = async (path, referrer = '') => {
+        // Exclude admin and login paths
+        if (path.startsWith('/admin') || path.startsWith('/login')) return;
+
         const today = new Date().toISOString().split('T')[0];
+
+        // Try to get country
+        let country = 'Unknown';
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            if (res.ok) {
+                const data = await res.json();
+                country = data.country_name || 'Unknown';
+            }
+        } catch (e) {
+            console.warn('Failed to resolve country:', e);
+        }
 
         setStats(prev => {
             const newStats = { ...prev };
@@ -126,6 +140,7 @@ export const DataProvider = ({ children }) => {
             newStats.pages = { ...prev.pages };
             newStats.pages[path] = (newStats.pages[path] || 0) + 1;
             newStats.sources = { ...prev.sources };
+            newStats.countries = { ...prev.countries };
 
             let source = 'direct';
             if (referrer) {
@@ -137,6 +152,10 @@ export const DataProvider = ({ children }) => {
                 }
             }
             newStats.sources[source] = (newStats.sources[source] || 0) + 1;
+
+            // Update country stats
+            newStats.countries[country] = (newStats.countries[country] || 0) + 1;
+
             return newStats;
         });
     };
