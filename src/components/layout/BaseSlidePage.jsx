@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
@@ -11,19 +11,23 @@ const BaseSlidePage = ({
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
     const wrapperRef = useRef(null);
-    const [scrollContainer, setScrollContainer] = React.useState(null);
+    const [scrollContainer, setScrollContainer] = useState(null);
 
     // Find parent scrollable container
-    React.useEffect(() => {
+    useEffect(() => {
         if (wrapperRef.current) {
             let parent = wrapperRef.current.parentElement;
             while (parent) {
                 const overflowY = window.getComputedStyle(parent).overflowY;
                 if (overflowY === 'auto' || overflowY === 'scroll') {
+                    console.log('[BaseSlidePage] Found scroll container:', parent);
                     setScrollContainer(parent);
                     break;
                 }
                 parent = parent.parentElement;
+            }
+            if (!scrollContainer) {
+                console.log('[BaseSlidePage] No scroll container found, using default');
             }
         }
     }, []);
@@ -31,9 +35,19 @@ const BaseSlidePage = ({
     // Track scroll progress - use scrollContainer if found, otherwise wrapper
     const { scrollYProgress } = useScroll({
         target: wrapperRef,
-        container: scrollContainer || undefined,
-        offset: ["start start", "end start"]
+        container: scrollContainer,
+        offset: ["start end", "end start"]
     });
+
+    // Debug scroll progress
+    useEffect(() => {
+        const unsubscribe = scrollYProgress.on('change', (latest) => {
+            if (animationType === 'zoom-out') {
+                console.log('[BaseSlidePage] Scroll progress:', latest);
+            }
+        });
+        return () => unsubscribe();
+    }, [scrollYProgress, animationType]);
 
     // Zoom-out animation: Phase 1 (0 → 0.5) scale down, Phase 2 (0.5 → 1) overlay
     // Overlay animation: Immediate overlay (no scale)
