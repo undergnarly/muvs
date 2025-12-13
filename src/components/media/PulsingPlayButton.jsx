@@ -57,9 +57,6 @@ const PulsingPlayButton = ({ audioUrl, bpm = 120 }) => {
                 className="pulsing-play-btn"
                 onClick={togglePlay}
                 aria-label={isPlaying ? 'Pause' : 'Play'}
-                style={{
-                    background: isPlaying ? 'transparent' : 'rgba(0,0,0,0.3)', // Subtle background when paused for visibility? Or requested transparent. requested transparent.
-                }}
             >
                 {isPlaying ? <FaPause /> : <FaPlay style={{ marginLeft: '4px' }} />}
             </button>

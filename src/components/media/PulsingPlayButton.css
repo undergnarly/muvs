@@ -19,9 +19,9 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: transparent;
-    border: 2px solid #000000;
-    color: #000000;
+    background: #000000;
+    border: none;
+    color: #ffffff;
     font-size: 24px;
     display: flex;
     align-items: center;
@@ -35,7 +35,7 @@
 
 .pulsing-play-btn:hover {
     transform: scale(1.1);
-    background: rgba(0, 0, 0, 0.1);
+    background: #1a1a1a;
 }
 
 .pulsing-play-btn:active {
