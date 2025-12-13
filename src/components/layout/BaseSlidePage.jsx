@@ -90,7 +90,7 @@ const BaseSlidePage = ({
     const coverTextY = useTransform(
         scrollYProgress,
         isZoomOut ? [0, 0.5] : [0, 1],
-        isZoomOut ? [0, 100] : [0, 0]
+        isZoomOut ? [0, 50] : [0, 0]
     );
 
     const coverOpacity = useTransform(

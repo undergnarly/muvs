@@ -14,14 +14,14 @@ const MixSlide = ({ mix, priority = false }) => {
     const parallaxStrength = mix.parallaxStrength || 100;
     const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
 
-    const CoverContent = (
-        <div className="mix-cover-container" ref={containerRef}>
+    const CoverContent = ({ coverTextY, coverImageY }) => (
+        <div className="mix-cover-container">
             {/* Background title text */}
             <motion.div
                 className="mix-title-background"
                 style={{
                     top: mix.textTopPosition || '20%',
-                    y: yParallax, // Parallax effect added
+                    y: coverTextY || yParallax,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: mix.titleGap || '0px'
@@ -41,6 +41,9 @@ const MixSlide = ({ mix, priority = false }) => {
             {/* Cover image wrapper (constrained width) */}
             <motion.div
                 className="mix-cover-wrapper"
+                style={{
+                    y: coverImageY || 0
+                }}
                 initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: priority ? 0 : 0.2 }}
@@ -82,6 +85,7 @@ const MixSlide = ({ mix, priority = false }) => {
             coverContent={CoverContent}
             detailContent={<MixDetails mix={mix} />}
             textColor="black"
+            animationType="zoom-out"
         />
     );
 };
