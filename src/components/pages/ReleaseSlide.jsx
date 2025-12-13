@@ -82,6 +82,7 @@ const ReleaseSlide = ({ release }) => {
         <BaseSlidePage
             coverContent={CoverContent}
             detailContent={<ReleaseDetails release={release} />}
+            textColor="black"
         />
     );
 };

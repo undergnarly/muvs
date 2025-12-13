@@ -46,6 +46,7 @@ const ProjectSlide = ({ project }) => {
         <BaseSlidePage
             coverContent={CoverContent}
             detailContent={<ProjectDetails project={project} />}
+            textColor="black"
         />
     );
 };

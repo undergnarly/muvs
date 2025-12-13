@@ -3,7 +3,7 @@ import { motion, useScroll as useFramerScroll, useTransform, useSpring } from 'f
 import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
 
-const BaseSlidePage = ({ coverContent, detailContent, theme = 'light' }) => {
+const BaseSlidePage = ({ coverContent, detailContent, theme = 'light', textColor = 'white' }) => {
     const containerRef = useRef(null);
 
     // Parallax or color transition logic can go here
@@ -16,8 +16,8 @@ const BaseSlidePage = ({ coverContent, detailContent, theme = 'light' }) => {
                 {coverContent}
 
                 <div className="scroll-indicator-wrapper">
-                    <span className="scroll-text">Check it out!</span>
-                    <div className="scroll-arrow">
+                    <span className="scroll-text" style={{ color: textColor }}>Check it out!</span>
+                    <div className="scroll-arrow" style={{ color: textColor }}>
                         <BiChevronDown size={32} />
                     </div>
                 </div>

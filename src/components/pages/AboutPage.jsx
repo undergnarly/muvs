@@ -101,6 +101,7 @@ const AboutPage = () => {
                 coverContent={CoverContent}
                 detailContent={DetailContent}
                 pageId="about"
+                textColor="white"
             />
         </>
     );

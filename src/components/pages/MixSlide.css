@@ -79,6 +79,8 @@
     z-index: 20;
     /* Above image */
     padding: 0 var(--spacing-md);
+    margin-top: -40px;
+    /* Pull player up to avoid overlap with Check it out */
 }
 
 @media (min-width: 768px) {

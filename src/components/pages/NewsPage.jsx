@@ -126,6 +126,7 @@ const NewsPage = () => {
                 coverContent={CoverContent}
                 detailContent={DetailContent}
                 pageId="news"
+                textColor="white"
             />
         </>
     );

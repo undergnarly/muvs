@@ -65,6 +65,7 @@ const MixSlide = ({ mix }) => {
         <BaseSlidePage
             coverContent={CoverContent}
             detailContent={<MixDetails mix={mix} />}
+            textColor="black"
         />
     );
 };

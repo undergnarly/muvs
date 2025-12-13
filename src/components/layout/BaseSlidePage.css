@@ -46,7 +46,7 @@
 .scroll-text {
     font-size: 14px;
     font-weight: 700;
-    color: #FFFFFF;
+    /* color: #FFFFFF;  <-- Handled via inline style now */
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0.8;
@@ -56,7 +56,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #FFFFFF;
+    /* color: #FFFFFF; <-- Handled via inline style now */
     /* Explicitly black as requested */
     animation: bounce 2s infinite;
 }
