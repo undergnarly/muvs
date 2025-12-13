@@ -39,6 +39,19 @@ function App() {
     trackVisit(location.pathname, document.referrer);
   }, [location.pathname]);
 
+  // Remove Splash Screen on Mount
+  React.useEffect(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      // Small delay to ensure smooth visual transition
+      setTimeout(() => {
+        splash.classList.add('hidden');
+        // Optional: Remove from DOM after transition
+        setTimeout(() => splash.remove(), 1000);
+      }, 500);
+    }
+  }, []);
+
   // Update favicon dynamically
   React.useEffect(() => {
     if (siteSettings?.favicon) {
