@@ -12,17 +12,5 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:3001',
       '/uploads': 'http://127.0.0.1:3001'
     }
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
-          three: ['three', '@react-three/fiber', '@react-three/drei'],
-          gsap: ['gsap'],
-          ui: ['@chakra-ui/react', '@emotion/react', '@emotion/styled']
-        }
-      }
-    }
   }
 })

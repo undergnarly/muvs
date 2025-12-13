@@ -1,15 +1,16 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
-// Lazy load pages
-const AboutPage = React.lazy(() => import('./components/pages/AboutPage'));
-const NewsPage = React.lazy(() => import('./components/pages/NewsPage'));
-const MusicPage = React.lazy(() => import('./components/pages/MusicPage'));
-const MixesPage = React.lazy(() => import('./components/pages/MixesPage'));
-const CodePage = React.lazy(() => import('./components/pages/CodePage'));
-const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
+// Static imports for Public Pages (Critical for fast navigation and no flickering)
+import HomePage from './components/pages/HomePage';
+import AboutPage from './components/pages/AboutPage';
+import NewsPage from './components/pages/NewsPage';
+import MusicPage from './components/pages/MusicPage';
+import MixesPage from './components/pages/MixesPage';
+import CodePage from './components/pages/CodePage';
 
-// Lazy load Admin components
+// Lazy load Admin components (Heavy and not needed for visitors)
+const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
 const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout'));
 const Dashboard = React.lazy(() => import('./components/admin/Dashboard'));
 const NewsManager = React.lazy(() => import('./components/admin/NewsManager'));
@@ -89,28 +90,39 @@ function App() {
     <>
       <TopBlur />
       <PageGradient />
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path={ROUTES.HOME} element={<MusicPage />} />
-          <Route path={ROUTES.ABOUT} element={<AboutPage />} />
-          <Route path={ROUTES.NEWS} element={<NewsPage />} />
-          <Route path={ROUTES.MUSIC} element={<MusicPage />} />
-          <Route path={ROUTES.MIXES} element={<MixesPage />} />
-          <Route path={ROUTES.CODE} element={<CodePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="news" element={<NewsManager />} />
-            <Route path="music" element={<MusicManager />} />
-            <Route path="mixes" element={<MixesManager />} />
-            <Route path="projects" element={<ProjectsManager />} />
-            <Route path="about" element={<AboutManager />} />
-            <Route path="messages" element={<MessagesManager />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        {/* Public Routes - Static, instant load */}
+        <Route path={ROUTES.HOME} element={<MusicPage />} />
+        <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+        <Route path={ROUTES.NEWS} element={<NewsPage />} />
+        <Route path={ROUTES.MUSIC} element={<MusicPage />} />
+        <Route path={ROUTES.MIXES} element={<MixesPage />} />
+        <Route path={ROUTES.CODE} element={<CodePage />} />
+
+        {/* Admin Routes - Suspense/Lazy loaded */}
+        <Route path="/login" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <LoginPage />
+          </Suspense>
+        } />
+
+        <Route path="/admin" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminLayout />
+          </Suspense>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="news" element={<NewsManager />} />
+          <Route path="music" element={<MusicManager />} />
+          <Route path="mixes" element={<MixesManager />} />
+          <Route path="projects" element={<ProjectsManager />} />
+          <Route path="about" element={<AboutManager />} />
+          <Route path="messages" element={<MessagesManager />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+      </Routes>
     </>
   );
 }
