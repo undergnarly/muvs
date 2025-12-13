@@ -23,6 +23,7 @@ const MixesManager = () => {
         soundcloudUrl: '',
         description: '',
         backgroundImage: '',
+        tracks: [] // Tracklist for the mix
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -241,6 +242,94 @@ const MixesManager = () => {
                                 )}
                             </div>
                             {uploadStatus && <div style={{ marginTop: '8px', color: 'var(--color-text-dim)', fontSize: '14px' }}>{uploadStatus}</div>}
+                        </div>
+
+                        {/* Tracklist Section */}
+                        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Tracklist</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newTrack = { id: Date.now(), artist: '', title: '', order: (formData.tracks?.length || 0) + 1 };
+                                        setFormData({ ...formData, tracks: [...(formData.tracks || []), newTrack] });
+                                    }}
+                                    style={{
+                                        background: 'rgba(204, 255, 0, 0.1)',
+                                        border: '1px solid var(--color-accent)',
+                                        borderRadius: '6px',
+                                        color: 'var(--color-accent)',
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <FaPlus /> Add Track
+                                </button>
+                            </div>
+                            {formData.tracks && formData.tracks.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {formData.tracks.map((track, index) => (
+                                        <div key={track.id || index} style={{ padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                <div style={{
+                                                    minWidth: '30px',
+                                                    height: '30px',
+                                                    background: 'var(--color-accent)',
+                                                    color: '#000',
+                                                    borderRadius: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontWeight: 'bold',
+                                                    fontSize: '14px'
+                                                }}>
+                                                    {index + 1}
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Artist"
+                                                    value={track.artist || ''}
+                                                    onChange={e => {
+                                                        const updatedTracks = [...formData.tracks];
+                                                        updatedTracks[index] = { ...track, artist: e.target.value };
+                                                        setFormData({ ...formData, tracks: updatedTracks });
+                                                    }}
+                                                    style={{ ...inputStyle, flex: 1, fontSize: '14px', padding: '8px' }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Track Title"
+                                                    value={track.title || ''}
+                                                    onChange={e => {
+                                                        const updatedTracks = [...formData.tracks];
+                                                        updatedTracks[index] = { ...track, title: e.target.value };
+                                                        setFormData({ ...formData, tracks: updatedTracks });
+                                                    }}
+                                                    style={{ ...inputStyle, flex: 2, fontSize: '14px', padding: '8px' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updated = formData.tracks.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, tracks: updated });
+                                                    }}
+                                                    style={{ color: '#ff5555', fontSize: '16px', padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '32px', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>
+                                    No tracks added yet
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>

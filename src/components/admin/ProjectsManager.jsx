@@ -6,6 +6,8 @@ import { compressImage, validateImageFile } from '../../utils/imageCompression';
 
 const ProjectsManager = () => {
     const { projects, updateData } = useData();
+    const [editingItem, setEditingItem] = useState(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
 
