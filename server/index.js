@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -34,6 +35,7 @@ if (!fs.existsSync(DB_FILE)) {
 
 // Middleware
 app.use(cors());
+app.use(compression());
 app.use(bodyParser.json({ limit: '100mb' })); // Support large payloads
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
