@@ -20,6 +20,8 @@ const MusicManager = () => {
         artistFontSize: 'min(12vw, 60px)',
         textTopPosition: '20%',
         releaseDate: '',
+        order: 0,
+        bpm: 0,
         coverImage: '',
         audioPreview: '',
         soundcloudUrl: '',
@@ -196,6 +198,13 @@ const MusicManager = () => {
                                 value={formData.releaseDate}
                                 onChange={e => setFormData({ ...formData, releaseDate: e.target.value })}
                                 required
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Sort Order (default 0)"
+                                value={formData.order || ''}
+                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                                 style={inputStyle}
                             />
                             <input
