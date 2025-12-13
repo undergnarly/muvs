@@ -18,7 +18,7 @@ const MixDetails = ({ mix }) => {
                 <h2 className="mix-title-lg">{mix.title}</h2>
                 <span className="mix-date">Recorded: {mix.recordDate} • {mix.duration}</span>
 
-                <p className="mix-description">{mix.description}</p>
+                <p className="mix-description" dangerouslySetInnerHTML={{ __html: mix.description }}></p>
 
                 {mix.tracklist && mix.tracklist.length > 0 && (
                     <div className="tracklist">
