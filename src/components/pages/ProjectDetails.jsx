@@ -16,14 +16,14 @@ const ProjectDetails = ({ project }) => {
                     ))}
                 </div>
 
-                <p className="project-description">{project.fullDescription}</p>
+                <div className="project-description" dangerouslySetInnerHTML={{ __html: project.fullDescription }}></div>
 
                 {project.features && (
                     <div className="project-features">
                         <h3>Key Features</h3>
                         <ul>
                             {project.features.map((feature, idx) => (
-                                <li key={idx}>• {feature}</li>
+                                <li key={idx} dangerouslySetInnerHTML={{ __html: `• ${feature}` }}></li>
                             ))}
                         </ul>
                     </div>

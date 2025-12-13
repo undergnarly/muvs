@@ -13,7 +13,7 @@ const ReleaseDetails = ({ release }) => {
                 <h2 className="release-title-lg">{release.title}</h2>
                 <span className="release-date">Released: {release.releaseDate}</span>
 
-                <p className="release-description">{release.description}</p>
+                <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
 
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
                 {hasPlaylist ? (

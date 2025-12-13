@@ -60,8 +60,8 @@ const ReleaseSlide = ({ release }) => {
                 {/* Artist name removed to avoid hardcoding */}
             </motion.div>
 
-            {/* Audio Visualizer with Equalizer */}
-            <AudioVisualizer audioUrl={release.audioPreview} />
+            {/* Audio Player */}
+            {release.audioPreview && <AudioVisualizer audioUrl={release.audioPreview} />}
         </div>
     );
 

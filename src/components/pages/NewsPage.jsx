@@ -25,7 +25,7 @@ const NewsPage = () => {
                             {item.date}
                         </div>
                         <h2 style={{ fontSize: '24px', marginBottom: '12px', color: 'var(--color-text-light)' }}>{item.title}</h2>
-                        <p style={{ lineHeight: '1.6', color: 'var(--color-text-dim)' }}>{item.excerpt}</p>
+                        <div style={{ lineHeight: '1.6', color: 'var(--color-text-dim)' }} dangerouslySetInnerHTML={{ __html: item.excerpt }}></div>
                     </div>
                 ))}
             </div>
