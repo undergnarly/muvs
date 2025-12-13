@@ -14,6 +14,9 @@ const MixesManager = () => {
 
     const initialForm = {
         title: '',
+        titleFontSize: 'min(24vw, 120px)',
+        textTopPosition: '20%',
+        titleGap: '0px',
         recordDate: '',
         duration: '',
         soundcloudUrl: '',
@@ -140,6 +143,29 @@ const MixesManager = () => {
                                 placeholder="Duration"
                                 value={formData.duration}
                                 onChange={e => setFormData({ ...formData, duration: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Title Font Size"
+                                value={formData.titleFontSize || ''}
+                                onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Text Top Position"
+                                value={formData.textTopPosition || ''}
+                                onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Title Gap"
+                                value={formData.titleGap || ''}
+                                onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>

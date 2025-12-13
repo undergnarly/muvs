@@ -6,48 +6,85 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: var(--spacing-md);
+    /* padding removed to prevent overflow with constrained wrappers */
 }
 
-.mix-background-image {
+/* Background title text */
+.mix-title-background {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 20%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    left: 50%;
+}
+
+.mix-title-text {
+    /* Font size controlled via inline styles from admin */
+    font-size: min(24vw, 120px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    color: var(--color-text-light);
+    line-height: 1;
+    margin: 0;
+    padding: 0 20px;
+    width: 100%;
+    max-width: 100vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Cover Wrapper (Constrained width logic like releases) */
+.mix-cover-wrapper {
+    position: relative;
+    width: 100vw;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    margin-bottom: var(--spacing-lg);
+    z-index: 5;
+    /* Higher than title */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mix-image-placeholder {
     width: 100%;
     height: 100%;
-    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
-.mix-background-image img {
+.mix-image-placeholder img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.2;
+    /* Maintain cover fit but within restricted container */
 }
 
 .mix-player-wrapper {
     position: relative;
     width: 100%;
     max-width: 800px;
-    /* Limit width for 16:9 player */
-    margin-bottom: var(--spacing-lg);
     z-index: 20;
-}
-
-.mix-main-info {
-    position: relative;
-    text-align: center;
-    z-index: 10;
-}
-
-.mix-main-title {
-    font-size: 24px;
-    text-transform: uppercase;
-    letter-spacing: -0.02em;
+    /* Above image */
+    padding: 0 var(--spacing-md);
 }
 
 @media (min-width: 768px) {
-    .mix-main-title {
-        font-size: 48px;
+    .mix-cover-wrapper {
+        width: 60vh;
+        max-width: 600px;
     }
 }

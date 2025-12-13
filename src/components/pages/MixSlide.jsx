@@ -7,11 +7,40 @@ import './MixSlide.css';
 const MixSlide = ({ mix }) => {
     const CoverContent = (
         <div className="mix-cover-container">
-            {mix.backgroundImage && (
-                <div className="mix-background-image">
-                    <img src={mix.backgroundImage} alt="Mix background" />
-                </div>
-            )}
+            {/* Background title text */}
+            <motion.div
+                className="mix-title-background"
+                style={{
+                    top: mix.textTopPosition || '20%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: mix.titleGap || '0px'
+                }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+                <h1
+                    className="mix-title-text"
+                    style={{ fontSize: mix.titleFontSize || 'min(24vw, 120px)' }}
+                >
+                    {mix.title}
+                </h1>
+            </motion.div>
+
+            {/* Cover image wrapper (constrained width) */}
+            <motion.div
+                className="mix-cover-wrapper"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+                {mix.backgroundImage && (
+                    <div className="mix-image-placeholder">
+                        <img src={mix.backgroundImage} alt="Mix background" />
+                    </div>
+                )}
+            </motion.div>
 
             <motion.div
                 className="mix-player-wrapper"
@@ -28,15 +57,6 @@ const MixSlide = ({ mix }) => {
                     src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(mix.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}
                     style={{ borderRadius: '12px' }}
                 ></iframe>
-            </motion.div>
-
-            <motion.div
-                className="mix-main-info"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-            >
-                <h1 className="mix-main-title">{mix.title}</h1>
             </motion.div>
         </div>
     );
