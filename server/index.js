@@ -148,18 +148,21 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
         const webpFilename = `${filename}.webp`;
         const webpPath = path.join(UPLOADS_DIR, webpFilename);
 
-        // Optimize: Resize to max 1600px width/height, Convert to WebP, 80% quality
+        // Optimize: Resize to max 1200px width/height, Convert to WebP, 90% quality (High Quality)
         await sharp(originalPath)
-            .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-            .webp({ quality: 80 })
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 90 })
             .toFile(webpPath);
 
         // Delete the original large file to save space (optional, but good for cleanup)
         // fs.unlinkSync(originalPath); 
 
-        // Return URL for the optimized WebP
+        // Return URL for the optimized WebP and its size
         const fileUrl = `/uploads/${webpFilename}`;
-        res.json({ url: fileUrl });
+        const stats = fs.statSync(webpPath);
+        const fileSizeInKB = Math.round(stats.size / 1024);
+
+        res.json({ url: fileUrl, size: `${fileSizeInKB}KB` });
     } catch (error) {
         console.error('Image processing error:', error);
         // Fallback to original if optimization fails

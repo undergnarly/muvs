@@ -64,19 +64,11 @@ const MusicManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing...');
-            const compressedBase64 = await compressImage(file, 250);
+            setUploadStatus('Uploading to server (Server will optimize)...');
 
-            setUploadStatus('Uploading to server...');
-            // Convert base64 to Blob
-            const response = await fetch(compressedBase64);
-            const blob = await response.blob();
-
-            // Upload
+            // Upload directly without client-side compression to avoid double-loss
             const uploadForm = new FormData();
-            // Use original name but with .jpg extension since compression output is JPEG/PNG
-            const ext = file.type === 'image/png' ? 'png' : 'jpg';
-            uploadForm.append('image', blob, `upload.${ext}`);
+            uploadForm.append('image', file);
 
             const uploadRes = await fetch('/api/upload', {
                 method: 'POST',
@@ -85,13 +77,13 @@ const MusicManager = () => {
 
             if (!uploadRes.ok) throw new Error('Upload failed');
 
-            const { url } = await uploadRes.json();
+            const { url, size } = await uploadRes.json();
 
-            setUploadStatus('Upload complete!');
+            setUploadStatus(`Upload complete! Size: ${size}`);
             setFormData({ ...formData, coverImage: url });
             setImagePreview(url); // Preview the remote URL
 
-            setTimeout(() => setUploadStatus(''), 2000);
+            setTimeout(() => setUploadStatus(''), 4000);
         } catch (error) {
             setUploadStatus('Error: ' + error.message);
             setTimeout(() => setUploadStatus(''), 3000);
