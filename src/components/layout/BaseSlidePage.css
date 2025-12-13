@@ -1,3 +1,53 @@
+/* Main wrapper - creates scroll space for animation */
+.base-page-wrapper {
+    width: 100%;
+    min-height: 200vh;
+    /* 200vh to create scroll space for both phases */
+    position: relative;
+}
+
+/* Cover Section - Sticky positioning */
+.cover-section-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Wrapper for cover content with transforms */
+.cover-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--color-text-dark);
+}
+
+/* Detail Section - Overlay that slides from bottom */
+.detail-section-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100vh;
+    padding: var(--spacing-2xl) var(--spacing-md);
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    z-index: 10;
+    overflow-y: auto;
+    will-change: transform;
+}
+
+/* Legacy support - keep for backwards compatibility */
 .base-page {
     width: 100%;
     min-height: 100vh;
@@ -25,7 +75,6 @@
     padding: var(--spacing-2xl) var(--spacing-md);
     background-color: var(--color-bg-dark);
     color: var(--color-text-light);
-    /* Ensure details cover the previous section nicely or transition */
     z-index: 10;
 }
 
