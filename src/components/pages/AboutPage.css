@@ -99,7 +99,8 @@
 }
 
 .about-content {
-    max-width: 600px;
+    max-width: 800px;
+    /* Match Projects page */
     font-size: 20px;
     line-height: 1.6;
 }
@@ -122,10 +123,12 @@
     }
 
     .about-details-container {
-        padding: var(--spacing-md);
+        padding: 0;
+        /* Let BaseSlidePage handle padding */
     }
 
     .about-content {
-        font-size: 16px;
+        font-size: 18px;
+        /* Match ProjectDetails font size */
     }
 }

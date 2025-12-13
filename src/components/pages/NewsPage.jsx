@@ -66,7 +66,7 @@ const NewsPage = () => {
 
     const DetailContent = (
         <div style={{
-            padding: '40px 20px',
+            padding: '0', // Let BaseSlidePage handle padding
             maxWidth: '100%',
             width: '100%',
             margin: '0 auto',
@@ -75,7 +75,7 @@ const NewsPage = () => {
             <div className="news-grid" style={{
                 display: 'grid',
                 gap: '40px',
-                maxWidth: '600px', // Constrain reading width for better UX
+                maxWidth: '800px', // Match Projects page
                 margin: '0 auto'
             }}>
                 {news.map(item => (
