@@ -25,8 +25,10 @@
       background: linear-gradient(to bottom, #767676, #F5F5F0);
       z-index: 9999;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
+      gap: 20px;
       transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
     }
 
@@ -40,6 +42,22 @@
       width: 120px;
       height: auto;
       animation: logo-pulse 2s ease-in-out infinite;
+    }
+
+    .splash-progress-container {
+      width: 50vw;
+      max-width: 300px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .splash-progress-bar {
+      height: 100%;
+      background: #ffffff;
+      width: 0%;
+      animation: progress-fill 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
     @keyframes logo-pulse {
@@ -58,12 +76,25 @@
         transform: scale(0.95);
       }
     }
+
+    @keyframes progress-fill {
+      0% {
+        width: 0%;
+      }
+
+      100% {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div id="splash-screen">
     <img id="splash-logo" src="/images/logo.png" alt="MUVS Loading..." />
+    <div class="splash-progress-container">
+      <div class="splash-progress-bar"></div>
+    </div>
   </div>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
