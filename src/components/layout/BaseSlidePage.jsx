@@ -38,26 +38,22 @@ const BaseSlidePage = ({
             const container = scrollContainer;
             const wrapper = wrapperRef.current;
 
-            const containerRect = container.getBoundingClientRect();
-            const wrapperRect = wrapper.getBoundingClientRect();
+            // Get scroll position
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
 
-            // Calculate progress based on wrapper position relative to container
-            const containerHeight = containerRect.height;
-            const wrapperHeight = wrapperRect.height;
+            // Maximum scroll (total scrollable distance)
+            const maxScroll = scrollHeight - clientHeight;
 
-            // How far the wrapper has scrolled relative to container top
-            const scrolled = containerRect.top - wrapperRect.top;
-
-            // Total scrollable distance
-            const totalScroll = wrapperHeight - containerHeight;
-
-            // Calculate progress (0 to 1)
-            const progress = Math.max(0, Math.min(1, scrolled / totalScroll));
+            // Calculate progress (0 to 1) based on actual scroll position
+            const progress = Math.max(0, Math.min(1, scrollTop / maxScroll));
 
             manualScrollProgress.set(progress);
 
             if (animationType === 'zoom-out') {
-                console.log('[BaseSlidePage] Manual scroll progress:', progress.toFixed(3));
+                console.log('[BaseSlidePage] Manual scroll progress:', progress.toFixed(3),
+                    `(${scrollTop.toFixed(0)}/${maxScroll.toFixed(0)})`);
             }
         };
 
@@ -84,11 +80,19 @@ const BaseSlidePage = ({
         isZoomOut ? [0, 0.5] : [0, 1],
         isZoomOut ? [1, 0.5] : [1, 1]
     );
-    const coverY = useTransform(
+
+    // Image goes up, text goes down - creates horizon effect
+    const coverImageY = useTransform(
         scrollYProgress,
         isZoomOut ? [0, 0.5] : [0, 1],
         isZoomOut ? [0, -100] : [0, 0]
     );
+    const coverTextY = useTransform(
+        scrollYProgress,
+        isZoomOut ? [0, 0.5] : [0, 1],
+        isZoomOut ? [0, 100] : [0, 0]
+    );
+
     const coverOpacity = useTransform(
         scrollYProgress,
         isZoomOut ? [0, 0.4, 0.5] : [0, 0.3, 1],
@@ -113,11 +117,12 @@ const BaseSlidePage = ({
                     className="cover-content-wrapper"
                     style={{
                         scale: coverScale,
-                        y: coverY,
                         opacity: coverOpacity
                     }}
                 >
-                    {coverContent}
+                    {typeof coverContent === 'function'
+                        ? coverContent({ coverTextY, coverImageY })
+                        : coverContent}
                 </motion.div>
 
                 <motion.div

@@ -17,7 +17,7 @@ const ReleaseSlide = ({ release, priority = false }) => {
     const parallaxStrength = release.parallaxStrength || 100;
     const yParallax = useTransform(scrollYProgress, [0, 1], [-parallaxStrength, parallaxStrength]);
 
-    const CoverContent = (
+    const CoverContent = ({ coverTextY, coverImageY }) => (
         <div className="release-cover-container">
             {/* Background title text - BEFORE wrapper so z-index works */}
             <motion.div
@@ -26,7 +26,7 @@ const ReleaseSlide = ({ release, priority = false }) => {
                 style={{
                     top: release.textTopPosition || '20%',
                     x: '-50%',
-                    y: yParallax,
+                    y: coverTextY || yParallax,
                     gap: release.titleGap || '0px'
                 }}
                 initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
@@ -52,6 +52,9 @@ const ReleaseSlide = ({ release, priority = false }) => {
             {/* Cover image with transparency effect */}
             <motion.div
                 className="release-cover-wrapper"
+                style={{
+                    y: coverImageY || 0
+                }}
                 initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: priority ? 0 : 0.2 }}
