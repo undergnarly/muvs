@@ -157,4 +157,9 @@
     .main-artist {
         font-size: 18px;
     }
+
+    .audio-visualizer-container,
+    .audio-visualizer-placeholder {
+        width: 800px;
+    }
 }

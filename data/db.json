@@ -1,0 +1,39 @@
+{
+  "releases": [
+    {
+      "artists": "fdsfsdfs",
+      "title": "sdfsdfsdfsdf",
+      "releaseDate": "11",
+      "coverImage": "/uploads/1765198522283-upload.png",
+      "soundcloudUrl": "",
+      "bandcampUrl": "",
+      "description": "",
+      "tracks": [],
+      "id": 1765198533629
+    }
+  ],
+  "mixes": [],
+  "projects": [],
+  "news": [],
+  "adminSettings": {
+    "pin": "1234"
+  },
+  "stats": {
+    "visits": [],
+    "detailViews": [],
+    "totalVisits": 4,
+    "daily": {
+      "2025-12-08": 4
+    },
+    "pages": {
+      "/login": 1,
+      "/admin": 1,
+      "/admin/music": 1,
+      "/": 1
+    },
+    "sources": {
+      "direct": 4
+    }
+  },
+  "messages": []
+}
