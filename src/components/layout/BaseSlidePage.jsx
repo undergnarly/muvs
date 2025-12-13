@@ -14,6 +14,13 @@ const BaseSlidePage = ({ coverContent, detailContent, theme = 'light' }) => {
         <div className={`base-page ${theme}`} ref={containerRef}>
             <section className="slide-section cover-section">
                 {coverContent}
+
+                <div className="scroll-indicator-wrapper">
+                    <span className="scroll-text">Check it out!</span>
+                    <div className="scroll-arrow">
+                        <BiChevronDown size={32} />
+                    </div>
+                </div>
             </section>
 
             <section className="slide-section detail-section">
