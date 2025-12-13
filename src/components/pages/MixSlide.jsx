@@ -16,7 +16,7 @@ const MixSlide = ({ mix, priority = false }) => {
                     flexDirection: 'column',
                     gap: mix.titleGap || '0px'
                 }}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
             >
@@ -31,9 +31,9 @@ const MixSlide = ({ mix, priority = false }) => {
             {/* Cover image wrapper (constrained width) */}
             <motion.div
                 className="mix-cover-wrapper"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: priority ? 0 : 0.2 }}
             >
                 {mix.backgroundImage && (
                     <div className="mix-image-placeholder">
