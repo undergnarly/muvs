@@ -13,6 +13,7 @@
 .mix-title-background {
     position: absolute;
     top: 20%;
+    left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1;
     width: 100%;
@@ -22,7 +23,6 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    /* left: 50%; removed to fix centering offset */
 }
 
 .mix-title-text {

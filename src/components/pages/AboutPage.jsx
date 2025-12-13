@@ -29,25 +29,31 @@ const AboutPage = () => {
             <div className="about-cover-wrapper">
                 {(about.backgroundImageDesktop || about.backgroundImageMobile || about.backgroundImage) && (
                     <div className="about-image-placeholder">
-                        {/* Desktop image */}
-                        {about.backgroundImageDesktop && (
-                            <img
-                                src={about.backgroundImageDesktop}
-                                alt="About background"
-                                className="about-image-desktop"
-                            />
-                        )}
-                        {/* Mobile image */}
-                        {about.backgroundImageMobile && (
-                            <img
-                                src={about.backgroundImageMobile}
-                                alt="About background"
-                                className="about-image-mobile"
-                            />
-                        )}
-                        {/* Fallback to old backgroundImage if new ones don't exist */}
-                        {!about.backgroundImageDesktop && !about.backgroundImageMobile && about.backgroundImage && (
-                            <img src={about.backgroundImage} alt="About background" />
+                        {/* Show adaptive images if they exist */}
+                        {(about.backgroundImageDesktop || about.backgroundImageMobile) ? (
+                            <>
+                                {/* Desktop image - shown only on desktop */}
+                                {about.backgroundImageDesktop && (
+                                    <img
+                                        src={about.backgroundImageDesktop}
+                                        alt="About background"
+                                        className="about-image-desktop"
+                                    />
+                                )}
+                                {/* Mobile image - shown only on mobile */}
+                                {about.backgroundImageMobile && (
+                                    <img
+                                        src={about.backgroundImageMobile}
+                                        alt="About background"
+                                        className="about-image-mobile"
+                                    />
+                                )}
+                            </>
+                        ) : (
+                            /* Fallback to old backgroundImage if new ones don't exist */
+                            about.backgroundImage && (
+                                <img src={about.backgroundImage} alt="About background" />
+                            )
                         )}
                     </div>
                 )}

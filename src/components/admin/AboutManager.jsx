@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaUpload, FaTrash, FaSave } from 'react-icons/fa';
@@ -13,6 +13,14 @@ const AboutManager = () => {
     const [imagePreviewDesktop, setImagePreviewDesktop] = useState(about.backgroundImageDesktop || null);
     const [imagePreviewMobile, setImagePreviewMobile] = useState(about.backgroundImageMobile || null);
     const [keepOriginal, setKeepOriginal] = useState(false);
+
+    // Initialize formData from about when component mounts or about changes
+    useEffect(() => {
+        setFormData(about);
+        setImagePreview(about.backgroundImage || null);
+        setImagePreviewDesktop(about.backgroundImageDesktop || null);
+        setImagePreviewMobile(about.backgroundImageMobile || null);
+    }, [about]);
 
     const handleImageUpload = async (e, imageType = 'background') => {
         const file = e.target.files[0];
