@@ -1,7 +1,5 @@
-import React, { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Button from '../ui/Button';
-import AudioVisualizer from '../media/AudioVisualizer';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import ReleaseDetails from '../media/ReleaseDetails';
 import './ReleaseSlide.css';
@@ -60,8 +58,20 @@ const ReleaseSlide = ({ release }) => {
                 {/* Artist name removed to avoid hardcoding */}
             </motion.div>
 
-            {/* Audio Player */}
-            {release.audioPreview && <AudioVisualizer audioUrl={release.audioPreview} />}
+            {/* SoundCloud Player (moved from details) */}
+            {release.soundcloudUrl ? (
+                <div style={{ width: '100%', maxHeight: '30vh', marginTop: '24px', zIndex: 10 }}>
+                    <iframe
+                        width="100%"
+                        height="300"
+                        scrolling="no"
+                        frameBorder="no"
+                        allow="autoplay"
+                        src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false`}
+                        style={{ borderRadius: '8px' }}
+                    ></iframe>
+                </div>
+            ) : null}
         </div>
     );
 
