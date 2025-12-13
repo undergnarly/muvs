@@ -239,6 +239,18 @@ export const StaggeredMenu = () => {
         animateText(target);
     }, [playOpen, playClose, animateIcon, animateColor, animateText]);
 
+    const handleLogoClick = (e) => {
+        e.preventDefault();
+        const homePath = ROUTES.HOME || '/';
+
+        if (location.pathname !== homePath) {
+            navigate(homePath);
+            if (open) toggleMenu(); // Close it if currently open
+        } else {
+            toggleMenu(); // Toggle menu if already on home page
+        }
+    };
+
     return (
         <div
             className="staggered-menu-wrapper"
@@ -255,7 +267,7 @@ export const StaggeredMenu = () => {
                     href={ROUTES.HOME || '/'}
                     className="sm-logo"
                     aria-label="Logo"
-                    onClick={(e) => handleLinkClick(e, ROUTES.HOME || '/')}
+                    onClick={handleLogoClick}
                 >
                     <div className="sm-logo-img" />
                 </a>
