@@ -80,10 +80,16 @@ const AboutPage = () => {
                     display: 'flex',
                     gap: '20px',
                     marginTop: '32px',
+                    marginBottom: '48px',
                     justifyContent: 'center',
                     alignItems: 'center'
                 }}>
                     <SocialLinks />
+                </div>
+
+                {/* Contact Form */}
+                <div className="about-contact" style={{ width: '100%' }}>
+                    <ContactForm />
                 </div>
             </div>
         </div>
