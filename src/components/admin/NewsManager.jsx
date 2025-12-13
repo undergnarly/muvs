@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
-import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
+import { validateImageFile } from '../../utils/imageCompression';
 
 const NewsManager = () => {
     const { news, newsSettings, updateData } = useData();
@@ -12,7 +12,6 @@ const NewsManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
-    const [keepOriginal, setKeepOriginal] = useState(false);
 
     // Settings State
     const [settingsData, setSettingsData] = useState(newsSettings || {
@@ -84,35 +83,22 @@ const NewsManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            let url;
+            setUploadStatus('Uploading to server (Server will optimize)...');
 
-            if (keepOriginal) {
-                setUploadStatus('Uploading original file...');
-                url = await uploadImageWithoutCompression(file);
-            } else {
-                setUploadStatus('Compressing...');
-                const compressedBase64 = await compressImage(file, 250);
+            // Upload directly without client-side compression to avoid double-loss
+            const uploadForm = new FormData();
+            uploadForm.append('image', file);
 
-                setUploadStatus('Uploading to server...');
-                const response = await fetch(compressedBase64);
-                const blob = await response.blob();
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadForm
+            });
 
-                const uploadForm = new FormData();
-                const ext = file.type === 'image/png' ? 'png' : 'jpg';
-                uploadForm.append('image', blob, `upload.${ext}`);
+            if (!uploadRes.ok) throw new Error('Upload failed');
 
-                const uploadRes = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: uploadForm
-                });
+            const { url, size } = await uploadRes.json();
 
-                if (!uploadRes.ok) throw new Error('Upload failed');
-
-                const data = await uploadRes.json();
-                url = data.url;
-            }
-
-            setUploadStatus('Upload complete!');
+            setUploadStatus(`Upload complete! Size: ${size}`);
 
             if (isSettings) {
                 if (settingType === 'desktop') {
@@ -127,7 +113,7 @@ const NewsManager = () => {
                 setImagePreview(url);
             }
 
-            setTimeout(() => setUploadStatus(''), 2000);
+            setTimeout(() => setUploadStatus(''), 4000);
         } catch (error) {
             setUploadStatus('Error: ' + error.message);
             setTimeout(() => setUploadStatus(''), 3000);
@@ -274,13 +260,8 @@ const NewsManager = () => {
                                                 accept="image/*"
                                             />
                                         </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', cursor: 'pointer' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={keepOriginal}
-                                                onChange={(e) => setKeepOriginal(e.target.checked)}
-                                            />
-                                            Keep original file (no compression)
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                            Server-side optimization
                                         </label>
                                     </div>
                                     {uploading && <div style={{ marginTop: '10px', color: 'var(--color-accent)' }}>{uploadStatus}</div>}
@@ -366,13 +347,8 @@ const NewsManager = () => {
                                         accept="image/*"
                                     />
                                 </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={keepOriginal}
-                                        onChange={(e) => setKeepOriginal(e.target.checked)}
-                                    />
-                                    Keep original file (no compression)
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                    Server-side optimization
                                 </label>
                             </div>
                             {settingsImagePreviewDesktop && (

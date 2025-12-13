@@ -1,6 +1,6 @@
-import React from 'react';
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
+import TechTag from '../ui/TechTag';
 import './ReleaseDetails.css';
 
 const ReleaseDetails = ({ release }) => {
@@ -11,7 +11,16 @@ const ReleaseDetails = ({ release }) => {
         <div className="release-details-container">
             <div className="release-info">
                 <h2 className="release-title-lg">{release.title}</h2>
-                <span className="release-date">Released: {release.releaseDate}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <span className="release-date">Released: {release.releaseDate}</span>
+                    {release.genres && release.genres.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {release.genres.map((genre, idx) => (
+                                <TechTag key={idx} label={genre} />
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
 

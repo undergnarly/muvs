@@ -41,6 +41,38 @@
     text-overflow: ellipsis;
 }
 
+/* Scroll Indicator */
+.scroll-indicator-wrapper {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    animation: bounce 2s infinite;
+}
+
+.scroll-text {
+    font-size: 14px;
+    font-weight: 700;
+    /* color: #FFFFFF;  <-- Handled via inline style now */
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
+}
+
+.scroll-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* color: #FFFFFF; <-- Handled via inline style now */
+    /* Explicitly black as requested */
+}
+
 /* Cover Wrapper (Constrained width logic like releases) */
 .mix-cover-wrapper {
     position: relative;

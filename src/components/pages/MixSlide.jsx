@@ -1,10 +1,13 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import MixDetails from '../media/MixDetails';
 import './MixSlide.css';
 
 const MixSlide = ({ mix, priority = false }) => {
+    const { scrollY } = useScroll();
+    const yParallax = useTransform(scrollY, [0, 500], [0, 200]);
+
     const CoverContent = (
         <div className="mix-cover-container">
             {/* Background title text */}
@@ -12,6 +15,7 @@ const MixSlide = ({ mix, priority = false }) => {
                 className="mix-title-background"
                 style={{
                     top: mix.textTopPosition || '20%',
+                    y: yParallax, // Parallax effect added
                     display: 'flex',
                     flexDirection: 'column',
                     gap: mix.titleGap || '0px'

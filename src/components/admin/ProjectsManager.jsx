@@ -58,16 +58,11 @@ const ProjectsManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing...');
-            const compressedBase64 = await compressImage(file, 250);
+            setUploadStatus('Uploading to server (Server will optimize)...');
 
-            setUploadStatus('Uploading to server...');
-            const response = await fetch(compressedBase64);
-            const blob = await response.blob();
-
+            // Upload directly without client-side compression to avoid double-loss
             const uploadForm = new FormData();
-            const ext = file.type === 'image/png' ? 'png' : 'jpg';
-            uploadForm.append('image', blob, `upload.${ext}`);
+            uploadForm.append('image', file);
 
             const uploadRes = await fetch('/api/upload', {
                 method: 'POST',
@@ -76,12 +71,12 @@ const ProjectsManager = () => {
 
             if (!uploadRes.ok) throw new Error('Upload failed');
 
-            const { url } = await uploadRes.json();
+            const { url, size } = await uploadRes.json();
 
-            setUploadStatus('Upload complete!');
+            setUploadStatus(`Upload complete! Size: ${size}`);
             setFormData({ ...formData, coverImage: url });
 
-            setTimeout(() => setUploadStatus(''), 2000);
+            setTimeout(() => setUploadStatus(''), 4000);
         } catch (error) {
             setUploadStatus('Error: ' + error.message);
             setTimeout(() => setUploadStatus(''), 3000);
@@ -148,12 +143,7 @@ const ProjectsManager = () => {
                                 </label>
                             </div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '4px' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={!useCompression}
-                                    onChange={e => setUseCompression(!e.target.checked)}
-                                />
-                                Keep Original (No Compression)
+                                Server-side optimization enabled
                             </label>
                         </div>
                         {uploadStatus && <div style={{ fontSize: '12px', color: 'var(--color-accent)' }}>{uploadStatus}</div>}

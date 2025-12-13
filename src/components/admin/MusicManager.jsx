@@ -29,7 +29,8 @@ const MusicManager = () => {
         bandcampUrl: '',
         description: '',
         tracks: [],
-        gallery: []
+        gallery: [],
+        genres: []
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -226,376 +227,440 @@ const MusicManager = () => {
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                            <input
-                                type="text"
-                                placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
-                                value={formData.textTopPosition || ''}
-                                onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
-                                style={inputStyle}
-                            />
-                        </div>
-
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
-                                Cover Image
-                            </label>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                <div style={{ flex: 1 }}>
-                                    <input
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/webp"
-                                        onChange={handleImageUpload}
-                                        style={{ display: 'none' }}
-                                        id="image-upload"
-                                    />
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <label htmlFor="image-upload" style={uploadButtonStyle}>
-                                            <FaUpload style={{ marginRight: '8px' }} />
-                                            {uploading ? 'Uploading...' : 'Upload Image'}
-                                        </label>
-                                        {(imagePreview || formData.coverImage) && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setFormData({ ...formData, coverImage: '' });
-                                                    setImagePreview(null);
-                                                    setUploadStatus('');
-                                                }}
-                                                style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
-                                            >
-                                                <FaTrash style={{ marginRight: '8px' }} />
-                                                Remove
-                                            </button>
-                                        )}
-                                    </div>
-                                    {uploadStatus && (
-                                        <div style={{
-                                            fontSize: '12px',
-                                            color: uploadStatus.includes('Error') ? '#ff5555' : 'var(--color-accent)',
-                                            marginTop: '8px',
-                                            fontWeight: '500'
-                                        }}>
-                                            {uploadStatus}
-                                        </div>
-                                    )}
-                                    {!uploadStatus && (
-                                        <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
-                                            Max 10MB • Will be compressed to ~250KB
-                                        </div>
-                                    )}
-                                </div>
-                                {(imagePreview || formData.coverImage) && (
-                                    <div style={{ width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)' }}>
-                                        <img
-                                            src={imagePreview || formData.coverImage}
-                                            alt="Preview"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Audio Preview Upload */}
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
-                                Audio Preview (30-60 sec highlight)
-                            </label>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                <input
-                                    type="file"
-                                    accept="audio/mp3,audio/mpeg,audio/wav"
-                                    onChange={handleAudioUpload}
-                                    style={{ display: 'none' }}
-                                    id="audio-upload"
-                                />
-                                <label htmlFor="audio-upload" style={uploadButtonStyle}>
-                                    <FaUpload style={{ marginRight: '8px' }} />
-                                    {uploading ? 'Uploading...' : 'Upload Audio'}
-                                </label>
-                                {formData.audioPreview && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, audioPreview: '' })}
-                                            style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
-                                        >
-                                            <FaTrash style={{ marginRight: '8px' }} />
-                                            Remove Audio
-                                        </button>
-                                        <audio controls src={formData.audioPreview} style={{ maxWidth: '300px' }} />
-                                    </>
-                                )}
-                            </div>
-                            {!formData.audioPreview && (
-                                <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
-                                    MP3 or WAV • Recommended: 30-60 seconds
-                                </div>
-                            )}
-                        </div>
-
-                        <textarea
-                            placeholder="Description (supports HTML for links)"
-                            value={formData.description}
-                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            rows={4}
-                            style={{ ...inputStyle, resize: 'vertical' }}
+                        <input
+                            type="text"
+                            placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
+                            value={formData.textTopPosition || ''}
+                            onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
+                            style={inputStyle}
                         />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <input
-                                type="text"
-                                placeholder="SoundCloud URL"
-                                value={formData.soundcloudUrl}
-                                onChange={e => setFormData({ ...formData, soundcloudUrl: e.target.value })}
-                                style={inputStyle}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Bandcamp URL"
-                                value={formData.bandcampUrl}
-                                onChange={e => setFormData({ ...formData, bandcampUrl: e.target.value })}
-                                style={inputStyle}
-                            />
-                        </div>
-
-                        {/* Gallery Section */}
-                        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Gallery (Circular Gallery)</h4>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const newGalleryItem = { id: Date.now(), image: '', text: '' };
-                                        setFormData({ ...formData, gallery: [...(formData.gallery || []), newGalleryItem] });
-                                    }}
-                                    style={{
-                                        background: 'rgba(204, 255, 0, 0.1)',
-                                        border: '1px solid var(--color-accent)',
-                                        borderRadius: '6px',
-                                        color: 'var(--color-accent)',
-                                        padding: '8px 16px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <FaPlus /> Add Image
-                                </button>
-                            </div>
-                            {formData.gallery && formData.gallery.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    {formData.gallery.map((item, index) => (
-                                        <div key={item.id || index} style={{ padding: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                                <div style={{ flex: 1 }}>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/png,image/jpeg,image/webp"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files[0];
-                                                            if (!file) return;
-                                                            try {
-                                                                setUploading(true);
-                                                                setUploadStatus(`Uploading image ${index + 1}...`);
-                                                                validateImageFile(file);
-                                                                const compressedBase64 = await compressImage(file, 250);
-                                                                const response = await fetch(compressedBase64);
-                                                                const blob = await response.blob();
-                                                                const uploadForm = new FormData();
-                                                                const ext = file.type === 'image/png' ? 'png' : 'jpg';
-                                                                uploadForm.append('image', blob, `upload.${ext}`);
-                                                                const uploadRes = await fetch('/api/upload', {
-                                                                    method: 'POST',
-                                                                    body: uploadForm
-                                                                });
-                                                                if (!uploadRes.ok) throw new Error('Upload failed');
-                                                                const { url } = await uploadRes.json();
-                                                                const updatedGallery = [...formData.gallery];
-                                                                updatedGallery[index] = { ...item, image: url };
-                                                                setFormData({ ...formData, gallery: updatedGallery });
-                                                                setUploadStatus('Upload complete!');
-                                                                setTimeout(() => setUploadStatus(''), 2000);
-                                                            } catch (error) {
-                                                                setUploadStatus('Error: ' + error.message);
-                                                                setTimeout(() => setUploadStatus(''), 3000);
-                                                            } finally {
-                                                                setUploading(false);
-                                                                e.target.value = '';
-                                                            }
-                                                        }}
-                                                        style={{ display: 'none' }}
-                                                        id={`gallery-upload-${index}`}
-                                                    />
-                                                    <label htmlFor={`gallery-upload-${index}`} style={{
-                                                        ...uploadButtonStyle,
-                                                        display: 'inline-flex',
-                                                        fontSize: '12px',
-                                                        padding: '8px 16px'
-                                                    }}>
-                                                        <FaUpload style={{ marginRight: '6px' }} />
-                                                        {item.image ? 'Change Image' : 'Upload Image'}
-                                                    </label>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const updatedGallery = formData.gallery.filter((_, i) => i !== index);
-                                                        setFormData({ ...formData, gallery: updatedGallery });
-                                                    }}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        color: '#ff5555',
-                                                        cursor: 'pointer',
-                                                        fontSize: '16px',
-                                                        padding: '8px'
-                                                    }}
-                                                >
-                                                    <FaTrash />
-                                                </button>
-                                            </div>
-                                            {item.image && (
-                                                <div style={{ marginBottom: '12px' }}>
-                                                    <img src={item.image} alt={`Gallery ${index + 1}`} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.1)' }} />
-                                                </div>
-                                            )}
-                                            <input
-                                                type="text"
-                                                placeholder="Image caption/text"
-                                                value={item.text || ''}
-                                                onChange={e => {
-                                                    const updatedGallery = [...formData.gallery];
-                                                    updatedGallery[index] = { ...item, text: e.target.value };
-                                                    setFormData({ ...formData, gallery: updatedGallery });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
-                                    No gallery images added yet. Click "Add Image" to start.
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Tracklist Section */}
-                        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Tracklist</h4>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const newTrack = { id: Date.now(), title: '', duration: '' };
-                                        setFormData({ ...formData, tracks: [...(formData.tracks || []), newTrack] });
-                                    }}
-                                    style={{
-                                        background: 'rgba(204, 255, 0, 0.1)',
-                                        border: '1px solid var(--color-accent)',
-                                        borderRadius: '6px',
-                                        color: 'var(--color-accent)',
-                                        padding: '8px 16px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <FaPlus /> Add Track
-                                </button>
-                            </div>
-                            {formData.tracks && formData.tracks.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {formData.tracks.map((track, index) => (
-                                        <div key={track.id || index} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', gap: '12px', alignItems: 'center' }}>
-                                            <input
-                                                type="text"
-                                                placeholder={`Track ${index + 1} title`}
-                                                value={track.title || ''}
-                                                onChange={e => {
-                                                    const updatedTracks = [...formData.tracks];
-                                                    updatedTracks[index] = { ...track, title: e.target.value };
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Duration (e.g. 3:45)"
-                                                value={track.duration || ''}
-                                                onChange={e => {
-                                                    const updatedTracks = [...formData.tracks];
-                                                    updatedTracks[index] = { ...track, duration: e.target.value };
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const updatedTracks = formData.tracks.filter((_, i) => i !== index);
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: '#ff5555',
-                                                    cursor: 'pointer',
-                                                    fontSize: '16px',
-                                                    padding: '8px'
-                                                }}
-                                            >
-                                                <FaTrash />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
-                                    No tracks added yet. Click "Add Track" to start.
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                            <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                            <Button variant="accent" type="submit">Save</Button>
-                        </div>
-                    </form>
                 </div>
+
+                        {/* Genres Section */}
+            <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                    Genres / Tags
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {formData.genres && formData.genres.map((genre, idx) => (
+                        <span key={idx} style={{
+                            background: 'rgba(204, 255, 0, 0.1)',
+                            color: 'var(--color-accent)',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            border: '1px solid rgba(204, 255, 0, 0.3)'
+                        }}>
+                            {genre}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newGenres = formData.genres.filter((_, i) => i !== idx);
+                                    setFormData({ ...formData, genres: newGenres });
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
+                            >
+                                &times;
+                            </button>
+                        </span>
+                    ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                        type="text"
+                        placeholder="Add genre (e.g. Techno)"
+                        style={inputStyle}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = e.target.value.trim();
+                                if (val && (!formData.genres || !formData.genres.includes(val))) {
+                                    setFormData({
+                                        ...formData,
+                                        genres: [...(formData.genres || []), val]
+                                    });
+                                    e.target.value = '';
+                                }
+                            }
+                        }}
+                    />
+                    <Button type="button" variant="outline" onClick={(e) => {
+                        const input = e.target.previousSibling;
+                        const val = input.value.trim();
+                        if (val && (!formData.genres || !formData.genres.includes(val))) {
+                            setFormData({
+                                ...formData,
+                                genres: [...(formData.genres || []), val]
+                            });
+                            input.value = '';
+                        }
+                    }}>Add</Button>
+                </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                    Cover Image
+                </label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={handleImageUpload}
+                            style={{ display: 'none' }}
+                            id="image-upload"
+                        />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <label htmlFor="image-upload" style={uploadButtonStyle}>
+                                <FaUpload style={{ marginRight: '8px' }} />
+                                {uploading ? 'Uploading...' : 'Upload Image'}
+                            </label>
+                            {(imagePreview || formData.coverImage) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData({ ...formData, coverImage: '' });
+                                        setImagePreview(null);
+                                        setUploadStatus('');
+                                    }}
+                                    style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                >
+                                    <FaTrash style={{ marginRight: '8px' }} />
+                                    Remove
+                                </button>
+                            )}
+                        </div>
+                        {uploadStatus && (
+                            <div style={{
+                                fontSize: '12px',
+                                color: uploadStatus.includes('Error') ? '#ff5555' : 'var(--color-accent)',
+                                marginTop: '8px',
+                                fontWeight: '500'
+                            }}>
+                                {uploadStatus}
+                            </div>
+                        )}
+                        {!uploadStatus && (
+                            <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
+                                Max 10MB • Will be compressed to ~250KB
+                            </div>
+                        )}
+                    </div>
+                    {(imagePreview || formData.coverImage) && (
+                        <div style={{ width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)' }}>
+                            <img
+                                src={imagePreview || formData.coverImage}
+                                alt="Preview"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Audio Preview Upload */}
+            <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                    Audio Preview (30-60 sec highlight)
+                </label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <input
+                        type="file"
+                        accept="audio/mp3,audio/mpeg,audio/wav"
+                        onChange={handleAudioUpload}
+                        style={{ display: 'none' }}
+                        id="audio-upload"
+                    />
+                    <label htmlFor="audio-upload" style={uploadButtonStyle}>
+                        <FaUpload style={{ marginRight: '8px' }} />
+                        {uploading ? 'Uploading...' : 'Upload Audio'}
+                    </label>
+                    {formData.audioPreview && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, audioPreview: '' })}
+                                style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                            >
+                                <FaTrash style={{ marginRight: '8px' }} />
+                                Remove Audio
+                            </button>
+                            <audio controls src={formData.audioPreview} style={{ maxWidth: '300px' }} />
+                        </>
+                    )}
+                </div>
+                {!formData.audioPreview && (
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '8px' }}>
+                        MP3 or WAV • Recommended: 30-60 seconds
+                    </div>
+                )}
+            </div>
+
+            <textarea
+                placeholder="Description (supports HTML for links)"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
+                style={{ ...inputStyle, resize: 'vertical' }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <input
+                    type="text"
+                    placeholder="SoundCloud URL"
+                    value={formData.soundcloudUrl}
+                    onChange={e => setFormData({ ...formData, soundcloudUrl: e.target.value })}
+                    style={inputStyle}
+                />
+                <input
+                    type="text"
+                    placeholder="Bandcamp URL"
+                    value={formData.bandcampUrl}
+                    onChange={e => setFormData({ ...formData, bandcampUrl: e.target.value })}
+                    style={inputStyle}
+                />
+            </div>
+
+            {/* Gallery Section */}
+            <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Gallery (Circular Gallery)</h4>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const newGalleryItem = { id: Date.now(), image: '', text: '' };
+                            setFormData({ ...formData, gallery: [...(formData.gallery || []), newGalleryItem] });
+                        }}
+                        style={{
+                            background: 'rgba(204, 255, 0, 0.1)',
+                            border: '1px solid var(--color-accent)',
+                            borderRadius: '6px',
+                            color: 'var(--color-accent)',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        <FaPlus /> Add Image
+                    </button>
+                </div>
+                {formData.gallery && formData.gallery.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {formData.gallery.map((item, index) => (
+                            <div key={item.id || index} style={{ padding: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp"
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                try {
+                                                    setUploading(true);
+                                                    setUploadStatus(`Uploading image ${index + 1}...`);
+                                                    validateImageFile(file);
+                                                    const compressedBase64 = await compressImage(file, 250);
+                                                    const response = await fetch(compressedBase64);
+                                                    const blob = await response.blob();
+                                                    const uploadForm = new FormData();
+                                                    const ext = file.type === 'image/png' ? 'png' : 'jpg';
+                                                    uploadForm.append('image', blob, `upload.${ext}`);
+                                                    const uploadRes = await fetch('/api/upload', {
+                                                        method: 'POST',
+                                                        body: uploadForm
+                                                    });
+                                                    if (!uploadRes.ok) throw new Error('Upload failed');
+                                                    const { url } = await uploadRes.json();
+                                                    const updatedGallery = [...formData.gallery];
+                                                    updatedGallery[index] = { ...item, image: url };
+                                                    setFormData({ ...formData, gallery: updatedGallery });
+                                                    setUploadStatus('Upload complete!');
+                                                    setTimeout(() => setUploadStatus(''), 2000);
+                                                } catch (error) {
+                                                    setUploadStatus('Error: ' + error.message);
+                                                    setTimeout(() => setUploadStatus(''), 3000);
+                                                } finally {
+                                                    setUploading(false);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                            style={{ display: 'none' }}
+                                            id={`gallery-upload-${index}`}
+                                        />
+                                        <label htmlFor={`gallery-upload-${index}`} style={{
+                                            ...uploadButtonStyle,
+                                            display: 'inline-flex',
+                                            fontSize: '12px',
+                                            padding: '8px 16px'
+                                        }}>
+                                            <FaUpload style={{ marginRight: '6px' }} />
+                                            {item.image ? 'Change Image' : 'Upload Image'}
+                                        </label>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const updatedGallery = formData.gallery.filter((_, i) => i !== index);
+                                            setFormData({ ...formData, gallery: updatedGallery });
+                                        }}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#ff5555',
+                                            cursor: 'pointer',
+                                            fontSize: '16px',
+                                            padding: '8px'
+                                        }}
+                                    >
+                                        <FaTrash />
+                                    </button>
+                                </div>
+                                {item.image && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <img src={item.image} alt={`Gallery ${index + 1}`} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '8px', border: '2px solid rgba(255,255,255,0.1)' }} />
+                                    </div>
+                                )}
+                                <input
+                                    type="text"
+                                    placeholder="Image caption/text"
+                                    value={item.text || ''}
+                                    onChange={e => {
+                                        const updatedGallery = [...formData.gallery];
+                                        updatedGallery[index] = { ...item, text: e.target.value };
+                                        setFormData({ ...formData, gallery: updatedGallery });
+                                    }}
+                                    style={inputStyle}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
+                        No gallery images added yet. Click "Add Image" to start.
+                    </div>
+                )}
+            </div>
+
+            {/* Tracklist Section */}
+            <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0 }}>Tracklist</h4>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const newTrack = { id: Date.now(), title: '', duration: '' };
+                            setFormData({ ...formData, tracks: [...(formData.tracks || []), newTrack] });
+                        }}
+                        style={{
+                            background: 'rgba(204, 255, 0, 0.1)',
+                            border: '1px solid var(--color-accent)',
+                            borderRadius: '6px',
+                            color: 'var(--color-accent)',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        <FaPlus /> Add Track
+                    </button>
+                </div>
+                {formData.tracks && formData.tracks.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {formData.tracks.map((track, index) => (
+                            <div key={track.id || index} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    placeholder={`Track ${index + 1} title`}
+                                    value={track.title || ''}
+                                    onChange={e => {
+                                        const updatedTracks = [...formData.tracks];
+                                        updatedTracks[index] = { ...track, title: e.target.value };
+                                        setFormData({ ...formData, tracks: updatedTracks });
+                                    }}
+                                    style={inputStyle}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Duration (e.g. 3:45)"
+                                    value={track.duration || ''}
+                                    onChange={e => {
+                                        const updatedTracks = [...formData.tracks];
+                                        updatedTracks[index] = { ...track, duration: e.target.value };
+                                        setFormData({ ...formData, tracks: updatedTracks });
+                                    }}
+                                    style={inputStyle}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const updatedTracks = formData.tracks.filter((_, i) => i !== index);
+                                        setFormData({ ...formData, tracks: updatedTracks });
+                                    }}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#ff5555',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        padding: '8px'
+                                    }}
+                                >
+                                    <FaTrash />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
+                        No tracks added yet. Click "Add Track" to start.
+                    </div>
+                )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                <Button variant="accent" type="submit">Save</Button>
+            </div>
+        </form>
+                </div >
             )}
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-                {releases.map(item => (
-                    <div key={item.id} style={itemStyle}>
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            {item.coverImage && (
-                                <img src={item.coverImage} alt={item.title} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
-                            )}
-                            <div>
-                                <h3 style={{ color: 'var(--color-text-light)', marginBottom: '4px' }}>{item.title}</h3>
-                                <div style={{ fontSize: '14px', color: 'var(--color-text-dim)' }}>
-                                    {item.releaseDate} • {item.tracks ? item.tracks.length : 0} Tracks
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleEdit(item)} style={actionButtonStyle}>
-                                <FaEdit />
-                            </button>
-                            <button onClick={() => handleDelete(item.id)} style={{ ...actionButtonStyle, color: '#ff5555' }}>
-                                <FaTrash />
-                            </button>
-                        </div>
+<div style={{ display: 'grid', gap: '16px' }}>
+    {releases.map(item => (
+        <div key={item.id} style={itemStyle}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                {item.coverImage && (
+                    <img src={item.coverImage} alt={item.title} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                )}
+                <div>
+                    <h3 style={{ color: 'var(--color-text-light)', marginBottom: '4px' }}>{item.title}</h3>
+                    <div style={{ fontSize: '14px', color: 'var(--color-text-dim)' }}>
+                        {item.releaseDate} • {item.tracks ? item.tracks.length : 0} Tracks
                     </div>
-                ))}
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleEdit(item)} style={actionButtonStyle}>
+                    <FaEdit />
+                </button>
+                <button onClick={() => handleDelete(item.id)} style={{ ...actionButtonStyle, color: '#ff5555' }}>
+                    <FaTrash />
+                </button>
             </div>
         </div>
+    ))}
+</div>
+        </div >
     );
 };
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
-import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
+import { validateImageFile } from '../../utils/imageCompression';
 
 const MixesManager = () => {
     const { mixes, updateData } = useData();
@@ -11,7 +11,6 @@ const MixesManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
-    const [keepOriginal, setKeepOriginal] = useState(false);
 
     const initialForm = {
         title: '',
@@ -59,39 +58,26 @@ const MixesManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            let url;
+            setUploadStatus('Uploading to server (Server will optimize)...');
 
-            if (keepOriginal) {
-                setUploadStatus('Uploading original file...');
-                url = await uploadImageWithoutCompression(file);
-            } else {
-                setUploadStatus('Compressing...');
-                const compressedBase64 = await compressImage(file, 250);
+            // Upload directly without client-side compression to avoid double-loss
+            const uploadForm = new FormData();
+            uploadForm.append('image', file);
 
-                setUploadStatus('Uploading to server...');
-                const response = await fetch(compressedBase64);
-                const blob = await response.blob();
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadForm
+            });
 
-                const uploadForm = new FormData();
-                const ext = file.type === 'image/png' ? 'png' : 'jpg';
-                uploadForm.append('image', blob, `upload.${ext}`);
+            if (!uploadRes.ok) throw new Error('Upload failed');
 
-                const uploadRes = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: uploadForm
-                });
+            const { url, size } = await uploadRes.json();
 
-                if (!uploadRes.ok) throw new Error('Upload failed');
-
-                const data = await uploadRes.json();
-                url = data.url;
-            }
-
-            setUploadStatus('Upload complete!');
+            setUploadStatus(`Upload complete! Size: ${size}`);
             setFormData({ ...formData, backgroundImage: url });
             setImagePreview(url);
 
-            setTimeout(() => setUploadStatus(''), 2000);
+            setTimeout(() => setUploadStatus(''), 4000);
         } catch (error) {
             setUploadStatus('Error: ' + error.message);
             setTimeout(() => setUploadStatus(''), 3000);
@@ -205,13 +191,9 @@ const MixesManager = () => {
                             )}
                             <div style={{ marginBottom: '12px' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-light)', fontSize: '14px', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={keepOriginal}
-                                        onChange={(e) => setKeepOriginal(e.target.checked)}
-                                        style={{ cursor: 'pointer' }}
-                                    />
-                                    Оставить исходный файл (без сжатия)
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>
+                                        Max 10MB • Will be compressed server-side
+                                    </div>
                                 </label>
                             </div>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

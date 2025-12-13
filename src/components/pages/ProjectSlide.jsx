@@ -1,11 +1,14 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Button from '../ui/Button';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import ProjectDetails from './ProjectDetails';
 import './ProjectSlide.css';
 
 const ProjectSlide = ({ project, priority = false }) => {
+    const { scrollY } = useScroll();
+    const yParallax = useTransform(scrollY, [0, 500], [0, 100]); // Subtle parallax for project title block
+
     const CoverContent = (
         <div className="project-cover-container">
             <motion.div
@@ -37,6 +40,7 @@ const ProjectSlide = ({ project, priority = false }) => {
 
             <motion.div
                 className="project-main-info"
+                style={{ y: yParallax }}
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
