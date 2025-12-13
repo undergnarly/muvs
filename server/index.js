@@ -158,12 +158,12 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
         // fs.unlinkSync(originalPath); 
 
         // Return URL for the optimized WebP
-        const fileUrl = `/ uploads / ${webpFilename} `;
+        const fileUrl = `/uploads/${webpFilename}`;
         res.json({ url: fileUrl });
     } catch (error) {
         console.error('Image processing error:', error);
         // Fallback to original if optimization fails
-        res.json({ url: `/ uploads / ${req.file.filename} ` });
+        res.json({ url: `/uploads/${req.file.filename}` });
     }
 });
 
@@ -174,7 +174,7 @@ app.post('/api/upload-audio', audioUpload.single('audio'), (req, res) => {
     }
 
     // Return relative URL that Nginx will map to the file
-    const fileUrl = `/ uploads / audio / ${req.file.filename} `;
+    const fileUrl = `/uploads/audio/${req.file.filename}`;
     res.json({ url: fileUrl });
 });
 
