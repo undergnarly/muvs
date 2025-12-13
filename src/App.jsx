@@ -21,8 +21,9 @@ const AboutManager = React.lazy(() => import('./components/admin/AboutManager'))
 const MessagesManager = React.lazy(() => import('./components/admin/MessagesManager'));
 const AdminSettings = React.lazy(() => import('./components/admin/AdminSettings'));
 
-import TopBlur from './components/layout/TopBlur';
-import PageGradient from './components/layout/PageGradient';
+// Visual effects - Lazy loaded to unblock Main Thread
+const TopBlur = React.lazy(() => import('./components/layout/TopBlur'));
+const PageGradient = React.lazy(() => import('./components/layout/PageGradient'));
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 
@@ -69,8 +70,10 @@ function App() {
 
   return (
     <>
-      <TopBlur />
-      <PageGradient />
+      <Suspense fallback={null}>
+        <TopBlur />
+        <PageGradient />
+      </Suspense>
       <Routes>
         <Route path={ROUTES.HOME} element={<MusicPage />} />
         <Route path={ROUTES.ABOUT} element={<AboutPage />} />
