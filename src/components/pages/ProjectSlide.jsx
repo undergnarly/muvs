@@ -52,7 +52,7 @@ const ProjectSlide = ({ project, priority = false }) => {
                 transition={{ delay: 0.3, duration: 0.6 }}
             >
                 <h1 className="project-main-title">{project.title}</h1>
-                {project.liveUrl && (
+                {project.liveUrl && project.liveUrl.trim() !== '' && (
                     <Button variant="dark" href={project.liveUrl} style={{ marginTop: 24 }}>
                         Open Project
                     </Button>

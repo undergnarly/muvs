@@ -43,12 +43,12 @@ const ProjectDetails = ({ project }) => {
                 )}
 
                 <div className="project-actions">
-                    {project.liveUrl && (
+                    {project.liveUrl && project.liveUrl.trim() !== '' && (
                         <Button variant="accent" href={sanitizeUrl(project.liveUrl)}>
                             View Live Demo <FaExternalLinkAlt style={{ marginLeft: 8 }} />
                         </Button>
                     )}
-                    {project.githubUrl && (
+                    {project.githubUrl && project.githubUrl.trim() !== '' && (
                         <Button variant="accent" href={sanitizeUrl(project.githubUrl)} style={{ background: 'transparent', border: '2px solid var(--color-accent)', color: 'var(--color-accent)' }}>
                             GitHub Repo <FaGithub style={{ marginLeft: 8 }} />
                         </Button>

@@ -45,8 +45,9 @@
 .scroll-indicator-wrapper {
     position: absolute;
     bottom: 10%;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 0;
+    margin: 0 auto;
+    width: fit-content;
     z-index: 50;
     display: flex;
     flex-direction: column;
