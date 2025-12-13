@@ -5,7 +5,7 @@ import ReleaseDetails from '../media/ReleaseDetails';
 import PulsingPlayButton from '../media/PulsingPlayButton';
 import './ReleaseSlide.css';
 
-const ReleaseSlide = ({ release }) => {
+const ReleaseSlide = ({ release, priority = false }) => {
     const CoverContent = (
         <div className="release-cover-container">
             {/* Background title text - BEFORE wrapper so z-index works */}
@@ -50,8 +50,8 @@ const ReleaseSlide = ({ release }) => {
                             src={release.coverImage}
                             alt={`Cover for ${release.title}`}
                             className="release-cover-img"
-                            loading="eager"
-                            fetchPriority="high"
+                            loading={priority ? "eager" : "lazy"}
+                            fetchPriority={priority ? "high" : "auto"}
                             decoding="async"
                         />
                     ) : (

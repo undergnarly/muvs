@@ -17,8 +17,12 @@ const MusicPage = () => {
             <Header />
 
             <SlideContainer activeIndex={currentIndex} onChange={setCurrentIndex}>
-                {sortedReleases.map((release) => (
-                    <ReleaseSlide key={release.id} release={release} />
+                {sortedReleases.map((release, index) => (
+                    <ReleaseSlide
+                        key={release.id}
+                        release={release}
+                        priority={index === 0}
+                    />
                 ))}
             </SlideContainer>
 

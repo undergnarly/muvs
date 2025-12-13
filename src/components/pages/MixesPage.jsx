@@ -15,8 +15,12 @@ const MixesPage = () => {
             <Header />
 
             <SlideContainer activeIndex={currentIndex} onChange={setCurrentIndex}>
-                {mixes.map((mix) => (
-                    <MixSlide key={mix.id} mix={mix} />
+                {mixes.map((mix, index) => (
+                    <MixSlide
+                        key={mix.id}
+                        mix={mix}
+                        priority={index === 0}
+                    />
                 ))}
             </SlideContainer>
 

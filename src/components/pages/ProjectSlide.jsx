@@ -5,7 +5,7 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import ProjectDetails from './ProjectDetails';
 import './ProjectSlide.css';
 
-const ProjectSlide = ({ project }) => {
+const ProjectSlide = ({ project, priority = false }) => {
     const CoverContent = (
         <div className="project-cover-container">
             <motion.div
@@ -24,7 +24,14 @@ const ProjectSlide = ({ project }) => {
                         </div>
                     </div>
                 ) : (
-                    <img src={project.thumbnail} alt={project.title} className="project-preview-img" />
+                    <img
+                        src={project.thumbnail}
+                        alt={project.title}
+                        className="project-preview-img"
+                        loading={priority ? "eager" : "lazy"}
+                        fetchPriority={priority ? "high" : "auto"}
+                        decoding="async"
+                    />
                 )}
             </motion.div>
 

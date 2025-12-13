@@ -4,7 +4,7 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import MixDetails from '../media/MixDetails';
 import './MixSlide.css';
 
-const MixSlide = ({ mix }) => {
+const MixSlide = ({ mix, priority = false }) => {
     const CoverContent = (
         <div className="mix-cover-container">
             {/* Background title text */}
@@ -40,7 +40,8 @@ const MixSlide = ({ mix }) => {
                         <img
                             src={mix.backgroundImage}
                             alt="Mix background"
-                            loading="eager"
+                            loading={priority ? "eager" : "lazy"}
+                            fetchPriority={priority ? "high" : "auto"}
                             decoding="async"
                         />
                     </div>
