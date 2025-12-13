@@ -1,8 +1,8 @@
 /* Main wrapper - creates scroll space for animation */
 .base-page-wrapper {
     width: 100%;
-    min-height: 200vh;
-    /* 200vh to create scroll space for both phases */
+    height: 300vh;
+    /* 300vh to create enough scroll space for smooth animation */
     position: relative;
 }
 

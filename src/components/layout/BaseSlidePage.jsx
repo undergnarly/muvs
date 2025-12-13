@@ -4,13 +4,12 @@ import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
 
 const BaseSlidePage = ({ coverContent, detailContent, theme = 'light', textColor = 'white' }) => {
-    const containerRef = useRef(null);
-    const coverRef = useRef(null);
+    const wrapperRef = useRef(null);
 
-    // Track scroll progress of the entire page
+    // Track scroll progress relative to the wrapper element
     const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start start", "end end"]
+        target: wrapperRef,
+        offset: ["start start", "end start"]
     });
 
     // Phase 1 (0 → 0.5): Cover elements scale down and move up
@@ -22,14 +21,13 @@ const BaseSlidePage = ({ coverContent, detailContent, theme = 'light', textColor
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
     // Phase 2 (0.5 → 1): Detail section slides up from bottom
-    const detailY = useTransform(scrollYProgress, [0, 0.5, 1], ['100vh', '100vh', '0vh']);
+    const detailY = useTransform(scrollYProgress, [0.5, 1], ['100vh', '0vh']);
 
     return (
-        <div className="base-page-wrapper" ref={containerRef}>
+        <div className="base-page-wrapper" ref={wrapperRef}>
             {/* Cover Section - Sticky with scale/position effects */}
             <section className="cover-section-sticky">
                 <motion.div
-                    ref={coverRef}
                     className="cover-content-wrapper"
                     style={{
                         scale: coverScale,

@@ -1,13 +1,15 @@
 .slide-indicators {
-    position: absolute;
+    position: fixed;
     bottom: 80px;
     /* Above scroll indicator */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: var(--spacing-xs);
-    z-index: 50;
+    z-index: 100;
+    /* Above everything including detail section */
     mix-blend-mode: difference;
+    pointer-events: all;
 }
 
 .indicator-dot {
