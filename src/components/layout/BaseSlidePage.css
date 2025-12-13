@@ -33,7 +33,6 @@
 .scroll-indicator-wrapper {
     position: absolute;
     bottom: 10%;
-    right: 0;
     margin: 0 auto;
     width: fit-content;
     z-index: 50;
