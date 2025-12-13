@@ -12,8 +12,14 @@ const NewsPage = () => {
     const CoverContent = (
         <div className="mix-cover-container">
             {/* Background Title */}
-            <div className="mix-title-background">
-                <h1 className="mix-title-text">
+            <div
+                className="mix-title-background"
+                style={{ top: news[0]?.titleTopPosition || '20%' }}
+            >
+                <h1
+                    className="mix-title-text"
+                    style={{ fontSize: news[0]?.titleFontSize || 'min(24vw, 120px)' }}
+                >
                     <SplitText delay={0.2}>NEWS</SplitText>
                 </h1>
             </div>
@@ -28,14 +34,7 @@ const NewsPage = () => {
                     justifyContent: 'center',
                     flexDirection: 'column'
                 }}>
-                    <p style={{
-                        color: 'var(--color-text-dim)',
-                        textAlign: 'center',
-                        maxWidth: '300px',
-                        lineHeight: '1.6'
-                    }}>
-                        Latest updates, announcements, and thoughts.
-                    </p>
+                    {/* Placeholder text removed */}
                 </div>
             </div>
         </div>

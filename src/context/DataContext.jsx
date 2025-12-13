@@ -21,7 +21,13 @@ export const DataProvider = ({ children }) => {
     const [siteSettings, setSiteSettings] = useState({
         favicon: '',
         siteName: 'MUVS',
-        siteDescription: 'Audio • Visual • Code'
+        siteDescription: 'Audio • Visual • Code',
+        socialLinks: {
+            instagram: 'https://instagram.com/muvs.dev',
+            soundcloud: 'https://soundcloud.com/muvs',
+            bandcamp: 'https://muvs.bandcamp.com',
+            telegram: 'https://t.me/muvs_dev'
+        }
     });
     const [stats, setStats] = useState({
         totalVisits: 0,

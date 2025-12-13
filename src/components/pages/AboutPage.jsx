@@ -13,17 +13,42 @@ const AboutPage = () => {
     const CoverContent = (
         <div className="about-cover-container">
             {/* Background Title */}
-            <div className="about-title-background">
-                <h1 className="about-title-text">
+            <div
+                className="about-title-background"
+                style={{ top: about.titleTopPosition || '20%' }}
+            >
+                <h1
+                    className="about-title-text"
+                    style={{ fontSize: about.titleFontSize || 'min(24vw, 120px)' }}
+                >
                     <SplitText delay={0.2}>{about.title || 'ABOUT'}</SplitText>
                 </h1>
             </div>
 
             {/* Constrained Image Wrapper */}
             <div className="about-cover-wrapper">
-                {about.backgroundImage && (
+                {(about.backgroundImageDesktop || about.backgroundImageMobile || about.backgroundImage) && (
                     <div className="about-image-placeholder">
-                        <img src={about.backgroundImage} alt="About background" />
+                        {/* Desktop image */}
+                        {about.backgroundImageDesktop && (
+                            <img
+                                src={about.backgroundImageDesktop}
+                                alt="About background"
+                                className="about-image-desktop"
+                            />
+                        )}
+                        {/* Mobile image */}
+                        {about.backgroundImageMobile && (
+                            <img
+                                src={about.backgroundImageMobile}
+                                alt="About background"
+                                className="about-image-mobile"
+                            />
+                        )}
+                        {/* Fallback to old backgroundImage if new ones don't exist */}
+                        {!about.backgroundImageDesktop && !about.backgroundImageMobile && about.backgroundImage && (
+                            <img src={about.backgroundImage} alt="About background" />
+                        )}
                     </div>
                 )}
             </div>

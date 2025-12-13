@@ -30,24 +30,29 @@ const SlideContainer = ({ children, activeIndex, onChange }) => {
         enter: (direction) => ({
             x: direction > 0 ? '100%' : '-100%',
             opacity: 0,
-            scale: 0.9
+            filter: 'blur(10px)',
+            scale: 1 // Remove scale to prevent jitter
         }),
         center: {
             x: 0,
             opacity: 1,
+            filter: 'blur(0px)',
             scale: 1,
             transition: {
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 }
+                x: { type: "tween", ease: "easeInOut", duration: 0.5 }, // Linear movement
+                opacity: { duration: 0.4, ease: "easeInOut" },
+                filter: { duration: 0.4, ease: "easeInOut" }
             }
         },
         exit: (direction) => ({
             x: direction < 0 ? '100%' : '-100%',
             opacity: 0,
-            scale: 0.9,
+            filter: 'blur(10px)',
+            scale: 1, // Remove scale to prevent jitter
             transition: {
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 }
+                x: { type: "tween", ease: "easeInOut", duration: 0.5 }, // Linear movement
+                opacity: { duration: 0.3, ease: "easeInOut" },
+                filter: { duration: 0.3, ease: "easeInOut" }
             }
         })
     };

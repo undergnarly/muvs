@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
-import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
 
 const MixesManager = () => {
     const { mixes, updateData } = useData();
@@ -11,6 +11,7 @@ const MixesManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
+    const [keepOriginal, setKeepOriginal] = useState(false);
 
     const initialForm = {
         title: '',
@@ -44,6 +45,7 @@ const MixesManager = () => {
         setFormData(initialForm);
         setImagePreview(null);
         setUploadStatus('');
+        setKeepOriginal(false);
         setIsFormOpen(true);
     };
 
@@ -56,25 +58,33 @@ const MixesManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing...');
-            const compressedBase64 = await compressImage(file, 250);
+            let url;
 
-            setUploadStatus('Uploading to server...');
-            const response = await fetch(compressedBase64);
-            const blob = await response.blob();
+            if (keepOriginal) {
+                setUploadStatus('Uploading original file...');
+                url = await uploadImageWithoutCompression(file);
+            } else {
+                setUploadStatus('Compressing...');
+                const compressedBase64 = await compressImage(file, 250);
 
-            const uploadForm = new FormData();
-            const ext = file.type === 'image/png' ? 'png' : 'jpg';
-            uploadForm.append('image', blob, `upload.${ext}`);
+                setUploadStatus('Uploading to server...');
+                const response = await fetch(compressedBase64);
+                const blob = await response.blob();
 
-            const uploadRes = await fetch('/api/upload', {
-                method: 'POST',
-                body: uploadForm
-            });
+                const uploadForm = new FormData();
+                const ext = file.type === 'image/png' ? 'png' : 'jpg';
+                uploadForm.append('image', blob, `upload.${ext}`);
 
-            if (!uploadRes.ok) throw new Error('Upload failed');
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadForm
+                });
 
-            const { url } = await uploadRes.json();
+                if (!uploadRes.ok) throw new Error('Upload failed');
+
+                const data = await uploadRes.json();
+                url = data.url;
+            }
 
             setUploadStatus('Upload complete!');
             setFormData({ ...formData, backgroundImage: url });
@@ -192,6 +202,17 @@ const MixesManager = () => {
                                     <img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }} />
                                 </div>
                             )}
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-light)', fontSize: '14px', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={keepOriginal}
+                                        onChange={(e) => setKeepOriginal(e.target.checked)}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                    Оставить исходный файл (без сжатия)
+                                </label>
+                            </div>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                 <input
                                     type="file"

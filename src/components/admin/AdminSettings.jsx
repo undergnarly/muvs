@@ -18,7 +18,8 @@ const AdminSettings = () => {
     const [siteFormData, setSiteFormData] = useState({
         favicon: siteSettings?.favicon || '',
         siteName: siteSettings?.siteName || 'MUVS',
-        siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code'
+        siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
+        socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' }
     });
 
     const handleSubmit = (e) => {
@@ -142,6 +143,65 @@ const AdminSettings = () => {
                         style={inputStyle}
                         placeholder="Audio • Visual • Code"
                     />
+                </div>
+
+                {/* Social Links */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Social Links</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <label style={labelStyle}>Instagram</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.instagram}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, instagram: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://instagram.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>SoundCloud</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.soundcloud}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, soundcloud: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://soundcloud.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Bandcamp</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.bandcamp}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, bandcamp: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://bandcamp.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Telegram</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.telegram}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, telegram: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://t.me/..."
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Favicon Upload */}

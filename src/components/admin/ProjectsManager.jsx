@@ -145,6 +145,14 @@ const ProjectsManager = () => {
                                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} disabled={uploading} />
                                 </label>
                             </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '4px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={!useCompression}
+                                    onChange={e => setUseCompression(!e.target.checked)}
+                                />
+                                Keep Original (No Compression)
+                            </label>
                         </div>
                         {uploadStatus && <div style={{ fontSize: '12px', color: 'var(--color-accent)' }}>{uploadStatus}</div>}
                         <input
