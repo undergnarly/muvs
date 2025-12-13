@@ -26,7 +26,7 @@ const AboutPage = () => {
     const DetailContent = (
         <div className="about-details-container">
             <div className="about-content">
-                <p>{about.content}</p>
+                <div dangerouslySetInnerHTML={{ __html: about.content }}></div>
                 <div className="about-contact">
                     <h3>Connect</h3>
                     <SocialLinks />
