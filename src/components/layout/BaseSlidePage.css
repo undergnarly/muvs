@@ -1,8 +1,8 @@
 /* Scroll section - creates scroll space for sticky animation */
 .scroll-section {
     position: relative;
-    height: 200vh;
-    /* 2x viewport height creates scroll space for animation */
+    height: 180vh;
+    /* Optimized height to prevent overscroll */
 }
 
 /* Sticky container - pins to top while parent scrolls */

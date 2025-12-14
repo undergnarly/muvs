@@ -98,7 +98,7 @@ const BaseSlidePage = ({
     const detailY = useTransform(
         scrollProgress,
         [0, 1],
-        ['0vh', '-100vh']
+        ['0vh', '-95vh']
     );
 
     return (
