@@ -107,10 +107,23 @@ const BaseSlidePage = ({
     // Scroll indicator fade out
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
+    // Detail section overlay effect
+    // For zoom-out: starts at 0.3, for overlay: starts at 0.1
+    const overlayStart = isZoomOut ? 0.3 : 0.1;
+    const detailY = useTransform(
+        scrollYProgress,
+        [0, overlayStart, 1],
+        ['0vh', '0vh', '-100vh']
+    );
+
+    // Adjust scroll section height based on animation type
+    // Zoom-out needs more space (200vh), overlay needs less (120vh)
+    const scrollSectionHeight = isZoomOut ? '200vh' : '120vh';
+
     return (
         <>
             {/* Scroll section - creates scroll space for animation */}
-            <div className="scroll-section" ref={scrollSectionRef}>
+            <div className="scroll-section" ref={scrollSectionRef} style={{ height: scrollSectionHeight }}>
                 {/* Sticky container - pins to top while scroll section scrolls */}
                 <div className="sticky-container">
                     <motion.div
@@ -138,9 +151,14 @@ const BaseSlidePage = ({
             </div>
 
             {/* Detail Section - Normal flow after scroll section */}
-            <section className="detail-section-flow">
+            <motion.section
+                className="detail-section-flow"
+                style={{
+                    y: detailY
+                }}
+            >
                 {detailContent}
-            </section>
+            </motion.section>
         </>
     );
 };
