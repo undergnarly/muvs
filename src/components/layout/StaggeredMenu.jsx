@@ -1,6 +1,6 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { gsap } from 'gsap';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
 import { useData } from '../../context/DataContext';
@@ -18,24 +18,7 @@ export const StaggeredMenu = () => {
     const location = useLocation();
     const { siteSettings } = useData();
     const [open, setOpen] = useState(false);
-    const openRef = useRef(false);
-    const panelRef = useRef(null);
-    const preLayersRef = useRef(null);
-    const preLayerElsRef = useRef([]);
-    const plusHRef = useRef(null);
-    const plusVRef = useRef(null);
-    const iconRef = useRef(null);
-    const textInnerRef = useRef(null);
-    const textWrapRef = useRef(null);
-    const [textLines, setTextLines] = useState(['Menu', 'Close']);
-
-    const openTlRef = useRef(null);
-    const closeTweenRef = useRef(null);
-    const spinTweenRef = useRef(null);
-    const textCycleAnimRef = useRef(null);
-    const colorTweenRef = useRef(null);
-    const toggleBtnRef = useRef(null);
-    const busyRef = useRef(false);
+    const navigate = useNavigate();
 
     const position = 'right';
     const colors = ['#1a1a1a', '#2a2a2a'];
@@ -51,168 +34,6 @@ export const StaggeredMenu = () => {
         { label: 'Telegram', link: socialLinks.telegram, icon: FaTelegramPlane }
     ].filter(item => item.link);
 
-    useLayoutEffect(() => {
-        const ctx = gsap.context(() => {
-            const panel = panelRef.current;
-            const preContainer = preLayersRef.current;
-            const plusH = plusHRef.current;
-            const plusV = plusVRef.current;
-            const icon = iconRef.current;
-            const textInner = textInnerRef.current;
-            if (!panel || !plusH || !plusV || !icon || !textInner) return;
-
-            let preLayers = [];
-            if (preContainer) {
-                preLayers = Array.from(preContainer.querySelectorAll('.sm-prelayer'));
-            }
-            preLayerElsRef.current = preLayers;
-
-            const offscreen = 100;
-            gsap.set([panel, ...preLayers], { xPercent: offscreen });
-            gsap.set(plusH, { transformOrigin: '50% 50%', rotate: 0 });
-            gsap.set(plusV, { transformOrigin: '50% 50%', rotate: 90 });
-            gsap.set(icon, { rotate: 0, transformOrigin: '50% 50%' });
-            gsap.set(textInner, { yPercent: 0 });
-            if (toggleBtnRef.current) gsap.set(toggleBtnRef.current, { color: menuButtonColor });
-        });
-        return () => ctx.revert();
-    }, [menuButtonColor]);
-
-    const buildOpenTimeline = useCallback(() => {
-        const panel = panelRef.current;
-        const layers = preLayerElsRef.current;
-        if (!panel) return null;
-
-        openTlRef.current?.kill();
-        closeTweenRef.current?.kill();
-
-        const itemEls = Array.from(panel.querySelectorAll('.sm-panel-itemLabel'));
-        const numberEls = Array.from(panel.querySelectorAll('.sm-panel-list[data-numbering] .sm-panel-item'));
-        const socialTitle = panel.querySelector('.sm-socials-title');
-        const socialLinksEls = Array.from(panel.querySelectorAll('.sm-socials-link'));
-
-        if (itemEls.length) gsap.set(itemEls, { yPercent: 140, rotate: 10, x: 0, opacity: 1 });
-        if (numberEls.length) gsap.set(numberEls, { '--sm-num-opacity': 0 });
-        if (socialTitle) gsap.set(socialTitle, { opacity: 0 });
-        if (socialLinksEls.length) gsap.set(socialLinksEls, { y: 25, opacity: 0, x: 0 });
-
-        const tl = gsap.timeline({ paused: true });
-
-        tl.to(layers, {
-            xPercent: 0,
-            duration: 0.8,
-            ease: 'power3.inOut',
-            stagger: 0.08
-        })
-            .to(panel, {
-                xPercent: 0,
-                duration: 0.8,
-                ease: 'power3.inOut'
-            }, '<+=0.1');
-
-        if (itemEls.length) {
-            tl.to(itemEls, {
-                yPercent: 0,
-                rotate: 0,
-                duration: 1,
-                ease: 'power4.out',
-                stagger: 0.05
-            }, '-=0.4');
-        }
-
-        if (socialTitle) {
-            tl.to(socialTitle, { opacity: 1, duration: 0.5 }, '-=0.6');
-        }
-        if (socialLinksEls.length) {
-            tl.to(socialLinksEls, {
-                y: 0,
-                opacity: 1,
-                x: 0,
-                duration: 0.6,
-                ease: 'back.out(1.7)',
-                stagger: 0.05
-            }, '-=0.5');
-        }
-
-        tl.eventCallback('onComplete', () => {
-            busyRef.current = false;
-        });
-        tl.eventCallback('onReverseComplete', () => {
-            busyRef.current = false;
-        });
-
-        return tl;
-    }, []);
-
-    const playOpen = useCallback(() => {
-        // Allow restarting/overwriting animation
-        busyRef.current = true;
-        const tl = buildOpenTimeline();
-        openTlRef.current = tl;
-        tl.play();
-    }, [buildOpenTimeline]);
-
-    const playClose = useCallback(() => {
-        // Allow interrupting opening animation to close immediately
-        busyRef.current = true;
-        if (openTlRef.current) {
-            openTlRef.current.reverse();
-        } else {
-            // Fallback
-            const panel = panelRef.current;
-            const layers = preLayerElsRef.current;
-            gsap.to([panel, ...layers], {
-                xPercent: 100,
-                duration: 0.6,
-                ease: 'power3.inOut',
-                stagger: { amount: 0.1, from: 'end' },
-                onComplete: () => { busyRef.current = false; }
-            });
-        }
-    }, [buildOpenTimeline]);
-
-    const animateIcon = useCallback((isOpen) => {
-        const plusH = plusHRef.current;
-        const plusV = plusVRef.current;
-        const icon = iconRef.current;
-        spinTweenRef.current?.kill();
-
-        const tl = gsap.timeline();
-        if (isOpen) {
-            // to X
-            tl.to(plusH, { rotate: 45, duration: 0.4, ease: 'back.out(1.7)' }, 0)
-                .to(plusV, { rotate: 135, duration: 0.4, ease: 'back.out(1.7)' }, 0)
-                .to(icon, { rotate: 90, duration: 0.4, ease: 'power2.inOut' }, 0);
-        } else {
-            // to Hamburger
-            tl.to(plusH, { rotate: 0, duration: 0.4, ease: 'back.out(1.7)' }, 0)
-                .to(plusV, { rotate: 90, duration: 0.4, ease: 'back.out(1.7)' }, 0)
-                .to(icon, { rotate: 0, duration: 0.4, ease: 'power2.inOut' }, 0);
-        }
-        spinTweenRef.current = tl;
-    }, []);
-
-    const animateColor = useCallback((isOpen) => {
-        colorTweenRef.current?.kill();
-        const btn = toggleBtnRef.current;
-        colorTweenRef.current = gsap.to(btn, {
-            color: isOpen ? openMenuButtonColor : menuButtonColor,
-            duration: 0.3
-        });
-    }, [menuButtonColor, openMenuButtonColor]);
-
-    const animateText = useCallback((isOpen) => {
-        textCycleAnimRef.current?.kill();
-        const inner = textInnerRef.current;
-        textCycleAnimRef.current = gsap.to(inner, {
-            yPercent: isOpen ? -50 : 0,
-            duration: 0.5,
-            ease: 'power3.inOut'
-        });
-    }, []);
-
-    const navigate = useNavigate();
-
     const handleLinkClick = (e, path) => {
         e.preventDefault();
         if (location.pathname === path) {
@@ -225,33 +46,20 @@ export const StaggeredMenu = () => {
         }, 700);
     };
 
-    const toggleMenu = useCallback(() => {
-        const target = !openRef.current;
-        openRef.current = target;
-        setOpen(target);
-        if (target) {
-            playOpen();
-        } else {
-            playClose();
-        }
-        animateIcon(target);
-        animateColor(target);
-        animateText(target);
-    }, [playOpen, playClose, animateIcon, animateColor, animateText]);
+    const toggleMenu = () => {
+        setOpen(!open);
+    };
 
     const handleLogoClick = (e) => {
         e.preventDefault();
-        e.stopPropagation(); // Stop bubbling to prevent any parent interactions
+        e.stopPropagation();
 
         const homePath = ROUTES.HOME || '/';
 
-        // If menu is open, close it
         if (open) {
             toggleMenu();
         }
 
-        // Always navigate to home if not already there
-        // Optionally, if on home, scrolling to top is a common pattern, but for now just navigate (which does nothing or replaces)
         if (location.pathname !== homePath) {
             navigate(homePath);
         }
@@ -264,8 +72,22 @@ export const StaggeredMenu = () => {
             data-position={position}
             data-open={open || undefined}
         >
-            <div ref={preLayersRef} className="sm-prelayers" aria-hidden="true">
-                {colors.map((c, i) => <div key={i} className="sm-prelayer" style={{ background: c }} />)}
+            {/* Pre-layers for stagger effect */}
+            <div className="sm-prelayers" aria-hidden="true">
+                {colors.map((c, i) => (
+                    <motion.div
+                        key={i}
+                        className="sm-prelayer"
+                        style={{ background: c }}
+                        initial={{ x: '100%' }}
+                        animate={{ x: open ? '0%' : '100%' }}
+                        transition={{
+                            duration: 0.8,
+                            ease: [0.76, 0, 0.24, 1],
+                            delay: open ? i * 0.08 : (colors.length - 1 - i) * 0.08
+                        }}
+                    />
+                ))}
             </div>
 
             <header className="staggered-menu-header" aria-label="Main navigation header">
@@ -277,29 +99,56 @@ export const StaggeredMenu = () => {
                 >
                     <div className="sm-logo-img" />
                 </a>
-                <button
-                    ref={toggleBtnRef}
+                <motion.button
                     className="sm-toggle"
                     aria-label={open ? 'Close menu' : 'Open menu'}
                     aria-expanded={open}
                     onClick={toggleMenu}
                     type="button"
+                    animate={{ color: open ? openMenuButtonColor : menuButtonColor }}
+                    transition={{ duration: 0.3 }}
                 >
-                    <span ref={textWrapRef} className="sm-toggle-textWrap" aria-hidden="true">
-                        <span ref={textInnerRef} className="sm-toggle-textInner">
-                            {textLines.map((l, i) => (
-                                <span className="sm-toggle-line" key={i}>{l}</span>
-                            ))}
-                        </span>
+                    <span className="sm-toggle-textWrap" aria-hidden="true">
+                        <motion.span
+                            className="sm-toggle-textInner"
+                            animate={{ y: open ? '-50%' : '0%' }}
+                            transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
+                        >
+                            <span className="sm-toggle-line">Menu</span>
+                            <span className="sm-toggle-line">Close</span>
+                        </motion.span>
                     </span>
-                    <span ref={iconRef} className="sm-icon" aria-hidden="true">
-                        <span ref={plusHRef} className="sm-icon-line" />
-                        <span ref={plusVRef} className="sm-icon-line sm-icon-line-v" />
-                    </span>
-                </button>
+                    <motion.span
+                        className="sm-icon"
+                        aria-hidden="true"
+                        animate={{ rotate: open ? 90 : 0 }}
+                        transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                    >
+                        <motion.span
+                            className="sm-icon-line"
+                            animate={{ rotate: open ? 45 : 0 }}
+                            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                        />
+                        <motion.span
+                            className="sm-icon-line sm-icon-line-v"
+                            animate={{ rotate: open ? 135 : 90 }}
+                            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                        />
+                    </motion.span>
+                </motion.button>
             </header>
 
-            <aside ref={panelRef} className="staggered-menu-panel" aria-hidden={!open}>
+            <motion.aside
+                className="staggered-menu-panel"
+                aria-hidden={!open}
+                initial={{ x: '100%' }}
+                animate={{ x: open ? '0%' : '100%' }}
+                transition={{
+                    duration: 0.8,
+                    ease: [0.76, 0, 0.24, 1],
+                    delay: open ? 0.1 : 0
+                }}
+            >
                 <div className="sm-panel-inner">
                     <ul className="sm-panel-list" role="list">
                         {menuItems.map((it, idx) => (
@@ -309,33 +158,64 @@ export const StaggeredMenu = () => {
                                     className={`sm-panel-item ${location.pathname === it.path ? 'active' : ''}`}
                                     onClick={(e) => handleLinkClick(e, it.path)}
                                 >
-                                    <span className="sm-panel-itemLabel">{it.label}</span>
+                                    <motion.span
+                                        className="sm-panel-itemLabel"
+                                        initial={{ y: '140%', rotate: 10, opacity: 1 }}
+                                        animate={{
+                                            y: open ? '0%' : '140%',
+                                            rotate: open ? 0 : 10
+                                        }}
+                                        transition={{
+                                            duration: 1,
+                                            ease: [0.19, 1, 0.22, 1],
+                                            delay: open ? 0.4 + (idx * 0.05) : 0
+                                        }}
+                                    >
+                                        {it.label}
+                                    </motion.span>
                                 </a>
                             </li>
                         ))}
                     </ul>
 
                     <div className="sm-socials" aria-label="Social links">
-                        <h3 className="sm-socials-title">Socials</h3>
+                        <motion.h3
+                            className="sm-socials-title"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: open ? 1 : 0 }}
+                            transition={{ duration: 0.5, delay: open ? 0.6 : 0 }}
+                        >
+                            Socials
+                        </motion.h3>
                         <ul className="sm-socials-list" role="list">
-                            {socialItems.map((s) => (
+                            {socialItems.map((s, idx) => (
                                 <li key={s.label} className="sm-socials-item">
-                                    <a
+                                    <motion.a
                                         href={s.link}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="sm-socials-link"
                                         aria-label={s.label}
+                                        initial={{ y: 25, opacity: 0 }}
+                                        animate={{
+                                            y: open ? 0 : 25,
+                                            opacity: open ? 1 : 0
+                                        }}
+                                        transition={{
+                                            duration: 0.6,
+                                            ease: [0.34, 1.56, 0.64, 1],
+                                            delay: open ? 0.5 + (idx * 0.05) : 0
+                                        }}
                                     >
                                         <s.icon size={24} />
-                                    </a>
+                                    </motion.a>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </div>
                 <div className="sm-panel-bg" />
-            </aside>
+            </motion.aside>
         </div>
     );
 };
