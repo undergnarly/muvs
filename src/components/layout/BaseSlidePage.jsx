@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, useTransform, useMotionValue } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
+import { useData } from '../../context/DataContext';
 import './BaseSlidePage.css';
 
 const BaseSlidePage = ({
@@ -10,10 +11,15 @@ const BaseSlidePage = ({
     textColor = 'white',
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
+    const { siteSettings } = useData();
     const containerRef = useRef(null);
     const scrollProgress = useMotionValue(0);
 
     const isZoomOut = animationType === 'zoom-out';
+
+    // Get settings from admin or use defaults
+    const scrollSectionHeight = siteSettings?.scrollAnimation?.scrollSectionHeight || 180;
+    const detailOverlayDistance = siteSettings?.scrollAnimation?.detailOverlay || -10;
 
     // Manual scroll tracking for nested scroll container
     useEffect(() => {
@@ -65,7 +71,8 @@ const BaseSlidePage = ({
                 containerHeight: Math.round(containerHeight),
                 scrollDistance: Math.round(scrollDistance),
                 progress: progress.toFixed(3),
-                detailTransform: `${Math.round(progress * -10)}vh`
+                detailTransform: `${Math.round(progress * detailOverlayDistance)}vh`,
+                settings: { scrollSectionHeight, detailOverlayDistance }
             });
         };
 
@@ -110,13 +117,17 @@ const BaseSlidePage = ({
     const detailY = useTransform(
         scrollProgress,
         [0, 1],
-        ['0vh', '-10vh']
+        ['0vh', `${detailOverlayDistance}vh`]
     );
 
     return (
         <>
             {/* Main container - creates scroll space */}
-            <div className="scroll-section" ref={containerRef}>
+            <div
+                className="scroll-section"
+                ref={containerRef}
+                style={{ height: `${scrollSectionHeight}vh` }}
+            >
                 {/* Sticky container - stays fixed while scrolling */}
                 <div className="sticky-container">
                     <motion.div
