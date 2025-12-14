@@ -1,11 +1,11 @@
-/* Scroll section - creates scroll space for sticky animation */
+/* Scroll section - acts as the main wrapper */
 .scroll-section {
     position: relative;
-    height: 180vh;
-    /* Optimized height to prevent overscroll */
+    width: 100%;
+    min-height: 100vh;
 }
 
-/* Sticky container - pins to top while parent scrolls */
+/* Sticky container - pins the cover to the top */
 .sticky-container {
     position: sticky;
     top: 0;
@@ -16,6 +16,8 @@
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    z-index: 1;
+    /* Behind the details */
 }
 
 /* Cover content wrapper */
@@ -29,46 +31,19 @@
     color: var(--color-text-dark);
 }
 
-/* Detail section - flows naturally after scroll section */
+/* Detail section - flows naturally over the sticky cover */
 .detail-section-flow {
     position: relative;
     width: 100%;
     min-height: 100vh;
     padding: var(--spacing-2xl) var(--spacing-md);
     background-color: var(--color-bg-dark);
+    /* Must have background to cover */
     color: var(--color-text-light);
     z-index: 10;
-}
-
-/* Legacy support - keep for backwards compatibility */
-.base-page {
-    width: 100%;
-    min-height: 100vh;
-    position: relative;
-}
-
-.slide-section {
-    width: 100%;
-    position: relative;
-}
-
-.cover-section {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: transparent;
-    color: var(--color-text-dark);
-    transition: background-color 0.5s ease;
-}
-
-.detail-section {
-    min-height: 100vh;
-    padding: var(--spacing-2xl) var(--spacing-md);
-    background-color: var(--color-bg-dark);
-    color: var(--color-text-light);
-    z-index: 10;
+    /* On top of the sticky cover */
+    /* Add a shadow for better separation visually if needed */
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Scroll Indicator */
@@ -89,7 +64,6 @@
 .scroll-text {
     font-size: 14px;
     font-weight: 700;
-    /* color: #FFFFFF;  <-- Handled via inline style now */
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0.8;
@@ -99,7 +73,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    /* color: #FFFFFF; <-- Handled via inline style now */
 }
 
 @keyframes bounce {
