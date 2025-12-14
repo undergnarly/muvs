@@ -38,6 +38,7 @@ const BaseSlidePage = ({
         }
 
         const section = containerRef.current;
+        let maxScrollReached = false;
 
         const handleScroll = () => {
             const scrollTop = scroller.scrollTop;
@@ -55,6 +56,17 @@ const BaseSlidePage = ({
                 : 0;
 
             scrollProgress.set(progress);
+
+            // Debug logging
+            console.log('[Scroll Debug]', {
+                scrollTop: Math.round(scrollTop),
+                sectionTop: Math.round(sectionTop),
+                sectionHeight: Math.round(sectionHeight),
+                containerHeight: Math.round(containerHeight),
+                scrollDistance: Math.round(scrollDistance),
+                progress: progress.toFixed(3),
+                detailTransform: `${Math.round(progress * -10)}vh`
+            });
         };
 
         scroller.addEventListener('scroll', handleScroll, { passive: true });
@@ -98,7 +110,7 @@ const BaseSlidePage = ({
     const detailY = useTransform(
         scrollProgress,
         [0, 1],
-        ['0vh', '-95vh']
+        ['0vh', '-10vh']
     );
 
     return (
