@@ -15,11 +15,13 @@ const ProjectSlide = ({ project, priority = false }) => {
     const parallaxStrength = project.parallaxStrength || 50;
     const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
 
-    const CoverContent = () => (
+    const CoverContent = ({ coverTextY, coverImageY }) => (
         <div className="project-cover-container">
             <motion.div
-                data-cover-image
                 className="project-preview-wrapper"
+                style={{
+                    y: coverImageY || 0
+                }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -46,8 +48,8 @@ const ProjectSlide = ({ project, priority = false }) => {
             </motion.div>
 
             <motion.div
-                data-cover-text
                 className="project-main-info"
+                style={{ y: coverTextY || yParallax }}
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
