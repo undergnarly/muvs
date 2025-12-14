@@ -1,7 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, useMotionValue } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './BaseSlidePage.css';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const BaseSlidePage = ({
     coverContent,
@@ -10,154 +14,129 @@ const BaseSlidePage = ({
     textColor = 'white',
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
-    const scrollSectionRef = useRef(null);
-    const [scrollContainer, setScrollContainer] = useState(null);
+    const containerRef = useRef(null);
+    const coverWrapperRef = useRef(null);
+    const detailRef = useRef(null);
+    const indicatorRef = useRef(null);
 
-    const manualProgress = useMotionValue(0);
+    const isZoomOut = animationType === 'zoom-out';
 
-    // Find parent scrollable container and track scroll manually
     useEffect(() => {
-        if (!scrollSectionRef.current) return;
+        if (!containerRef.current) return;
 
-        let container = null;
-        let parent = scrollSectionRef.current.parentElement;
+        // Find parent scrollable container
+        let scroller = null;
+        let parent = containerRef.current.parentElement;
 
-        // Find scrollable parent
         while (parent && parent !== document.body) {
             const overflowY = window.getComputedStyle(parent).overflowY;
             if (overflowY === 'auto' || overflowY === 'scroll') {
-                container = parent;
-                console.log('[BaseSlidePage] Found scroll container:', parent.className);
+                scroller = parent;
                 break;
             }
             parent = parent.parentElement;
         }
 
-        if (!container) {
-            console.log('[BaseSlidePage] No scroll container, using window scroll');
-            return;
+        const scrollerElement = scroller || window;
+
+        // Create GSAP timeline
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: containerRef.current,
+                start: 'top top',
+                end: 'bottom top',
+                scrub: 1,
+                scroller: scrollerElement,
+                // markers: true, // Uncomment for debugging
+            }
+        });
+
+        // Animate scroll indicator fade out first (0-20%)
+        tl.to(indicatorRef.current, {
+            opacity: 0,
+            duration: 0.2,
+            ease: 'none'
+        }, 0);
+
+        if (isZoomOut) {
+            // Zoom-out animation: scale down to 0.5 (0-100%)
+            tl.to(coverWrapperRef.current, {
+                scale: 0.5,
+                opacity: 0.85,
+                duration: 1,
+                ease: 'none'
+            }, 0);
+
+            // Horizon effect for nested elements
+            // Target specific child elements with data attributes
+            const imageElements = coverWrapperRef.current.querySelectorAll('[data-cover-image]');
+            const textElements = coverWrapperRef.current.querySelectorAll('[data-cover-text]');
+
+            imageElements.forEach(el => {
+                tl.to(el, {
+                    y: -100,
+                    duration: 1,
+                    ease: 'none'
+                }, 0);
+            });
+
+            textElements.forEach(el => {
+                tl.to(el, {
+                    y: 50,
+                    duration: 1,
+                    ease: 'none'
+                }, 0);
+            });
         }
 
-        const section = scrollSectionRef.current;
-        setScrollContainer(container);
+        // Detail section overlay (starts at 10% progress)
+        tl.to(detailRef.current, {
+            y: '-100vh',
+            duration: 0.9,
+            ease: 'none'
+        }, 0.1);
 
-        const handleScroll = () => {
-            const scrollTop = container.scrollTop;
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.offsetHeight;
-            const containerHeight = container.clientHeight;
-
-            // Calculate when section passes through viewport
-            // Progress 0 = section top at container top
-            // Progress 1 = section bottom at container top
-            const start = sectionTop;
-            const end = sectionTop + sectionHeight - containerHeight;
-            const scrollDistance = end - start;
-
-            const progress = scrollDistance > 0
-                ? Math.max(0, Math.min(1, (scrollTop - start) / scrollDistance))
-                : 0;
-
-            manualProgress.set(progress);
-            console.log('[BaseSlidePage] Manual progress:', progress.toFixed(3));
+        return () => {
+            tl.kill();
+            ScrollTrigger.getAll().forEach(trigger => trigger.kill());
         };
-
-        container.addEventListener('scroll', handleScroll);
-        handleScroll(); // Initial call
-
-        return () => container.removeEventListener('scroll', handleScroll);
-    }, [manualProgress]);
-
-    // Use manual progress if container found, otherwise use standard useScroll
-    const { scrollYProgress: autoProgress } = useScroll({
-        target: scrollSectionRef,
-        offset: ["start start", "end start"]
-    });
-
-    const scrollYProgress = scrollContainer ? manualProgress : autoProgress;
-
-    const isZoomOut = animationType === 'zoom-out';
-
-    // Zoom effect: scale down from 1 to 0.5
-    const coverScale = useTransform(
-        scrollYProgress,
-        [0, 1],
-        isZoomOut ? [1, 0.5] : [1, 1]
-    );
-
-    // Horizon effect: image up, text down
-    const coverImageY = useTransform(
-        scrollYProgress,
-        [0, 1],
-        isZoomOut ? [0, -100] : [0, 0]
-    );
-    const coverTextY = useTransform(
-        scrollYProgress,
-        [0, 1],
-        isZoomOut ? [0, 50] : [0, 0]
-    );
-
-    // Fade slightly
-    const coverOpacity = useTransform(
-        scrollYProgress,
-        [0, 1],
-        [1, 0.85]
-    );
-
-    // Scroll indicator fade out
-    const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-
-    // Detail section overlay effect - starts at 0.1 for all pages
-    const overlayStart = 0.1;
-    const detailY = useTransform(
-        scrollYProgress,
-        [0, overlayStart, 1],
-        ['0vh', '0vh', '-100vh']
-    );
-
-    // Adjust scroll section height based on animation type
-    // Reduced heights to prevent overscroll
-    const scrollSectionHeight = isZoomOut ? '150vh' : '110vh';
+    }, [isZoomOut]);
 
     return (
         <>
-            {/* Scroll section - creates scroll space for animation */}
-            <div className="scroll-section" ref={scrollSectionRef} style={{ height: scrollSectionHeight }}>
+            {/* Main container for ScrollTrigger */}
+            <div className="scroll-section" ref={containerRef}>
                 {/* Sticky container - pins to top while scroll section scrolls */}
                 <div className="sticky-container">
                     <motion.div
+                        ref={coverWrapperRef}
                         className="cover-content-wrapper"
-                        style={{
-                            scale: coverScale,
-                            opacity: coverOpacity
-                        }}
+                        initial={{ opacity: 1, scale: 1 }}
                     >
                         {typeof coverContent === 'function'
-                            ? coverContent({ coverTextY, coverImageY })
+                            ? coverContent({})
                             : coverContent}
                     </motion.div>
 
-                    <motion.div
+                    <div
+                        ref={indicatorRef}
                         className="scroll-indicator-wrapper"
-                        style={{ opacity: indicatorOpacity }}
                     >
                         <span className="scroll-text" style={{ color: textColor }}>Check it out!</span>
                         <div className="scroll-arrow" style={{ color: textColor }}>
                             <BiChevronDown size={32} />
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             </div>
 
             {/* Detail Section - Normal flow after scroll section */}
-            <motion.section
+            <section
+                ref={detailRef}
                 className="detail-section-flow"
-                style={{
-                    y: detailY
-                }}
             >
                 {detailContent}
-            </motion.section>
+            </section>
         </>
     );
 };
