@@ -11,12 +11,38 @@ const BaseSlidePage = ({
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
     const scrollSectionRef = useRef(null);
+    const [scrollContainer, setScrollContainer] = useState(null);
 
-    // Track scroll progress of the scroll section (not window)
+    // Find parent scrollable container for SlideContainer pages
+    useEffect(() => {
+        if (scrollSectionRef.current) {
+            let parent = scrollSectionRef.current.parentElement;
+            while (parent && parent !== document.body) {
+                const overflowY = window.getComputedStyle(parent).overflowY;
+                if (overflowY === 'auto' || overflowY === 'scroll') {
+                    console.log('[BaseSlidePage] Found scroll container:', parent.className);
+                    setScrollContainer(parent);
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+    }, []);
+
+    // Track scroll progress - with container if found
     const { scrollYProgress } = useScroll({
         target: scrollSectionRef,
+        container: scrollContainer,
         offset: ["start start", "end start"]
     });
+
+    // Debug scroll progress
+    useEffect(() => {
+        const unsubscribe = scrollYProgress.on('change', (v) => {
+            console.log('[BaseSlidePage] scrollYProgress:', v.toFixed(3));
+        });
+        return unsubscribe;
+    }, [scrollYProgress]);
 
     const isZoomOut = animationType === 'zoom-out';
 
