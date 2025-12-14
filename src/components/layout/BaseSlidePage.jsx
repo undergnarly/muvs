@@ -12,19 +12,18 @@ const BaseSlidePage = ({
     const { scrollY } = useScroll();
 
     // Animations drive by global scroll position
-    // We animate over the first 500px of scrolling (approx half screen height on desktop)
-    const scrollRange = [0, 500];
+    // We animate over the first 100vh (approx 800-1000px)
+    const scrollRange = [0, 800];
 
-    // Zoom effect: scale down slightly to create depth
-    const coverScale = useTransform(scrollY, scrollRange, [1, 0.95]);
+    // Zoom effect: scale down more dramatically to create depth
+    const coverScale = useTransform(scrollY, scrollRange, [1, 0.5]);
 
     // Parallax text: Move text down faster than background
-    // We pass this function to the coverContent so it can use it
-    const coverTextY = useTransform(scrollY, scrollRange, [0, 150]);
-    const coverImageY = useTransform(scrollY, scrollRange, [0, 50]);
+    const coverTextY = useTransform(scrollY, scrollRange, [0, 300]);
+    const coverImageY = useTransform(scrollY, scrollRange, [0, 100]);
 
     // Fade out cover as it gets covered
-    const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.5]);
+    const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.2]);
 
     // Scroll indicator fades out quickly
     const indicatorOpacity = useTransform(scrollY, [0, 100], [1, 0]);

@@ -29,6 +29,8 @@
     justify-content: center;
     align-items: center;
     color: var(--color-text-dark);
+    transform-origin: center center;
+    will-change: transform, opacity;
 }
 
 /* Detail section - flows naturally over the sticky cover */
