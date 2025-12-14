@@ -10,18 +10,17 @@ const BaseSlidePage = ({
     textColor = 'white',
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
-    const coverRef = useRef(null);
+    const scrollSectionRef = useRef(null);
 
-    // Simple scroll tracking - track cover section as it scrolls out of view
+    // Track scroll progress of the scroll section (not window)
     const { scrollYProgress } = useScroll({
-        target: coverRef,
+        target: scrollSectionRef,
         offset: ["start start", "end start"]
     });
 
-    // Simple animations based on scroll progress (0 = top, 1 = scrolled past)
     const isZoomOut = animationType === 'zoom-out';
 
-    // Zoom effect: scale down as cover scrolls up
+    // Zoom effect: scale down from 1 to 0.5
     const coverScale = useTransform(
         scrollYProgress,
         [0, 1],
@@ -40,48 +39,51 @@ const BaseSlidePage = ({
         isZoomOut ? [0, 50] : [0, 0]
     );
 
-    // Fade out as cover leaves viewport
+    // Fade slightly
     const coverOpacity = useTransform(
         scrollYProgress,
-        [0, 0.8, 1],
-        [1, 0.95, 0.85]
+        [0, 1],
+        [1, 0.85]
     );
 
-    // Scroll indicator fade out quickly
+    // Scroll indicator fade out
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
     return (
-        <div className="base-page-wrapper">
-            {/* Cover Section - Fixed, stays on screen while detail scrolls over */}
-            <section className="cover-section-fixed" ref={coverRef}>
-                <motion.div
-                    className="cover-content-wrapper"
-                    style={{
-                        scale: coverScale,
-                        opacity: coverOpacity
-                    }}
-                >
-                    {typeof coverContent === 'function'
-                        ? coverContent({ coverTextY, coverImageY })
-                        : coverContent}
-                </motion.div>
+        <>
+            {/* Scroll section - creates scroll space for animation */}
+            <div className="scroll-section" ref={scrollSectionRef}>
+                {/* Sticky container - pins to top while scroll section scrolls */}
+                <div className="sticky-container">
+                    <motion.div
+                        className="cover-content-wrapper"
+                        style={{
+                            scale: coverScale,
+                            opacity: coverOpacity
+                        }}
+                    >
+                        {typeof coverContent === 'function'
+                            ? coverContent({ coverTextY, coverImageY })
+                            : coverContent}
+                    </motion.div>
 
-                <motion.div
-                    className="scroll-indicator-wrapper"
-                    style={{ opacity: indicatorOpacity }}
-                >
-                    <span className="scroll-text" style={{ color: textColor }}>Check it out!</span>
-                    <div className="scroll-arrow" style={{ color: textColor }}>
-                        <BiChevronDown size={32} />
-                    </div>
-                </motion.div>
-            </section>
+                    <motion.div
+                        className="scroll-indicator-wrapper"
+                        style={{ opacity: indicatorOpacity }}
+                    >
+                        <span className="scroll-text" style={{ color: textColor }}>Check it out!</span>
+                        <div className="scroll-arrow" style={{ color: textColor }}>
+                            <BiChevronDown size={32} />
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
 
-            {/* Detail Section - Normal flow, scrolls naturally */}
-            <section className="detail-section-standard">
+            {/* Detail Section - Normal flow after scroll section */}
+            <section className="detail-section-flow">
                 {detailContent}
             </section>
-        </div>
+        </>
     );
 };
 
