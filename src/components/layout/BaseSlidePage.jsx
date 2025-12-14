@@ -107,9 +107,8 @@ const BaseSlidePage = ({
     // Scroll indicator fade out
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-    // Detail section overlay effect
-    // For zoom-out: starts at 0.3, for overlay: starts at 0.1
-    const overlayStart = isZoomOut ? 0.3 : 0.1;
+    // Detail section overlay effect - starts at 0.1 for all pages
+    const overlayStart = 0.1;
     const detailY = useTransform(
         scrollYProgress,
         [0, overlayStart, 1],
@@ -117,8 +116,8 @@ const BaseSlidePage = ({
     );
 
     // Adjust scroll section height based on animation type
-    // Zoom-out needs more space (200vh), overlay needs less (120vh)
-    const scrollSectionHeight = isZoomOut ? '200vh' : '120vh';
+    // Reduced heights to prevent overscroll
+    const scrollSectionHeight = isZoomOut ? '150vh' : '110vh';
 
     return (
         <>
