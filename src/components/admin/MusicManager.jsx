@@ -20,7 +20,10 @@ const MusicManager = () => {
         artistFontSize: 'min(12vw, 60px)',
         titleGap: '0px',
         textTopPosition: '20%',
-        parallaxStrength: 100,
+        parallaxStrength: 100, // Legacy support
+        zoomOutMax: 0.5,
+        imageParallaxY: 100,
+        textParallaxY: 300,
         releaseDate: '',
         order: 0,
         bpm: 0,
@@ -243,6 +246,54 @@ const MusicManager = () => {
                                 onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
                                 style={inputStyle}
                             />
+                        </div>
+
+                        {/* Animation Controls */}
+                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '8px' }}>
+                            <label style={{ display: 'block', marginBottom: '12px', color: 'var(--color-text-light)', fontSize: '14px', fontWeight: 'bold' }}>
+                                Scroll Animation Settings
+                            </label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Max Zoom Out (0.1 - 1.0)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.05"
+                                        min="0.1"
+                                        max="1.0"
+                                        placeholder="0.5"
+                                        value={formData.zoomOutMax || ''}
+                                        onChange={e => setFormData({ ...formData, zoomOutMax: parseFloat(e.target.value) || 0.5 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Image Scroll Distance
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="100"
+                                        value={formData.imageParallaxY || ''}
+                                        onChange={e => setFormData({ ...formData, imageParallaxY: parseInt(e.target.value) || 0 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Text Scroll Distance
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="300"
+                                        value={formData.textParallaxY || ''}
+                                        onChange={e => setFormData({ ...formData, textParallaxY: parseInt(e.target.value) || 0 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Genres Section */}

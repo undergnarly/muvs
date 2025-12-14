@@ -7,6 +7,9 @@ const BaseSlidePage = ({
     coverContent,
     detailContent,
     textColor = 'white',
+    zoomOutMax = 0.5,
+    textParallaxY = 300,
+    imageParallaxY = 100,
 }) => {
     const containerRef = useRef(null);
     const [scrollContainer, setScrollContainer] = React.useState(null);
@@ -37,11 +40,11 @@ const BaseSlidePage = ({
     const scrollRange = [0, 800];
 
     // Zoom effect: scale down more dramatically to create depth
-    const coverScale = useTransform(scrollY, scrollRange, [1, 0.5]);
+    const coverScale = useTransform(scrollY, scrollRange, [1, zoomOutMax]);
 
     // Parallax text: Move text down faster than background
-    const coverTextY = useTransform(scrollY, scrollRange, [0, 300]);
-    const coverImageY = useTransform(scrollY, scrollRange, [0, 100]);
+    const coverTextY = useTransform(scrollY, scrollRange, [0, textParallaxY]);
+    const coverImageY = useTransform(scrollY, scrollRange, [0, imageParallaxY]);
 
     // Fade out cover as it gets covered
     const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.2]);
@@ -61,7 +64,7 @@ const BaseSlidePage = ({
                     }}
                 >
                     {typeof coverContent === 'function'
-                        ? coverContent({ coverTextY, coverImageY })
+                        ? coverContent({ coverTextY, coverImageY, coverScale, coverOpacity, scrollY })
                         : coverContent}
                 </motion.div>
 

@@ -84,8 +84,11 @@ const MixSlide = ({ mix, priority = false }) => {
         <BaseSlidePage
             coverContent={CoverContent}
             detailContent={<MixDetails mix={mix} />}
-            textColor="black"
+            textColor="white"
             animationType="zoom-out"
+            zoomOutMax={mix.zoomOutMax}
+            textParallaxY={mix.textParallaxY}
+            imageParallaxY={mix.imageParallaxY}
         />
     );
 };

@@ -106,6 +106,9 @@ const ReleaseSlide = ({ release, priority = false }) => {
             detailContent={<ReleaseDetails release={release} />}
             textColor="black"
             animationType="zoom-out"
+            zoomOutMax={release.zoomOutMax}
+            textParallaxY={release.textParallaxY}
+            imageParallaxY={release.imageParallaxY}
         />
     );
 };

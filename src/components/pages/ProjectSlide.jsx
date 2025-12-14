@@ -70,6 +70,9 @@ const ProjectSlide = ({ project, priority = false }) => {
             detailContent={<ProjectDetails project={project} />}
             textColor="black"
             animationType="zoom-out"
+            zoomOutMax={project.zoomOutMax}
+            textParallaxY={project.textParallaxY}
+            imageParallaxY={project.imageParallaxY}
         />
     );
 };
