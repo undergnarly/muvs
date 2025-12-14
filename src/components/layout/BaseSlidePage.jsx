@@ -13,36 +13,68 @@ const BaseSlidePage = ({
     const scrollSectionRef = useRef(null);
     const [scrollContainer, setScrollContainer] = useState(null);
 
-    // Find parent scrollable container for SlideContainer pages
-    useEffect(() => {
-        if (scrollSectionRef.current) {
-            let parent = scrollSectionRef.current.parentElement;
-            while (parent && parent !== document.body) {
-                const overflowY = window.getComputedStyle(parent).overflowY;
-                if (overflowY === 'auto' || overflowY === 'scroll') {
-                    console.log('[BaseSlidePage] Found scroll container:', parent.className);
-                    setScrollContainer(parent);
-                    break;
-                }
-                parent = parent.parentElement;
-            }
-        }
-    }, []);
+    const manualProgress = useMotionValue(0);
 
-    // Track scroll progress - with container if found
-    const { scrollYProgress } = useScroll({
+    // Find parent scrollable container and track scroll manually
+    useEffect(() => {
+        if (!scrollSectionRef.current) return;
+
+        let container = null;
+        let parent = scrollSectionRef.current.parentElement;
+
+        // Find scrollable parent
+        while (parent && parent !== document.body) {
+            const overflowY = window.getComputedStyle(parent).overflowY;
+            if (overflowY === 'auto' || overflowY === 'scroll') {
+                container = parent;
+                console.log('[BaseSlidePage] Found scroll container:', parent.className);
+                break;
+            }
+            parent = parent.parentElement;
+        }
+
+        if (!container) {
+            console.log('[BaseSlidePage] No scroll container, using window scroll');
+            return;
+        }
+
+        const section = scrollSectionRef.current;
+        setScrollContainer(container);
+
+        const handleScroll = () => {
+            const scrollTop = container.scrollTop;
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.offsetHeight;
+            const containerHeight = container.clientHeight;
+
+            // Calculate when section passes through viewport
+            // Progress 0 = section top at container top
+            // Progress 1 = section bottom at container top
+            const start = sectionTop;
+            const end = sectionTop + sectionHeight - containerHeight;
+            const scrollDistance = end - start;
+
+            const progress = scrollDistance > 0
+                ? Math.max(0, Math.min(1, (scrollTop - start) / scrollDistance))
+                : 0;
+
+            manualProgress.set(progress);
+            console.log('[BaseSlidePage] Manual progress:', progress.toFixed(3));
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        handleScroll(); // Initial call
+
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [manualProgress]);
+
+    // Use manual progress if container found, otherwise use standard useScroll
+    const { scrollYProgress: autoProgress } = useScroll({
         target: scrollSectionRef,
-        container: scrollContainer,
         offset: ["start start", "end start"]
     });
 
-    // Debug scroll progress
-    useEffect(() => {
-        const unsubscribe = scrollYProgress.on('change', (v) => {
-            console.log('[BaseSlidePage] scrollYProgress:', v.toFixed(3));
-        });
-        return unsubscribe;
-    }, [scrollYProgress]);
+    const scrollYProgress = scrollContainer ? manualProgress : autoProgress;
 
     const isZoomOut = animationType === 'zoom-out';
 
