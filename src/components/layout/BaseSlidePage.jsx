@@ -10,118 +10,50 @@ const BaseSlidePage = ({
     textColor = 'white',
     animationType = 'overlay' // 'zoom-out' | 'overlay'
 }) => {
-    const wrapperRef = useRef(null);
-    const [scrollContainer, setScrollContainer] = useState(null);
-    const manualScrollProgress = useMotionValue(0);
+    const coverRef = useRef(null);
 
-    // Find parent scrollable container
-    useEffect(() => {
-        if (wrapperRef.current) {
-            let parent = wrapperRef.current.parentElement;
-            while (parent) {
-                const overflowY = window.getComputedStyle(parent).overflowY;
-                if (overflowY === 'auto' || overflowY === 'scroll') {
-                    console.log('[BaseSlidePage] Found scroll container:', parent);
-                    setScrollContainer(parent);
-                    break;
-                }
-                parent = parent.parentElement;
-            }
-        }
-    }, []);
-
-    // Manual scroll tracking for containers that don't work with useScroll
-    useEffect(() => {
-        if (!scrollContainer || !wrapperRef.current) return;
-
-        const handleScroll = () => {
-            const container = scrollContainer;
-            const wrapper = wrapperRef.current;
-
-            // Get scroll position
-            const scrollTop = container.scrollTop;
-            const scrollHeight = container.scrollHeight;
-            const clientHeight = container.clientHeight;
-
-            // Maximum scroll (total scrollable distance)
-            const maxScroll = scrollHeight - clientHeight;
-
-            // Calculate progress (0 to 1) based on actual scroll position
-            const progress = maxScroll > 0 ? Math.max(0, Math.min(1, scrollTop / maxScroll)) : 0;
-
-            manualScrollProgress.set(progress);
-
-            if (animationType === 'zoom-out') {
-                const percentScrolled = ((scrollTop / maxScroll) * 100).toFixed(1);
-                console.log('[BaseSlidePage] Scroll:', {
-                    progress: progress.toFixed(3),
-                    scrollTop: scrollTop.toFixed(0),
-                    maxScroll: maxScroll.toFixed(0),
-                    scrollHeight: scrollHeight.toFixed(0),
-                    clientHeight: clientHeight.toFixed(0),
-                    percent: `${percentScrolled}%`
-                });
-            }
-        };
-
-        scrollContainer.addEventListener('scroll', handleScroll);
-        handleScroll(); // Initial call
-
-        return () => scrollContainer.removeEventListener('scroll', handleScroll);
-    }, [scrollContainer, animationType, manualScrollProgress]);
-
-    // Use manual scroll progress if container found, otherwise use useScroll
-    const { scrollYProgress: autoScrollProgress } = useScroll({
-        target: wrapperRef,
-        offset: ["start end", "end start"]
+    // Simple scroll tracking - track cover section as it scrolls out of view
+    const { scrollYProgress } = useScroll({
+        target: coverRef,
+        offset: ["start start", "end start"]
     });
 
-    const scrollYProgress = scrollContainer ? manualScrollProgress : autoScrollProgress;
-
-    // Zoom-out animation: Phase 1 (0 → 0.5) scale down, Phase 2 (0.5 → 1) overlay
-    // Overlay animation: Immediate overlay (no scale)
+    // Simple animations based on scroll progress (0 = top, 1 = scrolled past)
     const isZoomOut = animationType === 'zoom-out';
 
+    // Zoom effect: scale down as cover scrolls up
     const coverScale = useTransform(
         scrollYProgress,
-        isZoomOut ? [0, 0.5] : [0, 1],
+        [0, 1],
         isZoomOut ? [1, 0.5] : [1, 1]
     );
 
-    // Image goes up, text goes down - creates horizon effect
+    // Horizon effect: image up, text down
     const coverImageY = useTransform(
         scrollYProgress,
-        isZoomOut ? [0, 0.5] : [0, 1],
+        [0, 1],
         isZoomOut ? [0, -100] : [0, 0]
     );
     const coverTextY = useTransform(
         scrollYProgress,
-        isZoomOut ? [0, 0.5] : [0, 1],
+        [0, 1],
         isZoomOut ? [0, 50] : [0, 0]
     );
 
+    // Fade out as cover leaves viewport
     const coverOpacity = useTransform(
         scrollYProgress,
-        isZoomOut ? [0, 0.4, 0.5] : [0, 0.3, 1],
-        isZoomOut ? [1, 0.9, 0.85] : [1, 0.95, 0.95]
+        [0, 0.8, 1],
+        [1, 0.95, 0.85]
     );
 
-    // Scroll indicator fade out
+    // Scroll indicator fade out quickly
     const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-    // Detail section slides up from below
-    // For zoom-out: starts sliding at 0.5, fully visible at 1
-    // For overlay: starts immediately at 0, fully visible at 1
-    const detailY = useTransform(
-        scrollYProgress,
-        isZoomOut ? [0, 0.5, 1] : [0, 1],
-        isZoomOut ? ['0vh', '0vh', '-100vh'] : ['0vh', '-100vh']
-    );
-
     return (
-        <div className="base-page-wrapper" ref={wrapperRef}>
-            {/* Cover Section - Sticky with scale/position effects */}
-            <section className="cover-section-sticky">
+        <div className="base-page-wrapper">
+            {/* Cover Section - Fixed, stays on screen while detail scrolls over */}
+            <section className="cover-section-fixed" ref={coverRef}>
                 <motion.div
                     className="cover-content-wrapper"
                     style={{
@@ -145,13 +77,10 @@ const BaseSlidePage = ({
                 </motion.div>
             </section>
 
-            {/* Detail Section - Slides up from bottom */}
-            <motion.section
-                className="detail-section-overlay"
-                style={{ y: detailY }}
-            >
+            {/* Detail Section - Normal flow, scrolls naturally */}
+            <section className="detail-section-standard">
                 {detailContent}
-            </motion.section>
+            </section>
         </div>
     );
 };

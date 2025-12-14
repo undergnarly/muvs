@@ -1,23 +1,21 @@
-/* Main wrapper - natural height, no artificial scroll space */
+/* Main wrapper - standard flow */
 .base-page-wrapper {
     width: 100%;
-    min-height: 200vh;
-    /* Cover (100vh) + minimum detail content (100vh) */
     position: relative;
 }
 
-/* Cover Section - Sticky positioning */
-.cover-section-sticky {
-    position: sticky;
+/* Cover Section - Fixed position, stays in place while content scrolls over */
+.cover-section-fixed {
+    position: fixed;
     top: 0;
-    height: 100vh;
+    left: 0;
     width: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     background-color: transparent;
-    overflow: hidden;
     z-index: 1;
 }
 
@@ -32,16 +30,17 @@
     color: var(--color-text-dark);
 }
 
-/* Detail Section - Normal flow, stacks after cover */
-.detail-section-overlay {
+/* Detail Section - Standard flow, starts below cover */
+.detail-section-standard {
     position: relative;
     width: 100%;
     min-height: 100vh;
+    margin-top: 100vh;
+    /* Starts below the fixed cover */
     padding: var(--spacing-2xl) var(--spacing-md);
     background-color: var(--color-bg-dark);
     color: var(--color-text-light);
     z-index: 10;
-    will-change: transform;
 }
 
 /* Legacy support - keep for backwards compatibility */
