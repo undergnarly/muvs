@@ -7,9 +7,30 @@ const BaseSlidePage = ({
     coverContent,
     detailContent,
     textColor = 'white',
-    // animationType prop is kept for API compatibility but we stick to one robust effect now
 }) => {
-    const { scrollY } = useScroll();
+    const containerRef = useRef(null);
+    const [scrollContainer, setScrollContainer] = React.useState(null);
+
+    React.useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        // Find nearest scrollable parent
+        let parent = containerRef.current.parentElement;
+        while (parent) {
+            const style = window.getComputedStyle(parent);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                setScrollContainer(parent);
+                return;
+            }
+            parent = parent.parentElement;
+        }
+        // Fallback to window (standard behavior)
+        setScrollContainer(document.body);
+    }, []);
+
+    const { scrollY } = useScroll({
+        container: scrollContainer ? { current: scrollContainer } : undefined
+    });
 
     // Animations drive by global scroll position
     // We animate over the first 100vh (approx 800-1000px)
@@ -29,7 +50,7 @@ const BaseSlidePage = ({
     const indicatorOpacity = useTransform(scrollY, [0, 100], [1, 0]);
 
     return (
-        <div className="scroll-section">
+        <div className="scroll-section" ref={containerRef}>
             {/* Sticky Header Section */}
             <div className="sticky-container">
                 <motion.div
