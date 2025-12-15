@@ -36,7 +36,7 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                             scrolling="no"
                             frameBorder="no"
                             allow="autoplay"
-                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudTrackUrl || release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=${hasPlaylist ? 'true' : 'false'}`}
+                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent((release.soundcloudTrackUrl || release.soundcloudUrl).split('?')[0])}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=${hasPlaylist ? 'true' : 'false'}`}
                             style={{
                                 borderRadius: '8px',
                                 marginTop: '16px',
