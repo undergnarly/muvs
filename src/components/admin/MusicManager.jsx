@@ -30,6 +30,7 @@ const MusicManager = () => {
         coverImage: '',
         audioPreview: '',
         soundcloudUrl: '',
+        soundcloudTrackUrl: '',
         bandcampUrl: '',
         description: '',
         tracks: [],
@@ -467,12 +468,19 @@ const MusicManager = () => {
                             rows={4}
                             style={{ ...inputStyle, resize: 'vertical' }}
                         />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
-                                placeholder="SoundCloud URL"
+                                placeholder="SoundCloud Playlist URL"
                                 value={formData.soundcloudUrl}
                                 onChange={e => setFormData({ ...formData, soundcloudUrl: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="SoundCloud Track URL"
+                                value={formData.soundcloudTrackUrl || ''}
+                                onChange={e => setFormData({ ...formData, soundcloudTrackUrl: e.target.value })}
                                 style={inputStyle}
                             />
                             <input
