@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
-import SlideContainer from '../navigation/SlideContainer';
 import MixSlide from './MixSlide';
 import { useData } from '../../context/DataContext';
 import './MixesPage.css';
