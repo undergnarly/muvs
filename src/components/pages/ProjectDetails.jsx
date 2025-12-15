@@ -1,4 +1,3 @@
-```javascript
 import React from 'react';
 import Button from '../ui/Button';
 import TechTag from '../ui/TechTag';
