@@ -6,7 +6,7 @@ import ReleaseDetails from '../media/ReleaseDetails';
 import PulsingPlayButton from '../media/PulsingPlayButton';
 import './ReleaseSlide.css';
 
-const ReleaseSlide = ({ release, priority = false }) => {
+const ReleaseSlide = ({ release, priority = false, allReleases, onNavigate, currentIndex }) => {
     const titleRef = useRef(null);
     const { scrollYProgress } = useScroll({
         target: titleRef,
@@ -103,7 +103,7 @@ const ReleaseSlide = ({ release, priority = false }) => {
     return (
         <BaseSlidePage
             coverContent={CoverContent}
-            detailContent={<ReleaseDetails release={release} />}
+            detailContent={<ReleaseDetails release={release} allReleases={allReleases} onNavigate={onNavigate} />}
             textColor="black"
             animationType="zoom-out"
             zoomOutMax={release.zoomOutMax}

@@ -1,10 +1,11 @@
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
+import NavigationFooter from '../layout/NavigationFooter';
 import TechTag from '../ui/TechTag';
 import { fixLinks } from '../../utils/linkUtils';
 import './ReleaseDetails.css';
 
-const ReleaseDetails = ({ release }) => {
+const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
@@ -91,6 +92,15 @@ const ReleaseDetails = ({ release }) => {
                         </div>
                     )
                 }
+                {/* Navigation Footer */}
+                {allReleases && (
+                    <NavigationFooter
+                        items={allReleases}
+                        onNavigate={onNavigate}
+                        currentIndex={allReleases.findIndex(r => r.id === release.id)}
+                        title="More Music"
+                    />
+                )}
             </div >
         </div >
     );

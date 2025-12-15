@@ -4,7 +4,7 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import MixDetails from '../media/MixDetails';
 import './MixSlide.css';
 
-const MixSlide = ({ mix, priority = false }) => {
+const MixSlide = ({ mix, priority = false, allMixes, onNavigate }) => {
     const containerRef = useRef(null);
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -83,7 +83,7 @@ const MixSlide = ({ mix, priority = false }) => {
     return (
         <BaseSlidePage
             coverContent={CoverContent}
-            detailContent={<MixDetails mix={mix} />}
+            detailContent={<MixDetails mix={mix} allMixes={allMixes} onNavigate={onNavigate} />}
             textColor="white"
             animationType="zoom-out"
             zoomOutMax={mix.zoomOutMax}

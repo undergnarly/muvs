@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
-import SlideIndicators from '../navigation/SlideIndicators';
+import SlideContainer from '../navigation/SlideContainer';
 import ReleaseSlide from './ReleaseSlide';
 import { useData } from '../../context/DataContext';
 import './MusicPage.css';
@@ -22,15 +22,12 @@ const MusicPage = () => {
                         key={release.id}
                         release={release}
                         priority={index === 0}
+                        allReleases={sortedReleases}
+                        onNavigate={setCurrentIndex}
+                        currentIndex={currentIndex} // Adding this if we want to highlight active, though usually redundant as we are ON the active slide. But footer shows ALL.
                     />
                 ))}
             </SlideContainer>
-
-            <SlideIndicators
-                total={sortedReleases.length}
-                current={currentIndex}
-                onChange={setCurrentIndex}
-            />
         </div>
     );
 };

@@ -3,9 +3,10 @@ import { FaSoundcloud, FaSpotify, FaYoutube } from 'react-icons/fa';
 import { SiTidal, SiApplemusic } from 'react-icons/si';
 import TechTag from '../ui/TechTag';
 import { fixLinks } from '../../utils/linkUtils';
+import NavigationFooter from '../layout/NavigationFooter';
 import './MixDetails.css';
 
-const MixDetails = ({ mix }) => {
+const MixDetails = ({ mix, allMixes, onNavigate }) => {
     const mediaLinks = [
         { url: mix.soundcloudUrl, icon: FaSoundcloud, label: 'SoundCloud', color: '#ff5500' },
         { url: mix.spotifyUrl, icon: FaSpotify, label: 'Spotify', color: '#1DB954' },
@@ -66,6 +67,15 @@ const MixDetails = ({ mix }) => {
                     </div>
                 </div>
             </div>
+            {/* Navigation Footer */}
+            {allMixes && (
+                <NavigationFooter
+                    items={allMixes.map(m => ({ ...m, coverImage: m.backgroundImage }))} // Mixes use 'backgroundImage' as cover
+                    onNavigate={onNavigate}
+                    currentIndex={allMixes.findIndex(m => m.id === mix.id)}
+                    title="More Mixes"
+                />
+            )}
         </div>
     );
 };

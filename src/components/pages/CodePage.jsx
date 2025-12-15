@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
-import SlideIndicators from '../navigation/SlideIndicators';
+import SlideContainer from '../navigation/SlideContainer';
 import ProjectSlide from './ProjectSlide';
 import { useData } from '../../context/DataContext';
 import './CodePage.css';
@@ -20,15 +20,11 @@ const CodePage = () => {
                         key={project.id}
                         project={project}
                         priority={index === 0}
+                        allProjects={projects}
+                        onNavigate={setCurrentIndex}
                     />
                 ))}
             </SlideContainer>
-
-            <SlideIndicators
-                total={projects.length}
-                current={currentIndex}
-                onChange={setCurrentIndex}
-            />
         </div>
     );
 };

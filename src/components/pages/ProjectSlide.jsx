@@ -5,7 +5,7 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import ProjectDetails from './ProjectDetails';
 import './ProjectSlide.css';
 
-const ProjectSlide = ({ project, priority = false }) => {
+const ProjectSlide = ({ project, priority = false, allProjects, onNavigate }) => {
     const containerRef = useRef(null);
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -67,8 +67,8 @@ const ProjectSlide = ({ project, priority = false }) => {
     return (
         <BaseSlidePage
             coverContent={CoverContent}
-            detailContent={<ProjectDetails project={project} />}
-            textColor="black"
+            detailContent={<ProjectDetails project={project} allProjects={allProjects} onNavigate={onNavigate} />}
+            textColor="white"
             animationType="zoom-out"
             zoomOutMax={project.zoomOutMax}
             textParallaxY={project.textParallaxY}

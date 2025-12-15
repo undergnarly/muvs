@@ -1,13 +1,15 @@
+```javascript
 import React from 'react';
 import Button from '../ui/Button';
 import TechTag from '../ui/TechTag';
 import CircularGallery from '../media/CircularGallery';
+import NavigationFooter from '../layout/NavigationFooter';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 import { sanitizeUrl } from '../../utils/linkHelpers';
 import { fixLinks } from '../../utils/linkUtils';
 import './ProjectDetails.css';
 
-const ProjectDetails = ({ project }) => {
+const ProjectDetails = ({ project, allProjects, onNavigate }) => {
     return (
         <div className="project-details-container">
             <div className="project-info">
@@ -36,7 +38,7 @@ const ProjectDetails = ({ project }) => {
                         <h3>Key Features</h3>
                         <ul>
                             {project.features.map((feature, idx) => (
-                                <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks(`• ${feature}`) }}></li>
+                                <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks(`• ${ feature } `) }}></li>
                             ))}
                         </ul>
                     </div>
@@ -69,6 +71,16 @@ const ProjectDetails = ({ project }) => {
                             />
                         </div>
                     </div>
+                )}
+
+                {/* Navigation Footer */}
+                {allProjects && (
+                    <NavigationFooter
+                        items={allProjects.map(p => ({ ...p, coverImage: p.image }))} // Projects use 'image' property
+                        onNavigate={onNavigate}
+                        currentIndex={allProjects.findIndex(p => p.id === project.id)}
+                        title="More Projects"
+                    />
                 )}
             </div>
         </div>
