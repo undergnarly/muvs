@@ -271,24 +271,24 @@ const MusicManager = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
-                                        Image Scroll Distance
+                                        Image Y Deviation (+/- px)
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="100"
-                                        value={formData.imageParallaxY || ''}
+                                        placeholder="e.g. 100 or -50"
+                                        value={formData.imageParallaxY !== undefined ? formData.imageParallaxY : ''}
                                         onChange={e => setFormData({ ...formData, imageParallaxY: parseInt(e.target.value) || 0 })}
                                         style={inputStyle}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
-                                        Text Scroll Distance
+                                        Text Y Deviation (+/- px)
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="300"
-                                        value={formData.textParallaxY || ''}
+                                        placeholder="e.g. 300 or -100"
+                                        value={formData.textParallaxY !== undefined ? formData.textParallaxY : ''}
                                         onChange={e => setFormData({ ...formData, textParallaxY: parseInt(e.target.value) || 0 })}
                                         style={inputStyle}
                                     />
