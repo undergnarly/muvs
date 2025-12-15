@@ -38,7 +38,7 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
                         <h3>Key Features</h3>
                         <ul>
                             {project.features.map((feature, idx) => (
-                                <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks(`& bull; ${ feature } `) }}></li>
+                                <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks('&bull; ' + feature) }}></li>
                             ))}
                         </ul>
                     </div>
