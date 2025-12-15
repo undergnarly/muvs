@@ -27,26 +27,30 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                 <p className="release-description" dangerouslySetInnerHTML={{ __html: fixLinks(release.description) }}></p>
 
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
-                {hasPlaylist ? (
-                    <div className="soundcloud-playlist">
+                {/* SoundCloud Player */}
+                {(release.soundcloudTrackUrl || release.soundcloudUrl) && (
+                    <div className="soundcloud-embed">
                         <iframe
                             width="100%"
-                            height="450"
+                            height={release.soundcloudTrackUrl || !hasPlaylist ? "166" : "450"}
                             scrolling="no"
                             frameBorder="no"
                             allow="autoplay"
-                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
+                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudTrackUrl || release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=${hasPlaylist ? 'true' : 'false'}`}
                             style={{
                                 borderRadius: '8px',
                                 marginTop: '16px',
-                                marginBottom: '16px'
+                                marginBottom: '24px'
                             }}
-                        ></iframe >
-                    </div >
-                ) : (
+                        ></iframe>
+                    </div>
+                )}
+
+                {/* Tracklist */}
+                {release.tracks && release.tracks.length > 0 && (
                     <div className="tracklist">
                         <ul>
-                            {release.tracks && release.tracks.map((track, index) => (
+                            {release.tracks.map((track, index) => (
                                 <li key={track.id || index} className="track-item">
                                     <span className="track-num">{(index + 1).toString().padStart(2, '0')}</span>
                                     <span className="track-title">{track.title}</span>
