@@ -80,22 +80,20 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                 </div>
 
                 {/* Circular Gallery */}
-                {
-                    release.gallery && release.gallery.length > 0 && (
-                        <div className="gallery-container-full">
-                            <div className="gallery-wrapper">
-                                <CircularGallery
-                                    items={release.gallery}
-                                    bend={1}
-                                    textColor="#ffffff"
-                                    borderRadius={0.05}
-                                    scrollEase={0.05}
-                                    scrollSpeed={1.5}
-                                />
-                            </div>
+                {release.gallery && release.gallery.length > 0 && (
+                    <div className="gallery-container-full">
+                        <div className="gallery-wrapper">
+                            <CircularGallery
+                                items={release.gallery}
+                                bend={1}
+                                textColor="#ffffff"
+                                borderRadius={0.05}
+                                scrollSpeed={1.4}
+                                scrollEase={0.14}
+                            />
                         </div>
-                    )
-                }
+                    </div>
+                )}
                 {/* Navigation Footer */}
                 {allReleases && (
                     <NavigationFooter
