@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Header from '../layout/Header';
 import SlideContainer from '../navigation/SlideContainer';
-import SlideIndicators from '../navigation/SlideIndicators';
 import MixSlide from './MixSlide';
 import { useData } from '../../context/DataContext';
 import './MixesPage.css';
@@ -15,16 +14,16 @@ const MixesPage = () => {
             <Header />
 
             <SlideContainer activeIndex={currentIndex} onChange={setCurrentIndex}>
-                {mixes.map((mix) => (
-                    <MixSlide key={mix.id} mix={mix} />
+                {mixes.map((mix, index) => (
+                    <MixSlide
+                        key={mix.id}
+                        mix={mix}
+                        priority={index === 0}
+                        allMixes={mixes}
+                        onNavigate={setCurrentIndex}
+                    />
                 ))}
             </SlideContainer>
-
-            <SlideIndicators
-                total={mixes.length}
-                current={currentIndex}
-                onChange={setCurrentIndex}
-            />
         </div>
     );
 };

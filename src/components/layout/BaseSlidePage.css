@@ -1,51 +1,80 @@
-.base-page {
+/* Scroll section - acts as the main wrapper */
+.scroll-section {
+    position: relative;
     width: 100%;
     min-height: 100vh;
-    position: relative;
 }
 
-.slide-section {
-    width: 100%;
-    position: relative;
-}
-
-.cover-section {
+/* Sticky container - pins the cover to the top */
+.sticky-container {
+    position: sticky;
+    top: 0;
     height: 100vh;
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: transparent;
-    color: var(--color-text-dark);
-    transition: background-color 0.5s ease;
+    overflow: hidden;
+    z-index: 1;
+    /* Behind the details */
 }
 
-.detail-section {
+/* Cover content wrapper */
+.cover-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--color-text-dark);
+    transform-origin: center center;
+    will-change: transform, opacity;
+}
+
+/* Detail section - flows naturally over the sticky cover */
+.detail-section-flow {
+    position: relative;
+    width: 100%;
     min-height: 100vh;
     padding: var(--spacing-2xl) var(--spacing-md);
     background-color: var(--color-bg-dark);
+    /* Must have background to cover */
     color: var(--color-text-light);
-    /* Ensure details cover the previous section nicely or transition */
     z-index: 10;
+    /* On top of the sticky cover */
+    /* Add a shadow for better separation visually if needed */
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Scroll Indicator */
 .scroll-indicator-wrapper {
     position: absolute;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 10%;
+    margin: 0 auto;
+    width: fit-content;
     z-index: 50;
-    /* Removed mix-blend-mode to ensure visibility */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    animation: bounce 2s infinite;
+}
+
+.scroll-text {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
 }
 
 .scroll-arrow {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #000000;
-    /* Explicitly black as requested */
-    animation: bounce 2s infinite;
 }
 
 @keyframes bounce {

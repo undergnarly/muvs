@@ -18,16 +18,25 @@ const MusicManager = () => {
         title: '',
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
+        titleGap: '0px',
         textTopPosition: '20%',
+        parallaxStrength: 100, // Legacy support
+        zoomOutMax: 0.5,
+        imageParallaxY: 100,
+        textParallaxY: 300,
         releaseDate: '',
+        order: 0,
+        bpm: 0,
         coverImage: '',
         audioPreview: '',
         soundcloudUrl: '',
+        soundcloudTrackUrl: '',
         bandcampUrl: '',
         description: '',
         descriptionImages: [],
         tracks: [],
-        gallery: []
+        gallery: [],
+        genres: []
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -62,19 +71,11 @@ const MusicManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing...');
-            const compressedBase64 = await compressImage(file, 250);
+            setUploadStatus('Uploading to server (Server will optimize)...');
 
-            setUploadStatus('Uploading to server...');
-            // Convert base64 to Blob
-            const response = await fetch(compressedBase64);
-            const blob = await response.blob();
-
-            // Upload
+            // Upload directly without client-side compression to avoid double-loss
             const uploadForm = new FormData();
-            // Use original name but with .jpg extension since compression output is JPEG/PNG
-            const ext = file.type === 'image/png' ? 'png' : 'jpg';
-            uploadForm.append('image', blob, `upload.${ext}`);
+            uploadForm.append('image', file);
 
             const uploadRes = await fetch('/api/upload', {
                 method: 'POST',
@@ -83,13 +84,13 @@ const MusicManager = () => {
 
             if (!uploadRes.ok) throw new Error('Upload failed');
 
-            const { url } = await uploadRes.json();
+            const { url, size } = await uploadRes.json();
 
-            setUploadStatus('Upload complete!');
+            setUploadStatus(`Upload complete! Size: ${size}`);
             setFormData({ ...formData, coverImage: url });
             setImagePreview(url); // Preview the remote URL
 
-            setTimeout(() => setUploadStatus(''), 2000);
+            setTimeout(() => setUploadStatus(''), 4000);
         } catch (error) {
             setUploadStatus('Error: ' + error.message);
             setTimeout(() => setUploadStatus(''), 3000);
@@ -244,12 +245,29 @@ const MusicManager = () => {
                                 required
                                 style={inputStyle}
                             />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
                                 placeholder="Release Date"
                                 value={formData.releaseDate}
                                 onChange={e => setFormData({ ...formData, releaseDate: e.target.value })}
                                 required
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Sort Order (default 0)"
+                                value={formData.order || ''}
+                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="BPM (e.g. 160)"
+                                value={formData.bpm || ''}
+                                onChange={e => setFormData({ ...formData, bpm: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>
@@ -271,7 +289,7 @@ const MusicManager = () => {
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
                                 placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
@@ -279,6 +297,126 @@ const MusicManager = () => {
                                 onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
                                 style={inputStyle}
                             />
+                            <input
+                                type="number"
+                                placeholder="Parallax Strength (0-200, default 100)"
+                                value={formData.parallaxStrength || ''}
+                                onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        {/* Animation Controls */}
+                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '8px' }}>
+                            <label style={{ display: 'block', marginBottom: '12px', color: 'var(--color-text-light)', fontSize: '14px', fontWeight: 'bold' }}>
+                                Scroll Animation Settings
+                            </label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Max Zoom Out (0.1 - 1.0)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.05"
+                                        min="0.1"
+                                        max="1.0"
+                                        placeholder="0.5"
+                                        value={formData.zoomOutMax || ''}
+                                        onChange={e => setFormData({ ...formData, zoomOutMax: parseFloat(e.target.value) || 0.5 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Image Y Deviation (+/- px)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g. 100 or -50"
+                                        value={formData.imageParallaxY !== undefined ? formData.imageParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, imageParallaxY: parseInt(e.target.value) || 0 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+                                        Text Y Deviation (+/- px)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g. 300 or -100"
+                                        value={formData.textParallaxY !== undefined ? formData.textParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, textParallaxY: parseInt(e.target.value) || 0 })}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Genres Section */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-light)', fontSize: '14px' }}>
+                                Genres / Tags
+                            </label>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                {formData.genres && formData.genres.map((genre, idx) => (
+                                    <span key={idx} style={{
+                                        background: 'rgba(204, 255, 0, 0.1)',
+                                        color: 'var(--color-accent)',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        border: '1px solid rgba(204, 255, 0, 0.3)'
+                                    }}>
+                                        {genre}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newGenres = formData.genres.filter((_, i) => i !== idx);
+                                                setFormData({ ...formData, genres: newGenres });
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
+                                        >
+                                            &times;
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Add genre (e.g. Techno)"
+                                    style={inputStyle}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const val = e.target.value.trim();
+                                            if (val && (!formData.genres || !formData.genres.includes(val))) {
+                                                setFormData({
+                                                    ...formData,
+                                                    genres: [...(formData.genres || []), val]
+                                                });
+                                                e.target.value = '';
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Button type="button" variant="outline" onClick={(e) => {
+                                    const input = e.target.previousSibling;
+                                    const val = input.value.trim();
+                                    if (val && (!formData.genres || !formData.genres.includes(val))) {
+                                        setFormData({
+                                            ...formData,
+                                            genres: [...(formData.genres || []), val]
+                                        });
+                                        input.value = '';
+                                    }
+                                }}>Add</Button>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: '16px' }}>
@@ -485,12 +623,19 @@ const MusicManager = () => {
                             )}
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
                             <input
                                 type="text"
-                                placeholder="SoundCloud URL"
+                                placeholder="SoundCloud Playlist URL"
                                 value={formData.soundcloudUrl}
                                 onChange={e => setFormData({ ...formData, soundcloudUrl: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="SoundCloud Track URL"
+                                value={formData.soundcloudTrackUrl || ''}
+                                onChange={e => setFormData({ ...formData, soundcloudTrackUrl: e.target.value })}
                                 style={inputStyle}
                             />
                             <input
@@ -738,7 +883,7 @@ const MusicManager = () => {
                     </div>
                 ))}
             </div>
-        </div>
+        </div >
     );
 };
 

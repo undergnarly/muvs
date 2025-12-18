@@ -124,3 +124,25 @@ export function validateImageFile(file) {
 
     return true;
 }
+
+/**
+ * Upload image without compression (keep original file)
+ * @param {File} file - The image file to upload
+ * @returns {Promise<string>} - URL of uploaded image
+ */
+export async function uploadImageWithoutCompression(file) {
+    validateImageFile(file);
+
+    const uploadForm = new FormData();
+    uploadForm.append('image', file);
+
+    const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadForm
+    });
+
+    if (!uploadRes.ok) throw new Error('Upload failed');
+
+    const { url } = await uploadRes.json();
+    return url;
+}

@@ -1,14 +1,17 @@
 import React from 'react';
 import { FaSoundcloud, FaSpotify, FaYoutube } from 'react-icons/fa';
 import { SiTidal, SiApplemusic } from 'react-icons/si';
+import TechTag from '../ui/TechTag';
+import { fixLinks } from '../../utils/linkUtils';
+import NavigationFooter from '../layout/NavigationFooter';
 import './MixDetails.css';
 
-const MixDetails = ({ mix }) => {
+const MixDetails = ({ mix, allMixes, onNavigate }) => {
     const mediaLinks = [
         { url: mix.soundcloudUrl, icon: FaSoundcloud, label: 'SoundCloud', color: '#ff5500' },
         { url: mix.spotifyUrl, icon: FaSpotify, label: 'Spotify', color: '#1DB954' },
         { url: mix.youtubeUrl, icon: FaYoutube, label: 'YouTube', color: '#FF0000' },
-        { url: mix.tidalUrl, icon: SiTidal, label: 'Tidal', color: '#000000' }, // Tidal black/white usually
+        { url: mix.tidalUrl, icon: SiTidal, label: 'Tidal', color: '#000000' },
         { url: mix.appleMusicUrl, icon: SiApplemusic, label: 'Apple Music', color: '#FB233B' },
     ].filter(link => link.url);
 
@@ -16,9 +19,18 @@ const MixDetails = ({ mix }) => {
         <div className="mix-details-container">
             <div className="mix-info">
                 <h2 className="mix-title-lg">{mix.title}</h2>
-                <span className="mix-date">Recorded: {mix.recordDate} • {mix.duration}</span>
 
-                <p className="mix-description" dangerouslySetInnerHTML={{ __html: mix.description }}></p>
+                {mix.genres && mix.genres.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                        {mix.genres.map((genre, idx) => (
+                            <TechTag key={idx} label={genre} />
+                        ))}
+                    </div>
+                )}
+
+                <span className="mix-date" style={{ display: 'block', marginBottom: '16px' }}>Recorded: {mix.recordDate} • {mix.duration}</span>
+
+                <p className="mix-description" dangerouslySetInnerHTML={{ __html: fixLinks(mix.description) }}></p>
 
                 {mix.tracklist && mix.tracklist.length > 0 && (
                     <div className="tracklist">
@@ -55,6 +67,15 @@ const MixDetails = ({ mix }) => {
                     </div>
                 </div>
             </div>
+            {/* Navigation Footer */}
+            {allMixes && (
+                <NavigationFooter
+                    items={allMixes.map(m => ({ ...m, coverImage: m.backgroundImage }))} // Mixes use 'backgroundImage' as cover
+                    onNavigate={onNavigate}
+                    currentIndex={allMixes.findIndex(m => m.id === mix.id)}
+                    title="More Mixes"
+                />
+            )}
         </div>
     );
 };

@@ -1,14 +1,103 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="MUVS - Audio / Visual / Code. Portfolio of a digital craftsman exploring sound and code." />
-    <title>MUVS | Audio • Visual • Code</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="MUVS - Audio / Visual / Code. Portfolio of a digital craftsman exploring sound and code." />
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Font Optimization -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <title>MUVS | Audio • Visual • Code</title>
+  <style>
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #767676, #F5F5F0);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
+    }
+
+    #splash-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #splash-logo {
+      width: 120px;
+      height: auto;
+      animation: logo-pulse 2s ease-in-out infinite;
+    }
+
+    .splash-progress-container {
+      width: 50vw;
+      max-width: 300px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .splash-progress-bar {
+      height: 100%;
+      background: #ffffff;
+      width: 0%;
+      animation: progress-fill 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes logo-pulse {
+      0% {
+        opacity: 0.6;
+        transform: scale(0.95);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      100% {
+        opacity: 0.6;
+        transform: scale(0.95);
+      }
+    }
+
+    @keyframes progress-fill {
+      0% {
+        width: 0%;
+      }
+
+      100% {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="splash-screen">
+    <img id="splash-logo" src="/images/logo.png" alt="MUVS Loading..." />
+    <div class="splash-progress-container">
+      <div class="splash-progress-bar"></div>
+    </div>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

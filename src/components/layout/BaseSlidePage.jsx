@@ -1,24 +1,88 @@
-import React, { useRef, useEffect } from 'react';
-import { motion, useScroll as useFramerScroll, useTransform, useSpring } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
 import './BaseSlidePage.css';
 
-const BaseSlidePage = ({ coverContent, detailContent, theme = 'light' }) => {
+const BaseSlidePage = ({
+    coverContent,
+    detailContent,
+    textColor = 'white',
+    zoomOutMax = 0.5,
+    textParallaxY = 300,
+    imageParallaxY = 100,
+}) => {
     const containerRef = useRef(null);
+    const [scrollContainer, setScrollContainer] = React.useState(null);
 
-    // Parallax or color transition logic can go here
-    // For now, we rely on CSS for background transitions mostly, 
-    // but we can trigger state changes if needed.
+    React.useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        // Find nearest scrollable parent
+        let parent = containerRef.current.parentElement;
+        while (parent) {
+            const style = window.getComputedStyle(parent);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                setScrollContainer(parent);
+                return;
+            }
+            parent = parent.parentElement;
+        }
+        // Fallback to window (standard behavior)
+        setScrollContainer(document.body);
+    }, []);
+
+    const { scrollY } = useScroll({
+        container: scrollContainer ? { current: scrollContainer } : undefined
+    });
+
+    // Animations drive by global scroll position
+    // We animate over the first 100vh (approx 800-1000px)
+    const scrollRange = [0, 800];
+
+    // Zoom effect: scale down more dramatically to create depth
+    const coverScale = useTransform(scrollY, scrollRange, [1, zoomOutMax]);
+
+    // Parallax text: Move text down faster than background
+    const coverTextY = useTransform(scrollY, scrollRange, [0, textParallaxY]);
+    const coverImageY = useTransform(scrollY, scrollRange, [0, imageParallaxY]);
+
+    // Fade out cover as it gets covered
+    const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.2]);
+
+    // Scroll indicator fades out quickly
+    const indicatorOpacity = useTransform(scrollY, [0, 100], [1, 0]);
 
     return (
-        <div className={`base-page ${theme}`} ref={containerRef}>
-            <section className="slide-section cover-section">
-                {coverContent}
-            </section>
+        <div className="scroll-section" ref={containerRef}>
+            {/* Sticky Header Section */}
+            <div className="sticky-container">
+                <motion.div
+                    className="cover-content-wrapper"
+                    style={{
+                        scale: coverScale,
+                        opacity: coverOpacity
+                    }}
+                >
+                    {typeof coverContent === 'function'
+                        ? coverContent({ coverTextY, coverImageY, coverScale, coverOpacity, scrollY })
+                        : coverContent}
+                </motion.div>
 
-            <section className="slide-section detail-section">
+                <motion.div
+                    className="scroll-indicator-wrapper"
+                    style={{ opacity: indicatorOpacity }}
+                >
+                    <span className="scroll-text" style={{ color: textColor }}>Check it out!</span>
+                    <div className="scroll-arrow" style={{ color: textColor }}>
+                        <BiChevronDown size={32} />
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Scrolling Content Section - flows over the sticky header */}
+            <div className="detail-section-flow">
                 {detailContent}
-            </section>
+            </div>
         </div>
     );
 };

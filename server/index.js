@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 const app = express();
 const PORT = 3001;
@@ -134,15 +136,38 @@ app.post('/api/auth/validate-pin', (req, res) => {
     }
 });
 
-// Upload File
-app.post('/api/upload', upload.single('image'), (req, res) => {
+// Upload File with Optimization
+app.post('/api/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Return relative URL that Nginx will map to the file
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl });
+    try {
+        const originalPath = req.file.path;
+        const filename = path.parse(req.file.filename).name; // Name without extension
+        const webpFilename = `${filename}.webp`;
+        const webpPath = path.join(UPLOADS_DIR, webpFilename);
+
+        // Optimize: Resize to max 1200px width/height, Convert to WebP, 90% quality (High Quality)
+        await sharp(originalPath)
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 90 })
+            .toFile(webpPath);
+
+        // Delete the original large file to save space (optional, but good for cleanup)
+        // fs.unlinkSync(originalPath); 
+
+        // Return URL for the optimized WebP and its size
+        const fileUrl = `/uploads/${webpFilename}`;
+        const stats = fs.statSync(webpPath);
+        const fileSizeInKB = Math.round(stats.size / 1024);
+
+        res.json({ url: fileUrl, size: `${fileSizeInKB}KB` });
+    } catch (error) {
+        console.error('Image processing error:', error);
+        // Fallback to original if optimization fails
+        res.json({ url: `/uploads/${req.file.filename}` });
+    }
 });
 
 // Upload Audio File

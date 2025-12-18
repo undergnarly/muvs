@@ -13,6 +13,12 @@ export const DataProvider = ({ children }) => {
     const [mixes, setMixes] = useState(defaultMixes);
     const [projects, setProjects] = useState(defaultProjects);
     const [news, setNews] = useState(defaultNews);
+    const [newsSettings, setNewsSettings] = useState({
+        titleFontSize: '60px',
+        titleTopPosition: '20%',
+        backgroundImageDesktop: '',
+        backgroundImageMobile: ''
+    });
     const [about, setAbout] = useState({
         title: 'ABOUT',
         content: 'I am a developer and music enthusiast passionate about building immersive digital experiences. With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.',
@@ -21,7 +27,13 @@ export const DataProvider = ({ children }) => {
     const [siteSettings, setSiteSettings] = useState({
         favicon: '',
         siteName: 'MUVS',
-        siteDescription: 'Audio • Visual • Code'
+        siteDescription: 'Audio • Visual • Code',
+        socialLinks: {
+            instagram: 'https://instagram.com/muvs.dev',
+            soundcloud: 'https://soundcloud.com/muvs',
+            bandcamp: 'https://muvs.bandcamp.com',
+            telegram: 'https://t.me/muvs_dev'
+        }
     });
     const [stats, setStats] = useState({
         totalVisits: 0,
@@ -42,19 +54,20 @@ export const DataProvider = ({ children }) => {
             try {
                 const res = await fetch('/api/data');
                 if (res.ok) {
-                    const db = await res.json();
-                    if (db.releases) setReleases(db.releases);
-                    if (db.mixes) setMixes(db.mixes);
-                    if (db.projects) setProjects(db.projects);
-                    if (db.news) setNews(db.news);
-                    if (db.about) setAbout(db.about);
-                    if (db.siteSettings) setSiteSettings(db.siteSettings);
-                    if (db.stats) setStats(db.stats);
-                    if (db.messages) setMessages(db.messages || []); // Ensure array
-                    if (db.adminSettings) setAdminSettings(db.adminSettings);
+                    const data = await res.json();
+                    if (data.releases) setReleases(data.releases);
+                    if (data.mixes) setMixes(data.mixes);
+                    if (data.projects) setProjects(data.projects);
+                    if (data.news) setNews(data.news);
+                    if (data.newsSettings) setNewsSettings(data.newsSettings);
+                    if (data.about) setAbout(data.about);
+                    if (data.siteSettings) setSiteSettings(data.siteSettings);
+                    if (data.messages) setMessages(data.messages);
+                    if (data.adminSettings) setAdminSettings(data.adminSettings);
+                    if (data.stats) setStats(data.stats);
                 }
-            } catch (err) {
-                console.error('Failed to fetch data:', err);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
             } finally {
                 setIsLoaded(true);
             }
@@ -101,9 +114,23 @@ export const DataProvider = ({ children }) => {
         setSiteSettings(newSettings);
     };
 
-    const trackVisit = (path, referrer = '') => {
-        // ... (keep existing logic) ...
+    const trackVisit = async (path, referrer = '') => {
+        // Exclude admin and login paths
+        if (path.startsWith('/admin') || path.startsWith('/login')) return;
+
         const today = new Date().toISOString().split('T')[0];
+
+        // Try to get country
+        let country = 'Unknown';
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            if (res.ok) {
+                const data = await res.json();
+                country = data.country_name || 'Unknown';
+            }
+        } catch (e) {
+            console.warn('Failed to resolve country:', e);
+        }
 
         setStats(prev => {
             const newStats = { ...prev };
@@ -113,6 +140,7 @@ export const DataProvider = ({ children }) => {
             newStats.pages = { ...prev.pages };
             newStats.pages[path] = (newStats.pages[path] || 0) + 1;
             newStats.sources = { ...prev.sources };
+            newStats.countries = { ...prev.countries };
 
             let source = 'direct';
             if (referrer) {
@@ -124,6 +152,10 @@ export const DataProvider = ({ children }) => {
                 }
             }
             newStats.sources[source] = (newStats.sources[source] || 0) + 1;
+
+            // Update country stats
+            newStats.countries[country] = (newStats.countries[country] || 0) + 1;
+
             return newStats;
         });
     };

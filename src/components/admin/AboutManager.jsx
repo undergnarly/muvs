@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaUpload, FaTrash, FaSave } from 'react-icons/fa';
-import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
 
 const AboutManager = () => {
     const { about, updateData } = useData();
@@ -10,8 +10,19 @@ const AboutManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(about.backgroundImage || null);
+    const [imagePreviewDesktop, setImagePreviewDesktop] = useState(about.backgroundImageDesktop || null);
+    const [imagePreviewMobile, setImagePreviewMobile] = useState(about.backgroundImageMobile || null);
+    const [keepOriginal, setKeepOriginal] = useState(false);
 
-    const handleImageUpload = async (e) => {
+    // Initialize formData from about when component mounts or about changes
+    useEffect(() => {
+        setFormData(about);
+        setImagePreview(about.backgroundImage || null);
+        setImagePreviewDesktop(about.backgroundImageDesktop || null);
+        setImagePreviewMobile(about.backgroundImageMobile || null);
+    }, [about]);
+
+    const handleImageUpload = async (e, imageType = 'background') => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -20,29 +31,46 @@ const AboutManager = () => {
             setUploadStatus('Validating image...');
             validateImageFile(file);
 
-            setUploadStatus('Compressing...');
-            const compressedBase64 = await compressImage(file, 250);
+            let url;
 
-            setUploadStatus('Uploading to server...');
-            const response = await fetch(compressedBase64);
-            const blob = await response.blob();
+            if (keepOriginal) {
+                setUploadStatus('Uploading original file...');
+                url = await uploadImageWithoutCompression(file);
+            } else {
+                setUploadStatus('Compressing...');
+                const compressedBase64 = await compressImage(file, 250);
 
-            const uploadForm = new FormData();
-            const ext = file.type === 'image/png' ? 'png' : 'jpg';
-            uploadForm.append('image', blob, `upload.${ext}`);
+                setUploadStatus('Uploading to server...');
+                const response = await fetch(compressedBase64);
+                const blob = await response.blob();
 
-            const uploadRes = await fetch('/api/upload', {
-                method: 'POST',
-                body: uploadForm
-            });
+                const uploadForm = new FormData();
+                const ext = file.type === 'image/png' ? 'png' : 'jpg';
+                uploadForm.append('image', blob, `upload.${ext}`);
 
-            if (!uploadRes.ok) throw new Error('Upload failed');
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadForm
+                });
 
-            const { url } = await uploadRes.json();
+                if (!uploadRes.ok) throw new Error('Upload failed');
+
+                const data = await uploadRes.json();
+                url = data.url;
+            }
 
             setUploadStatus('Upload complete!');
-            setFormData({ ...formData, backgroundImage: url });
-            setImagePreview(url);
+
+            if (imageType === 'desktop') {
+                setFormData({ ...formData, backgroundImageDesktop: url });
+                setImagePreviewDesktop(url);
+            } else if (imageType === 'mobile') {
+                setFormData({ ...formData, backgroundImageMobile: url });
+                setImagePreviewMobile(url);
+            } else {
+                setFormData({ ...formData, backgroundImage: url });
+                setImagePreview(url);
+            }
 
             setTimeout(() => setUploadStatus(''), 2000);
         } catch (error) {
@@ -80,6 +108,29 @@ const AboutManager = () => {
                         />
                     </div>
 
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <label style={{ color: 'var(--color-text-light)', marginBottom: '8px', display: 'block' }}>Title Font Size</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. 60px"
+                                value={formData.titleFontSize || '60px'}
+                                onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ color: 'var(--color-text-light)', marginBottom: '8px', display: 'block' }}>Title Top Position</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. 20%"
+                                value={formData.titleTopPosition || '20%'}
+                                onChange={e => setFormData({ ...formData, titleTopPosition: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+                    </div>
+
                     <div>
                         <label style={{ color: 'var(--color-text-light)', marginBottom: '8px', display: 'block' }}>Content</label>
                         <textarea
@@ -94,42 +145,97 @@ const AboutManager = () => {
 
                     {/* Background Image Upload */}
                     <div>
-                        <h4 style={{ color: 'var(--color-text-light)', marginBottom: '12px' }}>Background Image</h4>
+                        <h4 style={{ color: 'var(--color-text-light)', marginBottom: '12px' }}>Background Images</h4>
                         <p style={{ color: 'var(--color-text-dim)', fontSize: '14px', marginBottom: '12px' }}>
-                            This image will be displayed full-width on the About page
+                            Upload separate images for desktop and mobile versions. Images will be displayed full-width.
                         </p>
-                        {imagePreview && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <img src={imagePreview} alt="Preview" style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '8px' }} />
-                            </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <input
-                                type="file"
-                                id="about-image-upload"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                disabled={uploading}
-                                style={{ display: 'none' }}
-                            />
-                            <label htmlFor="about-image-upload" style={uploadButtonStyle}>
-                                <FaUpload style={{ marginRight: '8px' }} />
-                                {uploading ? 'Uploading...' : 'Upload Image'}
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-light)', fontSize: '14px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={keepOriginal}
+                                    onChange={(e) => setKeepOriginal(e.target.checked)}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                Оставить исходный файл (без сжатия)
                             </label>
-                            {formData.backgroundImage && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setFormData({ ...formData, backgroundImage: '' });
-                                        setImagePreview(null);
-                                    }}
-                                    style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
-                                >
-                                    <FaTrash style={{ marginRight: '8px' }} />
-                                    Remove
-                                </button>
-                            )}
                         </div>
+
+                        {/* Desktop Image */}
+                        <div style={{ marginBottom: '24px', padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                            <h5 style={{ color: 'var(--color-text-light)', marginBottom: '12px', fontSize: '14px' }}>Desktop Version</h5>
+                            {imagePreviewDesktop && (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <img src={imagePreviewDesktop} alt="Desktop Preview" style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px' }} />
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="file"
+                                    id="desktop-image-upload"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(e, 'desktop')}
+                                    disabled={uploading}
+                                    style={{ display: 'none' }}
+                                />
+                                <label htmlFor="desktop-image-upload" style={uploadButtonStyle}>
+                                    <FaUpload style={{ marginRight: '8px' }} />
+                                    {uploading ? 'Uploading...' : 'Upload Desktop'}
+                                </label>
+                                {formData.backgroundImageDesktop && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData({ ...formData, backgroundImageDesktop: '' });
+                                            setImagePreviewDesktop(null);
+                                        }}
+                                        style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                    >
+                                        <FaTrash style={{ marginRight: '8px' }} />
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Mobile Image */}
+                        <div style={{ marginBottom: '16px', padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                            <h5 style={{ color: 'var(--color-text-light)', marginBottom: '12px', fontSize: '14px' }}>Mobile Version</h5>
+                            {imagePreviewMobile && (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <img src={imagePreviewMobile} alt="Mobile Preview" style={{ maxWidth: '200px', maxHeight: '300px', borderRadius: '8px' }} />
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="file"
+                                    id="mobile-image-upload"
+                                    accept="image/*"
+                                    onChange={(e) => handleImageUpload(e, 'mobile')}
+                                    disabled={uploading}
+                                    style={{ display: 'none' }}
+                                />
+                                <label htmlFor="mobile-image-upload" style={uploadButtonStyle}>
+                                    <FaUpload style={{ marginRight: '8px' }} />
+                                    {uploading ? 'Uploading...' : 'Upload Mobile'}
+                                </label>
+                                {formData.backgroundImageMobile && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData({ ...formData, backgroundImageMobile: '' });
+                                            setImagePreviewMobile(null);
+                                        }}
+                                        style={{ ...uploadButtonStyle, background: 'rgba(255, 85, 85, 0.1)', color: '#ff5555', borderColor: '#ff5555' }}
+                                    >
+                                        <FaTrash style={{ marginRight: '8px' }} />
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         {uploadStatus && <div style={{ marginTop: '8px', color: 'var(--color-text-dim)', fontSize: '14px' }}>{uploadStatus}</div>}
                     </div>
 

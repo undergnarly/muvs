@@ -1,9 +1,11 @@
-import React from 'react';
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
+import NavigationFooter from '../layout/NavigationFooter';
+import TechTag from '../ui/TechTag';
+import { fixLinks } from '../../utils/linkUtils';
 import './ReleaseDetails.css';
 
-const ReleaseDetails = ({ release }) => {
+const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
@@ -11,33 +13,44 @@ const ReleaseDetails = ({ release }) => {
         <div className="release-details-container">
             <div className="release-info">
                 <h2 className="release-title-lg">{release.title}</h2>
-                <span className="release-date">Released: {release.releaseDate}</span>
 
-                <p className="release-description" dangerouslySetInnerHTML={{ __html: release.description }}></p>
+                {release.genres && release.genres.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                        {release.genres.map((genre, idx) => (
+                            <TechTag key={idx} label={genre} />
+                        ))}
+                    </div>
+                )}
+
+                <span className="release-date" style={{ display: 'block', marginBottom: '16px' }}>Released: {release.releaseDate}</span>
+
+                <p className="release-description" dangerouslySetInnerHTML={{ __html: fixLinks(release.description) }}></p>
 
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
-                {hasPlaylist ? (
-                    <div className="soundcloud-playlist">
-                        <h3>Tracklist</h3>
+                {/* SoundCloud Player */}
+                {(release.soundcloudTrackUrl || release.soundcloudUrl) && (
+                    <div className="soundcloud-embed">
                         <iframe
                             width="100%"
-                            height="450"
+                            height={release.soundcloudTrackUrl || !hasPlaylist ? "166" : "450"}
                             scrolling="no"
                             frameBorder="no"
                             allow="autoplay"
-                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.soundcloudUrl)}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
+                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent((release.soundcloudTrackUrl || release.soundcloudUrl).split('?')[0])}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=${hasPlaylist ? 'true' : 'false'}`}
                             style={{
                                 borderRadius: '8px',
                                 marginTop: '16px',
-                                marginBottom: '16px'
+                                marginBottom: '24px'
                             }}
                         ></iframe>
                     </div>
-                ) : (
+                )}
+
+                {/* Tracklist */}
+                {release.tracks && release.tracks.length > 0 && (
                     <div className="tracklist">
-                        <h3>Tracklist</h3>
                         <ul>
-                            {release.tracks && release.tracks.map((track, index) => (
+                            {release.tracks.map((track, index) => (
                                 <li key={track.id || index} className="track-item">
                                     <span className="track-num">{(index + 1).toString().padStart(2, '0')}</span>
                                     <span className="track-title">{track.title}</span>
@@ -59,13 +72,17 @@ const ReleaseDetails = ({ release }) => {
                             Listen on SoundCloud
                         </Button>
                     )}
+                    {release.soundcloudTrackUrl && (
+                        <Button variant="outline" href={release.soundcloudTrackUrl}>
+                            Listen to Track
+                        </Button>
+                    )}
                 </div>
 
                 {/* Circular Gallery */}
                 {release.gallery && release.gallery.length > 0 && (
-                    <div style={{ marginTop: '48px' }}>
-                        <h3 style={{ marginBottom: '24px', color: 'var(--color-text-light)' }}>Gallery</h3>
-                        <div style={{ height: '600px', position: 'relative' }}>
+                    <div className="gallery-container-full">
+                        <div className="gallery-wrapper">
                             <CircularGallery
                                 items={release.gallery}
                                 bend={1}
@@ -77,8 +94,17 @@ const ReleaseDetails = ({ release }) => {
                         </div>
                     </div>
                 )}
-            </div>
-        </div>
+                {/* Navigation Footer */}
+                {allReleases && (
+                    <NavigationFooter
+                        items={allReleases}
+                        onNavigate={onNavigate}
+                        currentIndex={allReleases.findIndex(r => r.id === release.id)}
+                        title="More Music"
+                    />
+                )}
+            </div >
+        </div >
     );
 };
 

@@ -102,15 +102,15 @@ const Dashboard = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                             <XAxis
                                 dataKey="date"
-                                stroke="var(--color-text-dim)"
-                                tick={{ fill: 'var(--color-text-dim)', fontSize: 11 }}
+                                stroke="#ffffff"
+                                tick={{ fill: '#ffffff', fontSize: 11 }}
                                 angle={-45}
                                 textAnchor="end"
                                 height={60}
                             />
                             <YAxis
-                                stroke="var(--color-text-dim)"
-                                tick={{ fill: 'var(--color-text-dim)', fontSize: 11 }}
+                                stroke="#ffffff"
+                                tick={{ fill: '#ffffff', fontSize: 11 }}
                             />
                             <Tooltip
                                 contentStyle={{

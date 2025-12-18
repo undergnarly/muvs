@@ -1,17 +1,65 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import MixDetails from '../media/MixDetails';
 import './MixSlide.css';
 
-const MixSlide = ({ mix }) => {
-    const CoverContent = (
+const MixSlide = ({ mix, priority = false, allMixes, onNavigate }) => {
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end start"]
+    });
+
+    const parallaxStrength = mix.parallaxStrength || 100;
+    const yParallax = useTransform(scrollYProgress, [0, 1], [0, parallaxStrength]);
+
+    const CoverContent = ({ coverTextY, coverImageY }) => (
         <div className="mix-cover-container">
-            {mix.backgroundImage && (
-                <div className="mix-background-image">
-                    <img src={mix.backgroundImage} alt="Mix background" />
-                </div>
-            )}
+            {/* Background title text */}
+            <motion.div
+                className="mix-title-background"
+                style={{
+                    top: mix.textTopPosition || '20%',
+                    y: coverTextY || yParallax,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: mix.titleGap || '0px'
+                }}
+                initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+                <h1
+                    className="mix-title-text"
+                    style={{ fontSize: mix.titleFontSize || 'min(24vw, 120px)' }}
+                >
+                    {mix.title}
+                </h1>
+            </motion.div>
+
+            {/* Cover image wrapper (constrained width) */}
+            <motion.div
+                className="mix-cover-wrapper"
+                style={{
+                    y: coverImageY || 0
+                }}
+                initial={priority ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: priority ? 0 : 0.2 }}
+            >
+                {mix.backgroundImage && (
+                    <div className="mix-image-placeholder">
+                        <img
+                            src={mix.backgroundImage}
+                            alt="Mix background"
+                            loading={priority ? "eager" : "lazy"}
+                            fetchPriority={priority ? "high" : "auto"}
+                            decoding="async"
+                        />
+                    </div>
+                )}
+            </motion.div>
 
             <motion.div
                 className="mix-player-wrapper"
@@ -29,22 +77,18 @@ const MixSlide = ({ mix }) => {
                     style={{ borderRadius: '12px' }}
                 ></iframe>
             </motion.div>
-
-            <motion.div
-                className="mix-main-info"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-            >
-                <h1 className="mix-main-title">{mix.title}</h1>
-            </motion.div>
         </div>
     );
 
     return (
         <BaseSlidePage
             coverContent={CoverContent}
-            detailContent={<MixDetails mix={mix} />}
+            detailContent={<MixDetails mix={mix} allMixes={allMixes} onNavigate={onNavigate} />}
+            textColor="white"
+            animationType="zoom-out"
+            zoomOutMax={mix.zoomOutMax}
+            textParallaxY={mix.textParallaxY}
+            imageParallaxY={mix.imageParallaxY}
         />
     );
 };

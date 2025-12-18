@@ -18,7 +18,12 @@ const AdminSettings = () => {
     const [siteFormData, setSiteFormData] = useState({
         favicon: siteSettings?.favicon || '',
         siteName: siteSettings?.siteName || 'MUVS',
-        siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code'
+        siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
+        socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
+        scrollAnimation: siteSettings?.scrollAnimation || {
+            scrollSectionHeight: 180, // vh
+            detailOverlay: -10 // vh
+        }
     });
 
     const handleSubmit = (e) => {
@@ -142,6 +147,110 @@ const AdminSettings = () => {
                         style={inputStyle}
                         placeholder="Audio • Visual • Code"
                     />
+                </div>
+
+                {/* Social Links */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Social Links</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <label style={labelStyle}>Instagram</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.instagram}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, instagram: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://instagram.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>SoundCloud</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.soundcloud}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, soundcloud: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://soundcloud.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Bandcamp</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.bandcamp}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, bandcamp: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://bandcamp.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Telegram</label>
+                            <input
+                                type="text"
+                                value={siteFormData.socialLinks.telegram}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    socialLinks: { ...siteFormData.socialLinks, telegram: e.target.value }
+                                })}
+                                style={inputStyle}
+                                placeholder="https://t.me/..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Scroll Animation Settings */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Scroll Animation Settings</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <label style={labelStyle}>Scroll Section Height (vh)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.scrollAnimation.scrollSectionHeight}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    scrollAnimation: { ...siteFormData.scrollAnimation, scrollSectionHeight: parseInt(e.target.value) || 180 }
+                                })}
+                                style={inputStyle}
+                                placeholder="180"
+                                min="100"
+                                max="300"
+                                step="10"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                Controls scroll space (100-300vh). Current: {siteFormData.scrollAnimation.scrollSectionHeight}vh
+                            </div>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Detail Overlay (vh)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.scrollAnimation.detailOverlay}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    scrollAnimation: { ...siteFormData.scrollAnimation, detailOverlay: parseInt(e.target.value) || -10 }
+                                })}
+                                style={inputStyle}
+                                placeholder="-10"
+                                min="-100"
+                                max="0"
+                                step="5"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                How far detail moves up (-100 to 0vh). Current: {siteFormData.scrollAnimation.detailOverlay}vh
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Favicon Upload */}

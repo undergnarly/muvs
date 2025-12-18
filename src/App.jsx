@@ -1,27 +1,35 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
+
+// Public Pages - Static Import for maximum speed and smooth transitions
 import HomePage from './components/pages/HomePage';
 import AboutPage from './components/pages/AboutPage';
 import NewsPage from './components/pages/NewsPage';
 import MusicPage from './components/pages/MusicPage';
 import MixesPage from './components/pages/MixesPage';
 import CodePage from './components/pages/CodePage';
-import LoginPage from './components/admin/LoginPage';
-import AdminLayout from './components/admin/AdminLayout';
-import Dashboard from './components/admin/Dashboard';
-import NewsManager from './components/admin/NewsManager';
-import MusicManager from './components/admin/MusicManager';
-import MixesManager from './components/admin/MixesManager';
-import ProjectsManager from './components/admin/ProjectsManager';
-import AboutManager from './components/admin/AboutManager';
-import MessagesManager from './components/admin/MessagesManager';
-import AdminSettings from './components/admin/AdminSettings';
+
+// Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
+const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
+const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout'));
+const Dashboard = React.lazy(() => import('./components/admin/Dashboard'));
+const NewsManager = React.lazy(() => import('./components/admin/NewsManager'));
+const MusicManager = React.lazy(() => import('./components/admin/MusicManager'));
+const MixesManager = React.lazy(() => import('./components/admin/MixesManager'));
+const ProjectsManager = React.lazy(() => import('./components/admin/ProjectsManager'));
+const AboutManager = React.lazy(() => import('./components/admin/AboutManager'));
+const MessagesManager = React.lazy(() => import('./components/admin/MessagesManager'));
+const AdminSettings = React.lazy(() => import('./components/admin/AdminSettings'));
+
 import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
-import { useLocation } from 'react-router-dom';
+
+const LoadingFallback = () => (
+  <div style={{ height: '100vh', width: '100vw', background: 'var(--color-bg-dark)' }} />
+);
 
 function App() {
   const { trackVisit, siteSettings } = useData();
@@ -31,6 +39,19 @@ function App() {
     // Track visit with current path and referrer
     trackVisit(location.pathname, document.referrer);
   }, [location.pathname]);
+
+  // Remove Splash Screen on Mount
+  React.useEffect(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      // Small delay to ensure smooth visual transition
+      setTimeout(() => {
+        splash.classList.add('hidden');
+        // Optional: Remove from DOM after transition
+        setTimeout(() => splash.remove(), 1000);
+      }, 500);
+    }
+  }, []);
 
   // Update favicon dynamically
   React.useEffect(() => {
@@ -60,6 +81,8 @@ function App() {
     }
   }, [siteSettings?.siteName, siteSettings?.siteDescription]);
 
+
+
   return (
     <>
       <TopBlur />
@@ -71,8 +94,17 @@ function App() {
         <Route path={ROUTES.MUSIC} element={<MusicPage />} />
         <Route path={ROUTES.MIXES} element={<MixesPage />} />
         <Route path={ROUTES.CODE} element={<CodePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/login" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <LoginPage />
+          </Suspense>
+        } />
+
+        <Route path="/admin" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminLayout />
+          </Suspense>
+        }>
           <Route index element={<Dashboard />} />
           <Route path="news" element={<NewsManager />} />
           <Route path="music" element={<MusicManager />} />

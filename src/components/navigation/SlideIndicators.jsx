@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import './SlideIndicators.css';
 
 const SlideIndicators = ({ total, current, onChange, theme = 'dark' }) => {
+    if (total <= 1) return null;
+
     return (
         <div className={clsx('slide-indicators', theme)}>
             {Array.from({ length: total }).map((_, index) => (
