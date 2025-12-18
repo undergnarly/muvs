@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaCopy } from 'react-icons/fa';
+import { compressImage, validateImageFile } from '../../utils/imageCompression';
 
 const ProjectsManager = () => {
     const { projects, updateData } = useData();
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState('');
 
     const initialForm = {
         title: '',
         thumbnail: '',
         description: '',
         fullDescription: '',
+        descriptionImages: [],
         technologies: '', // Will split by comma
         liveUrl: '',
         githubUrl: '',
@@ -40,7 +44,64 @@ const ProjectsManager = () => {
     const handleAddNew = () => {
         setEditingItem(null);
         setFormData(initialForm);
+        setUploadStatus('');
         setIsFormOpen(true);
+    };
+
+    const handleDescriptionImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            setUploadStatus('Uploading description image...');
+            validateImageFile(file);
+
+            const compressedBase64 = await compressImage(file, 250);
+            const response = await fetch(compressedBase64);
+            const blob = await response.blob();
+
+            const uploadForm = new FormData();
+            const ext = file.type === 'image/png' ? 'png' : 'jpg';
+            uploadForm.append('image', blob, `desc-${Date.now()}.${ext}`);
+
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadForm
+            });
+
+            if (!uploadRes.ok) throw new Error('Upload failed');
+
+            const { url } = await uploadRes.json();
+
+            const newImage = {
+                id: Date.now(),
+                url: url,
+                name: file.name
+            };
+
+            setFormData({
+                ...formData,
+                descriptionImages: [...(formData.descriptionImages || []), newImage]
+            });
+
+            setUploadStatus('Image uploaded!');
+            setTimeout(() => setUploadStatus(''), 2000);
+        } catch (error) {
+            setUploadStatus('Error: ' + error.message);
+            setTimeout(() => setUploadStatus(''), 3000);
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const copyImageHtml = (imageUrl) => {
+        const html = `<img src="${imageUrl}" alt="Project image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0;" />`;
+        navigator.clipboard.writeText(html).then(() => {
+            setUploadStatus('HTML copied to clipboard!');
+            setTimeout(() => setUploadStatus(''), 2000);
+        });
     };
 
     const handleSubmit = (e) => {
@@ -119,12 +180,126 @@ const ProjectsManager = () => {
                             style={{ ...inputStyle, resize: 'vertical' }}
                         />
                         <textarea
-                            placeholder="Full Description"
+                            placeholder="Full Description (supports HTML)"
                             value={formData.fullDescription}
                             onChange={e => setFormData({ ...formData, fullDescription: e.target.value })}
-                            rows={4}
+                            rows={5}
                             style={{ ...inputStyle, resize: 'vertical' }}
                         />
+
+                        {/* Description Images Section */}
+                        <div style={{ marginTop: '16px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <div>
+                                    <h4 style={{ color: 'var(--color-text-light)', fontSize: '16px', margin: 0, marginBottom: '4px' }}>Description Images</h4>
+                                    <p style={{ color: 'var(--color-text-dim)', fontSize: '12px', margin: 0 }}>Upload images to use in description. Click "Copy HTML" to insert into description field.</p>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleDescriptionImageUpload}
+                                    style={{ display: 'none' }}
+                                    id="desc-image-upload"
+                                />
+                                <label htmlFor="desc-image-upload" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '8px 16px',
+                                    background: 'rgba(204, 255, 0, 0.1)',
+                                    border: '1px solid var(--color-accent)',
+                                    borderRadius: '8px',
+                                    color: 'var(--color-accent)',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500'
+                                }}>
+                                    <FaUpload style={{ marginRight: '6px' }} />
+                                    {uploading ? 'Uploading...' : 'Upload Image'}
+                                </label>
+                            </div>
+                            {uploadStatus && (
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: uploadStatus.includes('Error') ? '#ff5555' : 'var(--color-accent)',
+                                    marginBottom: '12px',
+                                    fontWeight: '500'
+                                }}>
+                                    {uploadStatus}
+                                </div>
+                            )}
+                            {formData.descriptionImages && formData.descriptionImages.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                                    {formData.descriptionImages.map((img, index) => (
+                                        <div key={img.id || index} style={{
+                                            padding: '12px',
+                                            background: 'rgba(0,0,0,0.3)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255,255,255,0.05)'
+                                        }}>
+                                            <img
+                                                src={img.url}
+                                                alt={img.name}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '120px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '6px',
+                                                    marginBottom: '8px'
+                                                }}
+                                            />
+                                            <div style={{ fontSize: '11px', color: 'var(--color-text-dim)', marginBottom: '8px', wordBreak: 'break-all' }}>
+                                                {img.name}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyImageHtml(img.url)}
+                                                    style={{
+                                                        flex: 1,
+                                                        background: 'rgba(204, 255, 0, 0.1)',
+                                                        border: '1px solid var(--color-accent)',
+                                                        borderRadius: '6px',
+                                                        color: 'var(--color-accent)',
+                                                        padding: '6px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '4px'
+                                                    }}
+                                                >
+                                                    <FaCopy /> Copy HTML
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updatedImages = formData.descriptionImages.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, descriptionImages: updatedImages });
+                                                    }}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: '1px solid #ff5555',
+                                                        borderRadius: '6px',
+                                                        color: '#ff5555',
+                                                        padding: '6px 10px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px'
+                                                    }}
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-dim)', fontSize: '14px' }}>
+                                    No images added yet. Upload images to insert into description.
+                                </div>
+                            )}
+                        </div>
+
                         <input
                             type="text"
                             placeholder="Technologies (comma separated)"
