@@ -11,6 +11,7 @@ const MixesManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
+    const [keepOriginal, setKeepOriginal] = useState(false);
 
     const initialForm = {
         title: '',
@@ -248,11 +249,15 @@ const MixesManager = () => {
                                     <img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }} />
                                 </div>
                             )}
-                            <div style={{ marginBottom: '12px' }}>
+                            <div style={{ marginBottom: '16px' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-light)', fontSize: '14px', cursor: 'pointer' }}>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-dim)' }}>
-                                        Max 10MB • Will be compressed server-side
-                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={keepOriginal}
+                                        onChange={(e) => setKeepOriginal(e.target.checked)}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                    Оставить исходный файл (без сжатия)
                                 </label>
                             </div>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

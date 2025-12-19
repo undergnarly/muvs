@@ -117,6 +117,7 @@
     align-items: center;
     justify-content: center;
     will-change: transform;
+    transform-origin: center center;
 }
 
 .sm-icon-line {
@@ -129,6 +130,7 @@
     border-radius: 2px;
     transform: translate(-50%, -50%);
     will-change: transform;
+    transform-origin: center center;
 }
 
 .staggered-menu-panel {

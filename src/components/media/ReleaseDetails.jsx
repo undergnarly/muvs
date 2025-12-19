@@ -72,11 +72,6 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                             Listen on SoundCloud
                         </Button>
                     )}
-                    {release.soundcloudTrackUrl && (
-                        <Button variant="outline" href={release.soundcloudTrackUrl}>
-                            Listen to Track
-                        </Button>
-                    )}
                 </div>
 
                 {/* Circular Gallery */}
