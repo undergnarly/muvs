@@ -516,4 +516,12 @@ const actionButtonStyle = {
     transition: 'color 0.2s'
 };
 
+const labelStyle = {
+    display: 'block',
+    marginBottom: '4px',
+    color: 'var(--color-text-dim)',
+    fontSize: '12px',
+    fontWeight: 'normal'
+};
+
 export default ProjectsManager;
