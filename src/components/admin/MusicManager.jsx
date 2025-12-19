@@ -215,7 +215,7 @@ const MusicManager = () => {
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
                                 placeholder="Title Font Size (e.g. min(24vw, 120px))"
@@ -228,6 +228,13 @@ const MusicManager = () => {
                                 placeholder="Artist Font Size (e.g. min(12vw, 60px))"
                                 value={formData.artistFontSize || ''}
                                 onChange={e => setFormData({ ...formData, artistFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Title Gap (e.g. 10px or 2vh)"
+                                value={formData.titleGap || ''}
+                                onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>

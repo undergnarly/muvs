@@ -9,12 +9,14 @@ const CodePage = () => {
     const { projects } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
 
+    const sortedProjects = [...projects].sort((a, b) => (a.order || 0) - (b.order || 0));
+
     return (
         <div className="page-container code-page">
             <Header />
 
             <SlideContainer activeIndex={currentIndex} onChange={setCurrentIndex}>
-                {projects.map((project, index) => (
+                {sortedProjects.map((project, index) => (
                     <ProjectSlide
                         key={project.id}
                         project={project}

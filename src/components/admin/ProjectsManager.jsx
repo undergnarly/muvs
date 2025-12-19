@@ -20,6 +20,8 @@ const ProjectsManager = () => {
         technologies: '', // Will split by comma
         liveUrl: '',
         githubUrl: '',
+        date: '',
+        order: 0,
         features: '', // Will split by comma
         parallaxStrength: 100,
         textTopPosition: '20%',
@@ -129,15 +131,25 @@ const ProjectsManager = () => {
                         {editingItem ? 'Edit Project' : 'New Project'}
                     </h3>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) 1fr', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
-                                placeholder="Title"
+                                placeholder="Project Title"
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 required
                                 style={inputStyle}
                             />
+                            <input
+                                type="text"
+                                placeholder="Project Type / Category (e.g. DEVELOPMENT)"
+                                value={formData.type || ''}
+                                onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <input
                                     type="text"
@@ -151,18 +163,75 @@ const ProjectsManager = () => {
                                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} disabled={uploading} />
                                 </label>
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--color-text-dim)', marginTop: '4px' }}>
-                                Server-side optimization enabled
-                            </label>
+                            <input
+                                type="text"
+                                placeholder="Thumbnail URL (optional fallback)"
+                                value={formData.thumbnail}
+                                onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
+                                style={inputStyle}
+                            />
                         </div>
+
                         {uploadStatus && <div style={{ fontSize: '12px', color: 'var(--color-accent)' }}>{uploadStatus}</div>}
-                        <input
-                            type="text"
-                            placeholder="Thumbnail URL (optional fallback)"
-                            value={formData.thumbnail}
-                            onChange={e => setFormData({ ...formData, thumbnail: e.target.value })}
-                            style={inputStyle}
-                        />
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Title Font Size (e.g. min(24vw, 120px))"
+                                value={formData.titleFontSize || ''}
+                                onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Type Font Size (e.g. min(12vw, 60px))"
+                                value={formData.typeFontSize || ''}
+                                onChange={e => setFormData({ ...formData, typeFontSize: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Title Gap (e.g. 10px or 2vh)"
+                                value={formData.titleGap || ''}
+                                onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Text Top Position (e.g. 20%, 15%, 25%)"
+                                value={formData.textTopPosition || ''}
+                                onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Parallax Strength (0-200, default 100)"
+                                value={formData.parallaxStrength || ''}
+                                onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <input
+                                type="text"
+                                placeholder="Project Date (e.g. 2024)"
+                                value={formData.date || ''}
+                                onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="number"
+                                placeholder="Sort Order"
+                                value={formData.order || ''}
+                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                                style={inputStyle}
+                            />
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
@@ -179,6 +248,7 @@ const ProjectsManager = () => {
                                 style={inputStyle}
                             />
                         </div>
+
                         <textarea
                             placeholder="Short Description (supports HTML for links)"
                             value={formData.description}
@@ -208,70 +278,6 @@ const ProjectsManager = () => {
                             onChange={e => setFormData({ ...formData, features: e.target.value })}
                             style={inputStyle}
                         />
-                        <input
-                            type="number"
-                            placeholder="Parallax Strength (0-200, default 100)"
-                            value={formData.parallaxStrength || ''}
-                            onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
-                            style={inputStyle}
-                        />
-
-                        {/* Typography & Position Settings */}
-                        <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <h4 style={{ color: 'var(--color-text-light)', fontSize: '14px', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Header Typography & Position</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <label style={labelStyle}>Category / Type (e.g. WEB APP)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.type || ''}
-                                        onChange={e => setFormData({ ...formData, type: e.target.value })}
-                                        style={inputStyle}
-                                        placeholder="DEVELOPMENT"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Category Font Size</label>
-                                    <input
-                                        type="text"
-                                        value={formData.typeFontSize || ''}
-                                        onChange={e => setFormData({ ...formData, typeFontSize: e.target.value })}
-                                        style={inputStyle}
-                                        placeholder="min(12vw, 60px)"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Title Font Size</label>
-                                    <input
-                                        type="text"
-                                        value={formData.titleFontSize || ''}
-                                        onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
-                                        style={inputStyle}
-                                        placeholder="min(24vw, 120px)"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Title Gap (px)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.titleGap || ''}
-                                        onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
-                                        style={inputStyle}
-                                        placeholder="0px"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Vertical Position (top % or px)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.textTopPosition || ''}
-                                        onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
-                                        style={inputStyle}
-                                        placeholder="20%"
-                                    />
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Custom Animation Overrides */}
                         <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
