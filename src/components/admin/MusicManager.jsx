@@ -21,9 +21,9 @@ const MusicManager = () => {
         titleGap: '0px',
         textTopPosition: '20%',
         parallaxStrength: 100, // Legacy support
-        zoomOutMax: 0.5,
-        imageParallaxY: 100,
-        textParallaxY: 300,
+        zoomOutMax: null,
+        imageParallaxY: null,
+        textParallaxY: null,
         releaseDate: '',
         order: 0,
         bpm: 0,
@@ -264,9 +264,9 @@ const MusicManager = () => {
                                         step="0.05"
                                         min="0.1"
                                         max="1.0"
-                                        placeholder="0.5"
-                                        value={formData.zoomOutMax || ''}
-                                        onChange={e => setFormData({ ...formData, zoomOutMax: parseFloat(e.target.value) || 0.5 })}
+                                        placeholder="Default"
+                                        value={formData.zoomOutMax !== null ? formData.zoomOutMax : ''}
+                                        onChange={e => setFormData({ ...formData, zoomOutMax: e.target.value ? parseFloat(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>
@@ -276,9 +276,9 @@ const MusicManager = () => {
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="e.g. 100 or -50"
-                                        value={formData.imageParallaxY !== undefined ? formData.imageParallaxY : ''}
-                                        onChange={e => setFormData({ ...formData, imageParallaxY: parseInt(e.target.value) || 0 })}
+                                        placeholder="Default"
+                                        value={formData.imageParallaxY !== null ? formData.imageParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, imageParallaxY: e.target.value ? parseInt(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>
@@ -288,9 +288,9 @@ const MusicManager = () => {
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="e.g. 300 or -100"
-                                        value={formData.textParallaxY !== undefined ? formData.textParallaxY : ''}
-                                        onChange={e => setFormData({ ...formData, textParallaxY: parseInt(e.target.value) || 0 })}
+                                        placeholder="Default"
+                                        value={formData.textParallaxY !== null ? formData.textParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, textParallaxY: e.target.value ? parseInt(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>

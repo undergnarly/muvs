@@ -1,17 +1,24 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
+import { useData } from '../../context/DataContext';
 import './BaseSlidePage.css';
 
 const BaseSlidePage = ({
     coverContent,
     detailContent,
     textColor = 'white',
-    zoomOutMax = 0.5,
-    textParallaxY = 300,
-    imageParallaxY = 100,
+    zoomOutMax,
+    textParallaxY,
+    imageParallaxY,
 }) => {
+    const { siteSettings } = useData();
     const containerRef = useRef(null);
+
+    // Use specific props if provided, otherwise global settings, otherwise hardcoded defaults
+    const finalZoomOutMax = zoomOutMax ?? siteSettings?.scrollAnimation?.zoomOutMax ?? 0.5;
+    const finalTextParallaxY = textParallaxY ?? siteSettings?.scrollAnimation?.textParallaxY ?? 300;
+    const finalImageParallaxY = imageParallaxY ?? siteSettings?.scrollAnimation?.imageParallaxY ?? 100;
     const [scrollContainer, setScrollContainer] = React.useState(null);
 
     React.useLayoutEffect(() => {
@@ -40,11 +47,11 @@ const BaseSlidePage = ({
     const scrollRange = [0, 800];
 
     // Zoom effect: scale down more dramatically to create depth
-    const coverScale = useTransform(scrollY, scrollRange, [1, zoomOutMax]);
+    const coverScale = useTransform(scrollY, scrollRange, [1, finalZoomOutMax]);
 
     // Parallax text: Move text down faster than background
-    const coverTextY = useTransform(scrollY, scrollRange, [0, textParallaxY]);
-    const coverImageY = useTransform(scrollY, scrollRange, [0, imageParallaxY]);
+    const coverTextY = useTransform(scrollY, scrollRange, [0, finalTextParallaxY]);
+    const coverImageY = useTransform(scrollY, scrollRange, [0, finalImageParallaxY]);
 
     // Fade out cover as it gets covered
     const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.2]);

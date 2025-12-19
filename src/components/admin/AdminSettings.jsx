@@ -250,6 +250,63 @@ const AdminSettings = () => {
                                 How far detail moves up (-100 to 0vh). Current: {siteFormData.scrollAnimation.detailOverlay}vh
                             </div>
                         </div>
+                        <div>
+                            <label style={labelStyle}>Max Zoom Out (0.1 - 1.0)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.scrollAnimation.zoomOutMax}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    scrollAnimation: { ...siteFormData.scrollAnimation, zoomOutMax: parseFloat(e.target.value) || 0.65 }
+                                })}
+                                style={inputStyle}
+                                placeholder="0.65"
+                                min="0.1"
+                                max="1.0"
+                                step="0.05"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                Default: 0.65. Controls background image scale.
+                            </div>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Image Y Deviation (+/- px)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.scrollAnimation.imageParallaxY}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    scrollAnimation: { ...siteFormData.scrollAnimation, imageParallaxY: parseInt(e.target.value) || -100 }
+                                })}
+                                style={inputStyle}
+                                placeholder="-100"
+                                min="-500"
+                                max="500"
+                                step="10"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                Default: -100. Parallax offset for images.
+                            </div>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Text Y Deviation (+/- px)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.scrollAnimation.textParallaxY}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    scrollAnimation: { ...siteFormData.scrollAnimation, textParallaxY: parseInt(e.target.value) || 50 }
+                                })}
+                                style={inputStyle}
+                                placeholder="50"
+                                min="-500"
+                                max="500"
+                                step="10"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                Default: 50. Parallax offset for text.
+                            </div>
+                        </div>
                     </div>
                 </div>
 

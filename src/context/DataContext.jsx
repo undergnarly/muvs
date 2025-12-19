@@ -33,6 +33,13 @@ export const DataProvider = ({ children }) => {
             soundcloud: 'https://soundcloud.com/muvs',
             bandcamp: 'https://muvs.bandcamp.com',
             telegram: 'https://t.me/muvs_dev'
+        },
+        scrollAnimation: {
+            scrollSectionHeight: 180, // vh
+            detailOverlay: -10, // vh
+            zoomOutMax: 0.65,
+            imageParallaxY: -100,
+            textParallaxY: 50
         }
     });
     const [stats, setStats] = useState({

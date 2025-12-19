@@ -21,7 +21,15 @@ const ProjectsManager = () => {
         liveUrl: '',
         githubUrl: '',
         features: '', // Will split by comma
-        parallaxStrength: 50,
+        parallaxStrength: 100,
+        textTopPosition: '20%',
+        titleFontSize: 'min(24vw, 120px)',
+        type: 'DEVELOPMENT',
+        typeFontSize: 'min(12vw, 60px)',
+        titleGap: '0px',
+        zoomOutMax: null, // Inherit global
+        textParallaxY: null, // Inherit global
+        imageParallaxY: null, // Inherit global
         gallery: []
     };
     const [formData, setFormData] = useState(initialForm);
@@ -202,11 +210,106 @@ const ProjectsManager = () => {
                         />
                         <input
                             type="number"
-                            placeholder="Parallax Strength (0-200, default 50)"
+                            placeholder="Parallax Strength (0-200, default 100)"
                             value={formData.parallaxStrength || ''}
-                            onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 50 })}
+                            onChange={e => setFormData({ ...formData, parallaxStrength: parseInt(e.target.value) || 100 })}
                             style={inputStyle}
                         />
+
+                        {/* Typography & Position Settings */}
+                        <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ color: 'var(--color-text-light)', fontSize: '14px', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Header Typography & Position</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={labelStyle}>Category / Type (e.g. WEB APP)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.type || ''}
+                                        onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="DEVELOPMENT"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Category Font Size</label>
+                                    <input
+                                        type="text"
+                                        value={formData.typeFontSize || ''}
+                                        onChange={e => setFormData({ ...formData, typeFontSize: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="min(12vw, 60px)"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Title Font Size</label>
+                                    <input
+                                        type="text"
+                                        value={formData.titleFontSize || ''}
+                                        onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="min(24vw, 120px)"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Title Gap (px)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.titleGap || ''}
+                                        onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="0px"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Vertical Position (top % or px)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.textTopPosition || ''}
+                                        onChange={e => setFormData({ ...formData, textTopPosition: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="20%"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Custom Animation Overrides */}
+                        <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ color: 'var(--color-text-light)', fontSize: '14px', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Animation Overrides (Optional)</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={labelStyle}>Max Zoom Out</label>
+                                    <input
+                                        type="number"
+                                        step="0.05"
+                                        value={formData.zoomOutMax || ''}
+                                        onChange={e => setFormData({ ...formData, zoomOutMax: e.target.value ? parseFloat(e.target.value) : null })}
+                                        style={inputStyle}
+                                        placeholder="Default"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Text Y Parallax</label>
+                                    <input
+                                        type="number"
+                                        value={formData.textParallaxY || ''}
+                                        onChange={e => setFormData({ ...formData, textParallaxY: e.target.value ? parseInt(e.target.value) : null })}
+                                        style={inputStyle}
+                                        placeholder="Default"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Image Y Parallax</label>
+                                    <input
+                                        type="number"
+                                        value={formData.imageParallaxY || ''}
+                                        onChange={e => setFormData({ ...formData, imageParallaxY: e.target.value ? parseInt(e.target.value) : null })}
+                                        style={inputStyle}
+                                        placeholder="Default"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Gallery Section */}
                         <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>

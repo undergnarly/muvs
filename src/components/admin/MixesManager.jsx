@@ -19,9 +19,9 @@ const MixesManager = () => {
         textTopPosition: '20%',
         titleGap: '0px',
         parallaxStrength: 100,
-        zoomOutMax: 0.5,
-        imageParallaxY: 100,
-        textParallaxY: 300,
+        zoomOutMax: null,
+        imageParallaxY: null,
+        textParallaxY: null,
         recordDate: '',
         duration: '',
         soundcloudUrl: '',
@@ -194,9 +194,9 @@ const MixesManager = () => {
                                         step="0.05"
                                         min="0.1"
                                         max="1.0"
-                                        placeholder="0.5"
-                                        value={formData.zoomOutMax || ''}
-                                        onChange={e => setFormData({ ...formData, zoomOutMax: parseFloat(e.target.value) || 0.5 })}
+                                        placeholder="Default"
+                                        value={formData.zoomOutMax !== null ? formData.zoomOutMax : ''}
+                                        onChange={e => setFormData({ ...formData, zoomOutMax: e.target.value ? parseFloat(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>
@@ -206,9 +206,9 @@ const MixesManager = () => {
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="100"
-                                        value={formData.imageParallaxY || ''}
-                                        onChange={e => setFormData({ ...formData, imageParallaxY: parseInt(e.target.value) || 0 })}
+                                        placeholder="Default"
+                                        value={formData.imageParallaxY !== null ? formData.imageParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, imageParallaxY: e.target.value ? parseInt(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>
@@ -218,9 +218,9 @@ const MixesManager = () => {
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="300"
-                                        value={formData.textParallaxY || ''}
-                                        onChange={e => setFormData({ ...formData, textParallaxY: parseInt(e.target.value) || 0 })}
+                                        placeholder="Default"
+                                        value={formData.textParallaxY !== null ? formData.textParallaxY : ''}
+                                        onChange={e => setFormData({ ...formData, textParallaxY: e.target.value ? parseInt(e.target.value) : null })}
                                         style={inputStyle}
                                     />
                                 </div>
