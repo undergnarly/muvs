@@ -90,6 +90,12 @@ const ProjectSlide = ({ project, priority = false, allProjects, onNavigate }) =>
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
             >
+                {project.description && (
+                    <div
+                        className="project-short-description"
+                        dangerouslySetInnerHTML={{ __html: project.description }}
+                    />
+                )}
                 {project.liveUrl && project.liveUrl.trim() !== '' && (
                     <Button variant="accent" href={project.liveUrl} style={{ marginTop: 24, background: 'transparent', border: '2px solid var(--color-accent)', color: 'var(--color-accent)' }}>
                         Open Project
