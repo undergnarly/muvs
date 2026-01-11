@@ -30,6 +30,10 @@ const AdminSettings = () => {
             speed: 10, // seconds
             opacity: 0.8, // 0-1, default 80% brightness
             type: 'morphing' // 'morphing' | 'shimmer' | 'pulse'
+        },
+        noiseSettings: siteSettings?.noiseSettings || {
+            enabled: true,
+            intensity: 0.4 // 0-1, default 40% opacity
         }
     });
 
@@ -510,6 +514,47 @@ const AdminSettings = () => {
                                 Gradient Preview
                             </div>
                         </>
+                    )}
+                </div>
+
+                {/* Noise Grain Settings */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Noise Grain Effect (Vintage Film)</h3>
+
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={labelStyle}>Enable Noise Grain</label>
+                        <select
+                            value={siteFormData.noiseSettings.enabled ? 'true' : 'false'}
+                            onChange={e => setSiteFormData({
+                                ...siteFormData,
+                                noiseSettings: { ...siteFormData.noiseSettings, enabled: e.target.value === 'true' }
+                            })}
+                            style={inputStyle}
+                        >
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                        </select>
+                    </div>
+
+                    {siteFormData.noiseSettings.enabled && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={labelStyle}>Noise Intensity (0.1 - 1.0)</label>
+                            <input
+                                type="number"
+                                value={siteFormData.noiseSettings.intensity}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    noiseSettings: { ...siteFormData.noiseSettings, intensity: parseFloat(e.target.value) || 0.4 }
+                                })}
+                                style={inputStyle}
+                                min="0.1"
+                                max="1.0"
+                                step="0.05"
+                            />
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                Current: {Math.round(siteFormData.noiseSettings.intensity * 100)}% - adds film grain texture
+                            </div>
+                        </div>
                     )}
                 </div>
 
