@@ -4,6 +4,30 @@
     padding-bottom: var(--spacing-2xl);
 }
 
+/* Stagger animations */
+.release-details-container .release-info > * {
+    opacity: 0;
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.release-details-container .release-info > :nth-child(1) { animation-delay: 0.1s; }
+.release-details-container .release-info > :nth-child(2) { animation-delay: 0.2s; }
+.release-details-container .release-info > :nth-child(3) { animation-delay: 0.3s; }
+.release-details-container .release-info > :nth-child(4) { animation-delay: 0.4s; }
+.release-details-container .release-info > :nth-child(5) { animation-delay: 0.5s; }
+.release-details-container .release-info > :nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .release-title-lg {
     font-size: 48px;
     margin-bottom: var(--spacing-sm);

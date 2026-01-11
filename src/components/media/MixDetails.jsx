@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { FaSoundcloud, FaSpotify, FaYoutube } from 'react-icons/fa';
 import { SiTidal, SiApplemusic } from 'react-icons/si';
 import TechTag from '../ui/TechTag';
@@ -33,17 +33,6 @@ const itemVariants = {
 };
 
 const MixDetails = ({ mix, allMixes, onNavigate }) => {
-    const [isVisible, setIsVisible] = useState(false);
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, amount: 0.3 });
-
-    useEffect(() => {
-        if (isInView) {
-            const timer = setTimeout(() => setIsVisible(true), 100);
-            return () => clearTimeout(timer);
-        }
-    }, [isInView]);
-
     const mediaLinks = [
         { url: mix.soundcloudUrl, icon: FaSoundcloud, label: 'SoundCloud', color: '#ff5500' },
         { url: mix.spotifyUrl, icon: FaSpotify, label: 'Spotify', color: '#1DB954' },
@@ -52,17 +41,80 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
         { url: mix.appleMusicUrl, icon: SiApplemusic, label: 'Apple Music', color: '#FB233B' },
     ].filter(link => link.url);
 
-    console.log('[MixDetails] Rendered', {
-        isVisible,
-        isInView,
+    console.log('[MixDetails] Rendered with animation variants', {
+        hasAnimation: true,
         title: mix?.title
     });
 
     return (
         <motion.div
-            ref={ref}
             className="mix-details-container"
             variants={containerVariants}
             initial="hidden"
-            animate={isVisible ? "visible" : "hidden"}
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
         >
+            <motion.div className="mix-info" variants={containerVariants}>
+                <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>
+
+                {mix.genres && mix.genres.length > 0 && (
+                    <motion.div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }} variants={itemVariants}>
+                        {mix.genres.map((genre, idx) => (
+                            <TechTag key={idx} label={genre} />
+                        ))}
+                    </motion.div>
+                )}
+
+                <motion.span className="mix-date" style={{ display: 'block', marginBottom: '16px' }} variants={itemVariants}>Recorded: {mix.recordDate} • {mix.duration}</motion.span>
+
+                <motion.p className="mix-description" variants={itemVariants} dangerouslySetInnerHTML={{ __html: fixLinks(mix.description) }}></motion.p>
+
+                {mix.tracklist && mix.tracklist.length > 0 && (
+                    <motion.div className="tracklist" variants={itemVariants}>
+                        <motion.h3 variants={itemVariants}>Tracklist</motion.h3>
+                        <ul>
+                            {mix.tracklist.map((track, idx) => (
+                                <li key={idx} className="track-item">
+                                    <span className="track-num">{track.time}</span>
+                                    <span className="track-title">{track.artist} - {track.track}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </motion.div>
+                )}
+
+                <motion.div className="mix-actions" variants={itemVariants}>
+                    <div className="media-links">
+                        {mediaLinks.map((link, index) => {
+                            const Icon = link.icon;
+                            return (
+                                <a
+                                    key={index}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="media-icon-link"
+                                    aria-label={`Listen on ${link.label}`}
+                                    style={{ '--hover-color': link.color }}
+                                >
+                                    <Icon size={24} />
+                                </a>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            </motion.div>
+            {/* Navigation Footer */}
+            {allMixes && (
+                <NavigationFooter
+                    items={allMixes.map(m => ({ ...m, coverImage: m.backgroundImage }))} // Mixes use 'backgroundImage' as cover
+                    onNavigate={onNavigate}
+                    currentIndex={allMixes.findIndex(m => m.id === mix.id)}
+                    title="More Mixes"
+                />
+            )}
+        </motion.div>
+    );
+};
+
+export default MixDetails;
