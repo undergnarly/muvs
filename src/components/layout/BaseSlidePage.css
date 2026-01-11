@@ -39,13 +39,16 @@
     width: 100%;
     min-height: 100vh;
     padding: var(--spacing-2xl) var(--spacing-md);
-    background-color: var(--color-bg-dark);
-    /* Must have background to cover */
+    /* Gradient fade from transparent at top to solid black */
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(0, 0, 0, 0.3) 10%,
+        rgba(0, 0, 0, 0.7) 20%,
+        rgba(0, 0, 0, 0.95) 30%,
+        var(--color-bg-dark) 40%
+    );
     color: var(--color-text-light);
     z-index: 10;
-    /* On top of the sticky cover */
-    /* Add a shadow for better separation visually if needed */
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Scroll Indicator */
