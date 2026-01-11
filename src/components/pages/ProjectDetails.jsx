@@ -54,6 +54,9 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
                 animationSpeed={gradientSettings.speed}
                 opacity={gradientSettings.opacity ?? 0.8}
                 type={gradientSettings.type}
+                blobSize={gradientSettings.blobSize ?? 50}
+                randomize={gradientSettings.randomize ?? false}
+                randomSeed={gradientSettings.randomSeed}
             />
             <motion.div className="project-info" variants={containerVariants}>
                 <motion.h2 className="project-title-lg" variants={itemVariants}>{project.title}</motion.h2>

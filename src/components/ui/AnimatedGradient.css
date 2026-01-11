@@ -29,51 +29,25 @@
     opacity: var(--gradient-opacity, 0.8);
 }
 
-.animated-gradient--morphing .blob-1 {
-    width: 60%;
-    height: 60%;
-    background: var(--gradient-1);
-    top: -20%;
-    left: -10%;
-    animation: morphMove var(--animation-speed, 10s) ease-in-out infinite alternate;
+/* Morphing type with custom inline styles for randomization */
+.animated-gradient--morphing .gradient-blob {
+    animation: morphMoveCustom calc(var(--animation-speed, 10s) + var(--speed-offset, 0s)) ease-in-out infinite alternate;
 }
 
-.animated-gradient--morphing .blob-2 {
-    width: 50%;
-    height: 50%;
-    background: var(--gradient-2);
-    bottom: -10%;
-    right: -10%;
-    animation: morphMove var(--animation-speed, 12s) ease-in-out infinite alternate-reverse;
-}
+.gradient-blob:nth-child(1) { background: var(--gradient-1); }
+.gradient-blob:nth-child(2) { background: var(--gradient-2); animation-direction: alternate-reverse; }
+.gradient-blob:nth-child(3) { background: var(--gradient-3); }
+.gradient-blob:nth-child(4) { background: var(--gradient-4); animation-direction: alternate-reverse; }
 
-.animated-gradient--morphing .blob-3 {
-    width: 40%;
-    height: 40%;
-    background: var(--gradient-3);
-    top: 40%;
-    left: 40%;
-    animation: morphMove var(--animation-speed, 8s) ease-in-out infinite alternate;
-}
-
-.animated-gradient--morphing .blob-4 {
-    width: 45%;
-    height: 45%;
-    background: var(--gradient-4);
-    top: 30%;
-    right: 20%;
-    animation: morphMove var(--animation-speed, 15s) ease-in-out infinite alternate-reverse;
-}
-
-@keyframes morphMove {
+@keyframes morphMoveCustom {
     0% {
         transform: translate(0, 0) scale(1);
     }
     33% {
-        transform: translate(30px, -50px) scale(1);
+        transform: translate(var(--custom-x, 30px), var(--custom-y, -50px)) scale(1);
     }
     66% {
-        transform: translate(-20px, 20px) scale(1);
+        transform: translate(calc(var(--custom-x, 30px) * -0.5), calc(var(--custom-y, -50px) * -0.5)) scale(1);
     }
     100% {
         transform: translate(0, 0) scale(1);

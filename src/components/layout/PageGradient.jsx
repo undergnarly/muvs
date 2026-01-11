@@ -36,6 +36,9 @@ const PageGradient = () => {
             animationSpeed={lightGradientSettings.speed}
             opacity={lightGradientSettings.opacity ?? 0.3}
             type={lightGradientSettings.type}
+            blobSize={lightGradientSettings.blobSize ?? 50}
+            randomize={lightGradientSettings.randomize ?? false}
+            randomSeed={lightGradientSettings.randomSeed}
             className="light-background-gradient"
         />
     );

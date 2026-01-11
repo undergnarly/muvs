@@ -29,14 +29,20 @@ const AdminSettings = () => {
             colors: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
             speed: 10, // seconds
             opacity: 0.8, // 0-1, default 80% brightness
-            type: 'morphing' // 'morphing' | 'shimmer' | 'pulse'
+            type: 'morphing', // 'morphing' | 'shimmer' | 'pulse'
+            blobSize: 50, // Base size in percentage
+            randomize: false, // Randomize sizes and positions
+            randomSeed: Date.now() // Seed for randomization
         },
         lightGradientSettings: siteSettings?.lightGradientSettings || {
             enabled: false,
             colors: ['#ffeaa7', '#fd79a8', '#a29bfe', '#74b9ff'],
             speed: 10,
             opacity: 0.3,
-            type: 'morphing'
+            type: 'morphing',
+            blobSize: 50,
+            randomize: false,
+            randomSeed: Date.now()
         }
     });
 
@@ -516,6 +522,76 @@ const AdminSettings = () => {
                             }}>
                                 Gradient Preview
                             </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Blob Size (20-100%)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.gradientSettings.blobSize}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        gradientSettings: { ...siteFormData.gradientSettings, blobSize: parseInt(e.target.value) || 50 }
+                                    })}
+                                    style={inputStyle}
+                                    min="20"
+                                    max="100"
+                                    step="5"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {siteFormData.gradientSettings.blobSize}%
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Randomize Sizes & Movements</label>
+                                <select
+                                    value={siteFormData.gradientSettings.randomize ? 'true' : 'false'}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        gradientSettings: {
+                                            ...siteFormData.gradientSettings,
+                                            randomize: e.target.value === 'true',
+                                            randomSeed: e.target.value === 'true' && !siteFormData.gradientSettings.randomize ? Date.now() : siteFormData.gradientSettings.randomSeed
+                                        }
+                                    })}
+                                    style={inputStyle}
+                                >
+                                    <option value="false">Disabled (uniform)</option>
+                                    <option value="true">Enabled (random)</option>
+                                </select>
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Creates unique sizes and movement patterns for each blob
+                                </div>
+                            </div>
+
+                            {siteFormData.gradientSettings.randomize && (
+                                <div style={{ marginBottom: '16px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSiteFormData({
+                                            ...siteFormData,
+                                            gradientSettings: {
+                                                ...siteFormData.gradientSettings,
+                                                randomSeed: Date.now()
+                                            }
+                                        })}
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        🎲 Regenerate Random Pattern
+                                    </button>
+                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                        Click to generate new random sizes and movements
+                                    </div>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -665,6 +741,76 @@ const AdminSettings = () => {
                             <div style={{ marginTop: '16px', padding: '12px', borderRadius: '4px', background: `linear-gradient(135deg, ${siteFormData.lightGradientSettings.colors.join(', ')})`, opacity: siteFormData.lightGradientSettings.opacity, minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
                                 Gradient Preview
                             </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Blob Size (20-100%)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.lightGradientSettings.blobSize}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        lightGradientSettings: { ...siteFormData.lightGradientSettings, blobSize: parseInt(e.target.value) || 50 }
+                                    })}
+                                    style={inputStyle}
+                                    min="20"
+                                    max="100"
+                                    step="5"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {siteFormData.lightGradientSettings.blobSize}%
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Randomize Sizes & Movements</label>
+                                <select
+                                    value={siteFormData.lightGradientSettings.randomize ? 'true' : 'false'}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        lightGradientSettings: {
+                                            ...siteFormData.lightGradientSettings,
+                                            randomize: e.target.value === 'true',
+                                            randomSeed: e.target.value === 'true' && !siteFormData.lightGradientSettings.randomize ? Date.now() : siteFormData.lightGradientSettings.randomSeed
+                                        }
+                                    })}
+                                    style={inputStyle}
+                                >
+                                    <option value="false">Disabled (uniform)</option>
+                                    <option value="true">Enabled (random)</option>
+                                </select>
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Creates unique sizes and movement patterns for each blob
+                                </div>
+                            </div>
+
+                            {siteFormData.lightGradientSettings.randomize && (
+                                <div style={{ marginBottom: '16px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSiteFormData({
+                                            ...siteFormData,
+                                            lightGradientSettings: {
+                                                ...siteFormData.lightGradientSettings,
+                                                randomSeed: Date.now()
+                                            }
+                                        })}
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        🎲 Regenerate Random Pattern
+                                    </button>
+                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                        Click to generate new random sizes and movements
+                                    </div>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

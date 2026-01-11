@@ -60,6 +60,9 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                 animationSpeed={gradientSettings.speed}
                 opacity={gradientSettings.opacity ?? 0.8}
                 type={gradientSettings.type}
+                blobSize={gradientSettings.blobSize ?? 50}
+                randomize={gradientSettings.randomize ?? false}
+                randomSeed={gradientSettings.randomSeed}
             />
             <motion.div className="mix-info" variants={containerVariants}>
                 <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>
