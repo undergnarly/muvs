@@ -9,6 +9,16 @@
     pointer-events: none;
 }
 
+/* Light background gradient - fixed position for entire page background */
+.animated-gradient.light-background-gradient {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+}
+
 .gradient-blob {
     position: absolute;
     border-radius: 50%;

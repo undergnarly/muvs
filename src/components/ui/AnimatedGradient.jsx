@@ -5,8 +5,9 @@ const AnimatedGradient = ({
     enabled = true,
     gradientColors = ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
     animationSpeed = 10,
-    opacity = 0.8, // Добавил opacity - по умолчанию 80% яркости
-    type = 'morphing' // 'morphing' | 'shimmer' | 'pulse'
+    opacity = 0.8,
+    type = 'morphing',
+    className = ''
 }) => {
     if (!enabled) return null;
 
@@ -16,12 +17,12 @@ const AnimatedGradient = ({
         '--gradient-3': gradientColors[2] || '#f093fb',
         '--gradient-4': gradientColors[3] || '#4facfe',
         '--animation-speed': `${animationSpeed}s`,
-        '--gradient-opacity': opacity // Добавил CSS переменную для opacity
+        '--gradient-opacity': opacity
     };
 
     return (
         <div
-            className={`animated-gradient animated-gradient--${type}`}
+            className={`animated-gradient animated-gradient--${type} ${className}`}
             style={gradientStyle}
         >
             <div className="gradient-blob blob-1"></div>

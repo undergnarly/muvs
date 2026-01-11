@@ -3,7 +3,6 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { BiChevronDown } from 'react-icons/bi';
 import { useData } from '../../context/DataContext';
 import './BaseSlidePage.css';
-import '../ui/Noise.css';
 
 const BaseSlidePage = ({
     coverContent,
@@ -20,7 +19,6 @@ const BaseSlidePage = ({
     const finalZoomOutMax = zoomOutMax ?? siteSettings?.scrollAnimation?.zoomOutMax ?? 0.5;
     const finalTextParallaxY = textParallaxY ?? siteSettings?.scrollAnimation?.textParallaxY ?? 300;
     const finalImageParallaxY = imageParallaxY ?? siteSettings?.scrollAnimation?.imageParallaxY ?? 100;
-    const noiseIntensity = siteSettings?.noiseSettings?.intensity ?? 0.4;
     const [scrollContainer, setScrollContainer] = React.useState(null);
 
     React.useLayoutEffect(() => {
@@ -89,10 +87,7 @@ const BaseSlidePage = ({
             </div>
 
             {/* Scrolling Content Section - flows over the sticky header */}
-            <div
-                className="detail-section-flow noise-overlay-css"
-                style={{ '--noise-opacity': noiseIntensity }}
-            >
+            <div className="detail-section-flow">
                 {detailContent}
             </div>
         </div>

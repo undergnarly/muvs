@@ -31,9 +31,12 @@ const AdminSettings = () => {
             opacity: 0.8, // 0-1, default 80% brightness
             type: 'morphing' // 'morphing' | 'shimmer' | 'pulse'
         },
-        noiseSettings: siteSettings?.noiseSettings || {
-            enabled: true,
-            intensity: 0.4 // 0-1, default 40% opacity
+        lightGradientSettings: siteSettings?.lightGradientSettings || {
+            enabled: false,
+            colors: ['#ffeaa7', '#fd79a8', '#a29bfe', '#74b9ff'],
+            speed: 10,
+            opacity: 0.3,
+            type: 'morphing'
         }
     });
 
@@ -517,17 +520,17 @@ const AdminSettings = () => {
                     )}
                 </div>
 
-                {/* Noise Grain Settings */}
+                {/* Light Background Gradient Settings */}
                 <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Noise Grain Effect (Vintage Film)</h3>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Light Background Animated Gradient</h3>
 
                     <div style={{ marginBottom: '16px' }}>
-                        <label style={labelStyle}>Enable Noise Grain</label>
+                        <label style={labelStyle}>Enable Light Gradient</label>
                         <select
-                            value={siteFormData.noiseSettings.enabled ? 'true' : 'false'}
+                            value={siteFormData.lightGradientSettings.enabled ? 'true' : 'false'}
                             onChange={e => setSiteFormData({
                                 ...siteFormData,
-                                noiseSettings: { ...siteFormData.noiseSettings, enabled: e.target.value === 'true' }
+                                lightGradientSettings: { ...siteFormData.lightGradientSettings, enabled: e.target.value === 'true' }
                             })}
                             style={inputStyle}
                         >
@@ -536,25 +539,133 @@ const AdminSettings = () => {
                         </select>
                     </div>
 
-                    {siteFormData.noiseSettings.enabled && (
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={labelStyle}>Noise Intensity (0.1 - 1.0)</label>
-                            <input
-                                type="number"
-                                value={siteFormData.noiseSettings.intensity}
-                                onChange={e => setSiteFormData({
-                                    ...siteFormData,
-                                    noiseSettings: { ...siteFormData.noiseSettings, intensity: parseFloat(e.target.value) || 0.4 }
-                                })}
-                                style={inputStyle}
-                                min="0.1"
-                                max="1.0"
-                                step="0.05"
-                            />
-                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
-                                Current: {Math.round(siteFormData.noiseSettings.intensity * 100)}% - adds film grain texture
+                    {siteFormData.lightGradientSettings.enabled && (
+                        <>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Animation Type</label>
+                                <select
+                                    value={siteFormData.lightGradientSettings.type}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        lightGradientSettings: { ...siteFormData.lightGradientSettings, type: e.target.value }
+                                    })}
+                                    style={inputStyle}
+                                >
+                                    <option value="morphing">Morphing (moving blobs)</option>
+                                    <option value="shimmer">Shimmer (rotating)</option>
+                                    <option value="pulse">Pulse (scaling)</option>
+                                </select>
                             </div>
-                        </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Animation Speed (seconds: 5-30)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.lightGradientSettings.speed}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        lightGradientSettings: { ...siteFormData.lightGradientSettings, speed: parseInt(e.target.value) || 10 }
+                                    })}
+                                    style={inputStyle}
+                                    min="5"
+                                    max="30"
+                                    step="1"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {siteFormData.lightGradientSettings.speed}s (lower = faster)
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Gradient Opacity (0.1 - 1.0)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.lightGradientSettings.opacity}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        lightGradientSettings: { ...siteFormData.lightGradientSettings, opacity: parseFloat(e.target.value) || 0.3 }
+                                    })}
+                                    style={inputStyle}
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.05"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {Math.round(siteFormData.lightGradientSettings.opacity * 100)}%
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Gradient Colors (2-4 colors)</label>
+                                {siteFormData.lightGradientSettings.colors.map((color, index) => (
+                                    <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                                        <input
+                                            type="color"
+                                            value={color}
+                                            onChange={e => {
+                                                const newColors = [...siteFormData.lightGradientSettings.colors];
+                                                newColors[index] = e.target.value;
+                                                setSiteFormData({
+                                                    ...siteFormData,
+                                                    lightGradientSettings: { ...siteFormData.lightGradientSettings, colors: newColors }
+                                                });
+                                            }}
+                                            style={{ width: '50px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: color }}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={color}
+                                            onChange={e => {
+                                                const newColors = [...siteFormData.lightGradientSettings.colors];
+                                                newColors[index] = e.target.value;
+                                                setSiteFormData({
+                                                    ...siteFormData,
+                                                    lightGradientSettings: { ...siteFormData.lightGradientSettings, colors: newColors }
+                                                });
+                                            }}
+                                            style={{ ...inputStyle, flex: 1, textTransform: 'uppercase' }}
+                                            placeholder="#667eea"
+                                        />
+                                        {siteFormData.lightGradientSettings.colors.length > 2 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newColors = siteFormData.lightGradientSettings.colors.filter((_, i) => i !== index);
+                                                    setSiteFormData({
+                                                        ...siteFormData,
+                                                        lightGradientSettings: { ...siteFormData.lightGradientSettings, colors: newColors }
+                                                    });
+                                                }}
+                                                style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: 'white', cursor: 'pointer' }}
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {siteFormData.lightGradientSettings.colors.length < 4 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSiteFormData({
+                                                ...siteFormData,
+                                                lightGradientSettings: {
+                                                    ...siteFormData.lightGradientSettings,
+                                                    colors: [...siteFormData.lightGradientSettings.colors, '#a29bfe']
+                                                }
+                                            });
+                                        }}
+                                        style={{ marginTop: '8px', padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: 'white', cursor: 'pointer' }}
+                                    >
+                                        + Add Color
+                                    </button>
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '16px', padding: '12px', borderRadius: '4px', background: `linear-gradient(135deg, ${siteFormData.lightGradientSettings.colors.join(', ')})`, opacity: siteFormData.lightGradientSettings.opacity, minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                                Gradient Preview
+                            </div>
+                        </>
                     )}
                 </div>
 

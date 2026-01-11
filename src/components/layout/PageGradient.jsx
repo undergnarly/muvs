@@ -1,9 +1,12 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useData } from '../../context/DataContext';
+import AnimatedGradient from '../ui/AnimatedGradient';
 import './PageGradient.css';
 
 const PageGradient = () => {
     const location = useLocation();
+    const { siteSettings } = useData();
 
     useEffect(() => {
         // Don't apply gradient on admin pages or login
@@ -19,7 +22,23 @@ const PageGradient = () => {
         };
     }, [location.pathname]);
 
-    return null;
+    const lightGradientSettings = siteSettings?.lightGradientSettings || {};
+
+    // Don't render animated gradient on admin pages
+    if (location.pathname.startsWith('/admin') || location.pathname === '/login') {
+        return null;
+    }
+
+    return (
+        <AnimatedGradient
+            enabled={lightGradientSettings.enabled ?? false}
+            gradientColors={lightGradientSettings.colors}
+            animationSpeed={lightGradientSettings.speed}
+            opacity={lightGradientSettings.opacity ?? 0.3}
+            type={lightGradientSettings.type}
+            className="light-background-gradient"
+        />
+    );
 };
 
 export default PageGradient;
