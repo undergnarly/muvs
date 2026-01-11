@@ -58,6 +58,7 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                 enabled={gradientSettings.enabled ?? false}
                 gradientColors={gradientSettings.colors}
                 animationSpeed={gradientSettings.speed}
+                opacity={gradientSettings.opacity ?? 0.8}
                 type={gradientSettings.type}
             />
             <motion.div className="mix-info" variants={containerVariants}>

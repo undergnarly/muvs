@@ -28,6 +28,7 @@ const AdminSettings = () => {
             enabled: false,
             colors: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
             speed: 10, // seconds
+            opacity: 0.8, // 0-1, default 80% brightness
             type: 'morphing' // 'morphing' | 'shimmer' | 'pulse'
         }
     });
@@ -373,6 +374,25 @@ const AdminSettings = () => {
                             </div>
 
                             <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Opacity / Brightness (0.1 - 1.0)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.gradientSettings.opacity}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        gradientSettings: { ...siteFormData.gradientSettings, opacity: parseFloat(e.target.value) || 0.8 }
+                                    })}
+                                    style={inputStyle}
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.05"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {Math.round(siteFormData.gradientSettings.opacity * 100)}% brightness (1.0 = full brightness)
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
                                 <label style={labelStyle}>Gradient Colors (comma-separated hex codes)</label>
                                 <input
                                     type="text"
@@ -403,7 +423,8 @@ const AdminSettings = () => {
                                 justifyContent: 'center',
                                 color: 'white',
                                 fontWeight: 'bold',
-                                textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                opacity: siteFormData.gradientSettings.opacity
                             }}>
                                 Gradient Preview
                             </div>

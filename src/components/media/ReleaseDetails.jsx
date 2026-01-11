@@ -65,6 +65,7 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                 enabled={gradientSettings.enabled ?? false}
                 gradientColors={gradientSettings.colors}
                 animationSpeed={gradientSettings.speed}
+                opacity={gradientSettings.opacity ?? 0.8}
                 type={gradientSettings.type}
             />
             <motion.div className="release-info" variants={containerVariants}>

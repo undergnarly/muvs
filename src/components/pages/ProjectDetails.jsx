@@ -52,6 +52,7 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
                 enabled={gradientSettings.enabled ?? false}
                 gradientColors={gradientSettings.colors}
                 animationSpeed={gradientSettings.speed}
+                opacity={gradientSettings.opacity ?? 0.8}
                 type={gradientSettings.type}
             />
             <motion.div className="project-info" variants={containerVariants}>

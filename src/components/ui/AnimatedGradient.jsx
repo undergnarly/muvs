@@ -5,6 +5,7 @@ const AnimatedGradient = ({
     enabled = true,
     gradientColors = ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
     animationSpeed = 10,
+    opacity = 0.8, // Добавил opacity - по умолчанию 80% яркости
     type = 'morphing' // 'morphing' | 'shimmer' | 'pulse'
 }) => {
     if (!enabled) return null;
@@ -14,7 +15,8 @@ const AnimatedGradient = ({
         '--gradient-2': gradientColors[1] || '#764ba2',
         '--gradient-3': gradientColors[2] || '#f093fb',
         '--gradient-4': gradientColors[3] || '#4facfe',
-        '--animation-speed': `${animationSpeed}s`
+        '--animation-speed': `${animationSpeed}s`,
+        '--gradient-opacity': opacity // Добавил CSS переменную для opacity
     };
 
     return (
@@ -31,3 +33,4 @@ const AnimatedGradient = ({
 };
 
 export default AnimatedGradient;
+
