@@ -58,7 +58,7 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
                 randomize={gradientSettings.randomize ?? false}
                 randomSeed={gradientSettings.randomSeed}
             />
-            <motion.div className="project-info" variants={containerVariants}>
+            <motion.div className="project-info">
                 <motion.h2 className="project-title-lg" variants={itemVariants}>{project.title}</motion.h2>
 
                 <motion.div className="project-tech-stack" variants={itemVariants}>

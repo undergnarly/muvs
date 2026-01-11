@@ -64,7 +64,7 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                 randomize={gradientSettings.randomize ?? false}
                 randomSeed={gradientSettings.randomSeed}
             />
-            <motion.div className="mix-info" variants={containerVariants}>
+            <motion.div className="mix-info">
                 <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>
 
                 {mix.genres && mix.genres.length > 0 && (

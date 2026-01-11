@@ -71,7 +71,7 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                 randomize={gradientSettings.randomize ?? false}
                 randomSeed={gradientSettings.randomSeed}
             />
-            <motion.div className="release-info" variants={containerVariants}>
+            <motion.div className="release-info">
                 <motion.h2 className="release-title-lg" variants={itemVariants}>{release.title}</motion.h2>
 
                 {release.genres && release.genres.length > 0 && (
