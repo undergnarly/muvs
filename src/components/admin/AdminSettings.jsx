@@ -393,22 +393,103 @@ const AdminSettings = () => {
                             </div>
 
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={labelStyle}>Gradient Colors (comma-separated hex codes)</label>
-                                <input
-                                    type="text"
-                                    value={siteFormData.gradientSettings.colors.join(', ')}
-                                    onChange={e => {
-                                        const colors = e.target.value.split(',').map(c => c.trim()).filter(c => c);
-                                        setSiteFormData({
-                                            ...siteFormData,
-                                            gradientSettings: { ...siteFormData.gradientSettings, colors }
-                                        });
-                                    }}
-                                    style={inputStyle}
-                                    placeholder="#667eea, #764ba2, #f093fb, #4facfe"
-                                />
+                                <label style={labelStyle}>Gradient Colors</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {siteFormData.gradientSettings.colors.map((color, index) => (
+                                        <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input
+                                                type="color"
+                                                value={color}
+                                                onChange={e => {
+                                                    const newColors = [...siteFormData.gradientSettings.colors];
+                                                    newColors[index] = e.target.value;
+                                                    setSiteFormData({
+                                                        ...siteFormData,
+                                                        gradientSettings: { ...siteFormData.gradientSettings, colors: newColors }
+                                                    });
+                                                }}
+                                                style={{
+                                                    width: '50px',
+                                                    height: '40px',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    background: color
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                value={color}
+                                                onChange={e => {
+                                                    const newColors = [...siteFormData.gradientSettings.colors];
+                                                    newColors[index] = e.target.value;
+                                                    setSiteFormData({
+                                                        ...siteFormData,
+                                                        gradientSettings: { ...siteFormData.gradientSettings, colors: newColors }
+                                                    });
+                                                }}
+                                                style={{
+                                                    ...inputStyle,
+                                                    flex: 1,
+                                                    fontFamily: 'monospace',
+                                                    textTransform: 'uppercase'
+                                                }}
+                                                placeholder="#667eea"
+                                            />
+                                            {siteFormData.gradientSettings.colors.length > 2 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newColors = siteFormData.gradientSettings.colors.filter((_, i) => i !== index);
+                                                        setSiteFormData({
+                                                            ...siteFormData,
+                                                            gradientSettings: { ...siteFormData.gradientSettings, colors: newColors }
+                                                        });
+                                                    }}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        background: 'rgba(255, 85, 85, 0.1)',
+                                                        color: '#ff5555',
+                                                        border: '1px solid #ff5555',
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px'
+                                                    }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {siteFormData.gradientSettings.colors.length < 4 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSiteFormData({
+                                                    ...siteFormData,
+                                                    gradientSettings: {
+                                                        ...siteFormData.gradientSettings,
+                                                        colors: [...siteFormData.gradientSettings.colors, '#ffffff']
+                                                    }
+                                                });
+                                            }}
+                                            style={{
+                                                padding: '8px 16px',
+                                                background: 'rgba(102, 126, 234, 0.2)',
+                                                color: '#667eea',
+                                                border: '1px solid #667eea',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '14px',
+                                                width: '100%'
+                                            }}
+                                        >
+                                            + Add Color
+                                        </button>
+                                    )}
+                                </div>
                                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
-                                    Enter 2-4 hex color codes separated by commas
+                                    Click color box to pick visually, or edit hex code directly (2-4 colors)
                                 </div>
                             </div>
 
