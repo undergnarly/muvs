@@ -1,10 +1,36 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { FaSoundcloud, FaSpotify, FaYoutube } from 'react-icons/fa';
 import { SiTidal, SiApplemusic } from 'react-icons/si';
 import TechTag from '../ui/TechTag';
 import { fixLinks } from '../../utils/linkUtils';
 import NavigationFooter from '../layout/NavigationFooter';
 import './MixDetails.css';
+
+// Animation variants for stagger effect
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.3
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: 'spring',
+            damping: 20,
+            stiffness: 100
+        }
+    }
+};
 
 const MixDetails = ({ mix, allMixes, onNavigate }) => {
     const mediaLinks = [
@@ -16,25 +42,30 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
     ].filter(link => link.url);
 
     return (
-        <div className="mix-details-container">
-            <div className="mix-info">
-                <h2 className="mix-title-lg">{mix.title}</h2>
+        <motion.div
+            className="mix-details-container"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            <motion.div className="mix-info" variants={containerVariants}>
+                <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>
 
                 {mix.genres && mix.genres.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    <motion.div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }} variants={itemVariants}>
                         {mix.genres.map((genre, idx) => (
                             <TechTag key={idx} label={genre} />
                         ))}
-                    </div>
+                    </motion.div>
                 )}
 
-                <span className="mix-date" style={{ display: 'block', marginBottom: '16px' }}>Recorded: {mix.recordDate} • {mix.duration}</span>
+                <motion.span className="mix-date" style={{ display: 'block', marginBottom: '16px' }} variants={itemVariants}>Recorded: {mix.recordDate} • {mix.duration}</motion.span>
 
-                <p className="mix-description" dangerouslySetInnerHTML={{ __html: fixLinks(mix.description) }}></p>
+                <motion.p className="mix-description" variants={itemVariants} dangerouslySetInnerHTML={{ __html: fixLinks(mix.description) }}></motion.p>
 
                 {mix.tracklist && mix.tracklist.length > 0 && (
-                    <div className="tracklist">
-                        <h3>Tracklist</h3>
+                    <motion.div className="tracklist" variants={itemVariants}>
+                        <motion.h3 variants={itemVariants}>Tracklist</motion.h3>
                         <ul>
                             {mix.tracklist.map((track, idx) => (
                                 <li key={idx} className="track-item">
@@ -43,10 +74,10 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className="mix-actions">
+                <motion.div className="mix-actions" variants={itemVariants}>
                     <div className="media-links">
                         {mediaLinks.map((link, index) => {
                             const Icon = link.icon;
@@ -65,8 +96,8 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                             );
                         })}
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
             {/* Navigation Footer */}
             {allMixes && (
                 <NavigationFooter
@@ -76,7 +107,7 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
                     title="More Mixes"
                 />
             )}
-        </div>
+        </motion.div>
     );
 };
 

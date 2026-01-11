@@ -1,3 +1,5 @@
+import React from 'react';
+import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
 import NavigationFooter from '../layout/NavigationFooter';
@@ -5,31 +7,61 @@ import TechTag from '../ui/TechTag';
 import { fixLinks } from '../../utils/linkUtils';
 import './ReleaseDetails.css';
 
+// Animation variants for stagger effect
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.3
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: 'spring',
+            damping: 20,
+            stiffness: 100
+        }
+    }
+};
+
 const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
     return (
-        <div className="release-details-container">
-            <div className="release-info">
-                <h2 className="release-title-lg">{release.title}</h2>
+        <motion.div
+            className="release-details-container"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            <motion.div className="release-info" variants={containerVariants}>
+                <motion.h2 className="release-title-lg" variants={itemVariants}>{release.title}</motion.h2>
 
                 {release.genres && release.genres.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    <motion.div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }} variants={itemVariants}>
                         {release.genres.map((genre, idx) => (
                             <TechTag key={idx} label={genre} />
                         ))}
-                    </div>
+                    </motion.div>
                 )}
 
-                <span className="release-date" style={{ display: 'block', marginBottom: '16px' }}>Released: {release.releaseDate}</span>
+                <motion.span className="release-date" style={{ display: 'block', marginBottom: '16px' }} variants={itemVariants}>Released: {release.releaseDate}</motion.span>
 
-                <p className="release-description" dangerouslySetInnerHTML={{ __html: fixLinks(release.description) }}></p>
+                <motion.p className="release-description" variants={itemVariants} dangerouslySetInnerHTML={{ __html: fixLinks(release.description) }}></motion.p>
 
                 {/* Show embedded SoundCloud playlist if available, otherwise show tracklist */}
                 {/* SoundCloud Player */}
                 {(release.soundcloudTrackUrl || release.soundcloudUrl) && (
-                    <div className="soundcloud-embed">
+                    <motion.div className="soundcloud-embed" variants={itemVariants}>
                         <iframe
                             width="100%"
                             height={release.soundcloudTrackUrl || !hasPlaylist ? "166" : "450"}
@@ -43,12 +75,12 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                                 marginBottom: '24px'
                             }}
                         ></iframe>
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Tracklist */}
                 {release.tracks && release.tracks.length > 0 && (
-                    <div className="tracklist">
+                    <motion.div className="tracklist" variants={itemVariants}>
                         <ul>
                             {release.tracks.map((track, index) => (
                                 <li key={track.id || index} className="track-item">
@@ -58,10 +90,10 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className="release-actions">
+                <motion.div className="release-actions" variants={itemVariants}>
                     {release.bandcampUrl && (
                         <Button variant="accent" href={release.bandcampUrl}>
                             Buy on Bandcamp
@@ -72,7 +104,7 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                             Listen on SoundCloud
                         </Button>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Circular Gallery */}
                 {
@@ -100,8 +132,8 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                         title="More Music"
                     />
                 )}
-            </div >
-        </div >
+            </motion.div>
+        </motion.div>
     );
 };
 
