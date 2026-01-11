@@ -1,0 +1,129 @@
+.animated-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.15;
+}
+
+.gradient-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.7;
+}
+
+.animated-gradient--morphing .blob-1 {
+    width: 60%;
+    height: 60%;
+    background: var(--gradient-1);
+    top: -20%;
+    left: -10%;
+    animation: morphMove var(--animation-speed, 10s) ease-in-out infinite alternate;
+}
+
+.animated-gradient--morphing .blob-2 {
+    width: 50%;
+    height: 50%;
+    background: var(--gradient-2);
+    bottom: -10%;
+    right: -10%;
+    animation: morphMove var(--animation-speed, 12s) ease-in-out infinite alternate-reverse;
+}
+
+.animated-gradient--morphing .blob-3 {
+    width: 40%;
+    height: 40%;
+    background: var(--gradient-3);
+    top: 40%;
+    left: 40%;
+    animation: morphMove var(--animation-speed, 8s) ease-in-out infinite alternate;
+}
+
+.animated-gradient--morphing .blob-4 {
+    width: 45%;
+    height: 45%;
+    background: var(--gradient-4);
+    top: 30%;
+    right: 20%;
+    animation: morphMove var(--animation-speed, 15s) ease-in-out infinite alternate-reverse;
+}
+
+@keyframes morphMove {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+}
+
+/* Shimmer type */
+.animated-gradient--shimmer .gradient-blob {
+    width: 200%;
+    height: 200%;
+    animation: shimmerRotate var(--animation-speed, 20s) linear infinite;
+}
+
+.animated-gradient--shimmer .blob-1 {
+    background: linear-gradient(45deg, var(--gradient-1), var(--gradient-2));
+    top: -50%;
+    left: -50%;
+}
+
+.animated-gradient--shimmer .blob-2 {
+    background: linear-gradient(135deg, var(--gradient-3), var(--gradient-4));
+    top: -50%;
+    right: -50%;
+}
+
+@keyframes shimmerRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse type */
+.animated-gradient--pulse .blob-1 {
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(circle, var(--gradient-1), var(--gradient-2));
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulseScale var(--animation-speed, 8s) ease-in-out infinite;
+}
+
+.animated-gradient--pulse .blob-2 {
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, var(--gradient-3), var(--gradient-4));
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulseScale var(--animation-speed, 6s) ease-in-out infinite reverse;
+}
+
+@keyframes pulseScale {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.8;
+    }
+}

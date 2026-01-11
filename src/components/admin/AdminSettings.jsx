@@ -23,6 +23,12 @@ const AdminSettings = () => {
         scrollAnimation: siteSettings?.scrollAnimation || {
             scrollSectionHeight: 180, // vh
             detailOverlay: -10 // vh
+        },
+        gradientSettings: siteSettings?.gradientSettings || {
+            enabled: false,
+            colors: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
+            speed: 10, // seconds
+            type: 'morphing' // 'morphing' | 'shimmer' | 'pulse'
         }
     });
 
@@ -308,6 +314,101 @@ const AdminSettings = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Animated Gradient Settings */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Animated Gradient Background</h3>
+
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={labelStyle}>Enable Animated Gradient</label>
+                        <select
+                            value={siteFormData.gradientSettings.enabled ? 'true' : 'false'}
+                            onChange={e => setSiteFormData({
+                                ...siteFormData,
+                                gradientSettings: { ...siteFormData.gradientSettings, enabled: e.target.value === 'true' }
+                            })}
+                            style={inputStyle}
+                        >
+                            <option value="false">Disabled</option>
+                            <option value="true">Enabled</option>
+                        </select>
+                    </div>
+
+                    {siteFormData.gradientSettings.enabled && (
+                        <>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Animation Type</label>
+                                <select
+                                    value={siteFormData.gradientSettings.type}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        gradientSettings: { ...siteFormData.gradientSettings, type: e.target.value }
+                                    })}
+                                    style={inputStyle}
+                                >
+                                    <option value="morphing">Morphing (blobs moving)</option>
+                                    <option value="shimmer">Shimmer (rotating gradients)</option>
+                                    <option value="pulse">Pulse (scaling)</option>
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Animation Speed (seconds: 5-30)</label>
+                                <input
+                                    type="number"
+                                    value={siteFormData.gradientSettings.speed}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        gradientSettings: { ...siteFormData.gradientSettings, speed: parseInt(e.target.value) || 10 }
+                                    })}
+                                    style={inputStyle}
+                                    min="5"
+                                    max="30"
+                                    step="1"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Current: {siteFormData.gradientSettings.speed}s
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={labelStyle}>Gradient Colors (comma-separated hex codes)</label>
+                                <input
+                                    type="text"
+                                    value={siteFormData.gradientSettings.colors.join(', ')}
+                                    onChange={e => {
+                                        const colors = e.target.value.split(',').map(c => c.trim()).filter(c => c);
+                                        setSiteFormData({
+                                            ...siteFormData,
+                                            gradientSettings: { ...siteFormData.gradientSettings, colors }
+                                        });
+                                    }}
+                                    style={inputStyle}
+                                    placeholder="#667eea, #764ba2, #f093fb, #4facfe"
+                                />
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                                    Enter 2-4 hex color codes separated by commas
+                                </div>
+                            </div>
+
+                            <div style={{
+                                padding: '16px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, ' + siteFormData.gradientSettings.colors.join(', ') + ')',
+                                marginTop: '8px',
+                                minHeight: '60px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                            }}>
+                                Gradient Preview
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Favicon Upload */}

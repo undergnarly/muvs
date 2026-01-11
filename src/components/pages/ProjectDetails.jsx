@@ -2,11 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import TechTag from '../ui/TechTag';
+import AnimatedGradient from '../ui/AnimatedGradient';
 import CircularGallery from '../media/CircularGallery';
 import NavigationFooter from '../layout/NavigationFooter';
 import { FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
 import { sanitizeUrl } from '../../utils/linkHelpers';
 import { fixLinks } from '../../utils/linkUtils';
+import { useData } from '../../context/DataContext';
 import './ProjectDetails.css';
 
 // Animation variants for stagger effect
@@ -35,10 +37,8 @@ const itemVariants = {
 };
 
 const ProjectDetails = ({ project, allProjects, onNavigate }) => {
-    console.log('[ProjectDetails] Rendered with animation variants', {
-        hasAnimation: true,
-        title: project?.title
-    });
+    const { siteSettings } = useData();
+    const gradientSettings = siteSettings?.gradientSettings || {};
 
     return (
         <motion.div
@@ -48,17 +48,13 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
         >
+            <AnimatedGradient
+                enabled={gradientSettings.enabled ?? false}
+                gradientColors={gradientSettings.colors}
+                animationSpeed={gradientSettings.speed}
+                type={gradientSettings.type}
+            />
             <motion.div className="project-info" variants={containerVariants}>
-                {project.coverImage ? (
-                    <motion.div className="project-cover-image" style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }} variants={itemVariants}>
-                        <img src={project.coverImage} alt={project.title} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    </motion.div>
-                ) : project.thumbnail && (
-                    <motion.div className="project-cover-image" style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }} variants={itemVariants}>
-                        <img src={project.thumbnail} alt={project.title} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    </motion.div>
-                )}
-
                 <motion.h2 className="project-title-lg" variants={itemVariants}>{project.title}</motion.h2>
 
                 <motion.div className="project-tech-stack" variants={itemVariants}>

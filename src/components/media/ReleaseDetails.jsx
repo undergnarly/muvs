@@ -4,7 +4,9 @@ import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
 import NavigationFooter from '../layout/NavigationFooter';
 import TechTag from '../ui/TechTag';
+import AnimatedGradient from '../ui/AnimatedGradient';
 import { fixLinks } from '../../utils/linkUtils';
+import { useData } from '../../context/DataContext';
 import './ReleaseDetails.css';
 
 // Animation variants for stagger effect
@@ -33,6 +35,7 @@ const itemVariants = {
 };
 
 const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
+    const { siteSettings } = useData();
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.3 });
@@ -48,11 +51,7 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
-    console.log('[ReleaseDetails] Rendered', {
-        isVisible,
-        isInView,
-        title: release?.title
-    });
+    const gradientSettings = siteSettings?.gradientSettings || {};
 
     return (
         <motion.div
@@ -62,6 +61,12 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
             initial="hidden"
             animate={isVisible ? "visible" : "hidden"}
         >
+            <AnimatedGradient
+                enabled={gradientSettings.enabled ?? false}
+                gradientColors={gradientSettings.colors}
+                animationSpeed={gradientSettings.speed}
+                type={gradientSettings.type}
+            />
             <motion.div className="release-info" variants={containerVariants}>
                 <motion.h2 className="release-title-lg" variants={itemVariants}>{release.title}</motion.h2>
 

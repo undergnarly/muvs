@@ -3,7 +3,9 @@ import { motion } from 'framer-motion';
 import { FaSoundcloud, FaSpotify, FaYoutube } from 'react-icons/fa';
 import { SiTidal, SiApplemusic } from 'react-icons/si';
 import TechTag from '../ui/TechTag';
+import AnimatedGradient from '../ui/AnimatedGradient';
 import { fixLinks } from '../../utils/linkUtils';
+import { useData } from '../../context/DataContext';
 import NavigationFooter from '../layout/NavigationFooter';
 import './MixDetails.css';
 
@@ -33,6 +35,7 @@ const itemVariants = {
 };
 
 const MixDetails = ({ mix, allMixes, onNavigate }) => {
+    const { siteSettings } = useData();
     const mediaLinks = [
         { url: mix.soundcloudUrl, icon: FaSoundcloud, label: 'SoundCloud', color: '#ff5500' },
         { url: mix.spotifyUrl, icon: FaSpotify, label: 'Spotify', color: '#1DB954' },
@@ -41,10 +44,7 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
         { url: mix.appleMusicUrl, icon: SiApplemusic, label: 'Apple Music', color: '#FB233B' },
     ].filter(link => link.url);
 
-    console.log('[MixDetails] Rendered with animation variants', {
-        hasAnimation: true,
-        title: mix?.title
-    });
+    const gradientSettings = siteSettings?.gradientSettings || {};
 
     return (
         <motion.div
@@ -54,6 +54,12 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
         >
+            <AnimatedGradient
+                enabled={gradientSettings.enabled ?? false}
+                gradientColors={gradientSettings.colors}
+                animationSpeed={gradientSettings.speed}
+                type={gradientSettings.type}
+            />
             <motion.div className="mix-info" variants={containerVariants}>
                 <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>
 
