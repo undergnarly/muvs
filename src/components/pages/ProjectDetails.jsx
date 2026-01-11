@@ -35,6 +35,11 @@ const itemVariants = {
 };
 
 const ProjectDetails = ({ project, allProjects, onNavigate }) => {
+    console.log('[ProjectDetails] Rendered with animation variants', {
+        hasAnimation: true,
+        title: project?.title
+    });
+
     return (
         <motion.div
             className="project-details-container"

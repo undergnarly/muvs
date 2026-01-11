@@ -41,6 +41,11 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
         { url: mix.appleMusicUrl, icon: SiApplemusic, label: 'Apple Music', color: '#FB233B' },
     ].filter(link => link.url);
 
+    console.log('[MixDetails] Rendered with animation variants', {
+        hasAnimation: true,
+        title: mix?.title
+    });
+
     return (
         <motion.div
             className="mix-details-container"

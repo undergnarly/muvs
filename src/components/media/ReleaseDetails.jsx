@@ -36,6 +36,11 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
+    console.log('[ReleaseDetails] Rendered with animation variants', {
+        hasAnimation: true,
+        title: release?.title
+    });
+
     return (
         <motion.div
             className="release-details-container"
