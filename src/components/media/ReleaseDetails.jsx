@@ -46,7 +46,8 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
             className="release-details-container"
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
         >
             <motion.div className="release-info" variants={containerVariants}>
                 <motion.h2 className="release-title-lg" variants={itemVariants}>{release.title}</motion.h2>

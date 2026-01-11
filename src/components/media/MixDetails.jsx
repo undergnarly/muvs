@@ -51,7 +51,8 @@ const MixDetails = ({ mix, allMixes, onNavigate }) => {
             className="mix-details-container"
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
         >
             <motion.div className="mix-info" variants={containerVariants}>
                 <motion.h2 className="mix-title-lg" variants={itemVariants}>{mix.title}</motion.h2>

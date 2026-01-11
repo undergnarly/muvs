@@ -45,7 +45,8 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
             className="project-details-container"
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
         >
             <motion.div className="project-info" variants={containerVariants}>
                 {project.coverImage ? (
