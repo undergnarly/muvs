@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
 import NavigationFooter from '../layout/NavigationFooter';
@@ -33,21 +33,34 @@ const itemVariants = {
 };
 
 const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+    useEffect(() => {
+        if (isInView) {
+            // Small delay to ensure smooth animation
+            const timer = setTimeout(() => setIsVisible(true), 100);
+            return () => clearTimeout(timer);
+        }
+    }, [isInView]);
+
     // Check if there's a SoundCloud playlist URL (set URL)
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
-    console.log('[ReleaseDetails] Rendered with animation variants', {
-        hasAnimation: true,
+    console.log('[ReleaseDetails] Rendered', {
+        isVisible,
+        isInView,
         title: release?.title
     });
 
     return (
         <motion.div
+            ref={ref}
             className="release-details-container"
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            animate={isVisible ? "visible" : "hidden"}
         >
             <motion.div className="release-info" variants={containerVariants}>
                 <motion.h2 className="release-title-lg" variants={itemVariants}>{release.title}</motion.h2>
