@@ -9,6 +9,7 @@ import NewsPage from './components/pages/NewsPage';
 import MusicPage from './components/pages/MusicPage';
 import MixesPage from './components/pages/MixesPage';
 import CodePage from './components/pages/CodePage';
+import LecturePage from './components/pages/LecturePage';
 
 // Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
 const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
@@ -94,6 +95,7 @@ function App() {
         <Route path={ROUTES.MUSIC} element={<MusicPage />} />
         <Route path={ROUTES.MIXES} element={<MixesPage />} />
         <Route path={ROUTES.CODE} element={<CodePage />} />
+        <Route path={ROUTES.LECTURE} element={<LecturePage />} />
         <Route path="/login" element={
           <Suspense fallback={<LoadingFallback />}>
             <LoginPage />
