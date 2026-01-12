@@ -32,6 +32,7 @@
 /* Morphing type with custom inline styles for randomization */
 .animated-gradient--morphing .gradient-blob {
     animation: morphMoveCustom calc(var(--animation-speed, 10s) + var(--speed-offset, 0s)) ease-in-out infinite alternate;
+    animation-delay: calc(var(--phase-offset, 0s) * -1s); /* Phase offset for desynchronization */
 }
 
 .gradient-blob:nth-child(1) { background: var(--gradient-1); }
@@ -43,14 +44,17 @@
     0% {
         transform: translate(0, 0) scale(1);
     }
-    33% {
+    25% {
+        transform: translate(calc(var(--custom-x, 30px) * 0.5), calc(var(--custom-y, -50px) * 0.3)) scale(1.02);
+    }
+    50% {
         transform: translate(var(--custom-x, 30px), var(--custom-y, -50px)) scale(1);
     }
-    66% {
-        transform: translate(calc(var(--custom-x, 30px) * -0.5), calc(var(--custom-y, -50px) * -0.5)) scale(1);
+    75% {
+        transform: translate(calc(var(--custom-x, 30px) * 0.8), calc(var(--custom-y, -50px) * 0.6)) scale(0.98);
     }
     100% {
-        transform: translate(0, 0) scale(1);
+        transform: translate(calc(var(--custom-x, 30px) * -0.5), calc(var(--custom-y, -50px) * -0.5)) scale(1);
     }
 }
 

@@ -39,29 +39,33 @@ const AnimatedGradient = ({
             }));
         }
 
-        // Randomize each blob
+        // Randomize each blob with smooth random movement
         return baseBlobs.map((blob, i) => {
             const random1 = seededRandom(randomSeed + i);
             const random2 = seededRandom(randomSeed + i + 100);
             const random3 = seededRandom(randomSeed + i + 200);
+            const random4 = seededRandom(randomSeed + i + 300);
+            const random5 = seededRandom(randomSeed + i + 400);
 
-            // Size variation: 50% to 150% of base blob size
-            const sizeMultiplier = 0.5 + random1 * 1.0;
+            // Size variation: 40% to 120% of base blob size (more subtle)
+            const sizeMultiplier = 0.4 + random1 * 0.8;
             const finalSize = blob.size * sizeMultiplier * (blobSize / 50);
 
-            // Random position offsets
-            const positionOffset = 30;
-            const top = blob.top !== undefined ? blob.top + (random2 - 0.5) * positionOffset : undefined;
-            const bottom = blob.bottom !== undefined ? blob.bottom + (random2 - 0.5) * positionOffset : undefined;
-            const left = blob.left !== undefined ? blob.left + (random3 - 0.5) * positionOffset : undefined;
-            const right = blob.right !== undefined ? blob.right + (random3 - 0.5) * positionOffset : undefined;
+            // More random position offsets - can place anywhere on screen
+            const top = blob.top !== undefined ? (random2 * 80 - 20) : undefined; // -20% to 60%
+            const bottom = blob.bottom !== undefined ? (random2 * 80 - 20) : undefined;
+            const left = blob.left !== undefined ? (random3 * 80 - 20) : undefined; // -20% to 60%
+            const right = blob.right !== undefined ? (random3 * 80 - 20) : undefined;
 
-            // Random animation speed offset
-            const speedOffset = (random1 - 0.5) * 4; // -2s to +2s
+            // Random animation speed offset - more variation for smoother effect
+            const speedOffset = (random4 - 0.5) * 6; // -3s to +3s
 
-            // Random movement direction
-            const translateX = (random2 - 0.5) * 100; // -50px to 50px
-            const translateY = (random3 - 0.5) * 100; // -50px to 50px
+            // Random movement direction - larger range but smoother
+            const translateX = (random2 - 0.5) * 150; // -75px to 75px
+            const translateY = (random3 - 0.5) * 150; // -75px to 75px
+
+            // Add phase offset for each blob to make movements less synchronized
+            const phaseOffset = random5 * Math.PI * 2; // 0 to 2π
 
             return {
                 size: finalSize,
@@ -71,7 +75,8 @@ const AnimatedGradient = ({
                 right,
                 speedOffset,
                 translateX,
-                translateY
+                translateY,
+                phaseOffset
             };
         });
     }, [blobSize, randomize, randomSeed]);
@@ -103,7 +108,8 @@ const AnimatedGradient = ({
                         right: blob.right !== undefined ? `${blob.right}%` : undefined,
                         '--custom-x': `${blob.translateX}px`,
                         '--custom-y': `${blob.translateY}px`,
-                        '--speed-offset': `${blob.speedOffset}s`
+                        '--speed-offset': `${blob.speedOffset}s`,
+                        '--phase-offset': blob.phaseOffset || 0
                     }}
                 />
             ))}

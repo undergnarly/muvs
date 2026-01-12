@@ -31,7 +31,7 @@ const AdminSettings = () => {
             opacity: 0.8, // 0-1, default 80% brightness
             type: 'morphing', // 'morphing' | 'shimmer' | 'pulse'
             blobSize: 50, // Base size in percentage
-            randomize: false, // Randomize sizes and positions
+            randomize: true, // Randomize sizes and positions - always enabled for dark background
             randomSeed: Date.now() // Seed for randomization
         },
         lightGradientSettings: siteSettings?.lightGradientSettings || {
