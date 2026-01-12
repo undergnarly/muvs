@@ -53,9 +53,6 @@ const BaseSlidePage = ({
     const coverTextY = useTransform(scrollY, scrollRange, [0, finalTextParallaxY]);
     const coverImageY = useTransform(scrollY, scrollRange, [0, finalImageParallaxY]);
 
-    // Fade out cover as it gets covered
-    const coverOpacity = useTransform(scrollY, scrollRange, [1, 0.2]);
-
     // Scroll indicator fades out quickly
     const indicatorOpacity = useTransform(scrollY, [0, 100], [1, 0]);
 
@@ -66,12 +63,11 @@ const BaseSlidePage = ({
                 <motion.div
                     className="cover-content-wrapper"
                     style={{
-                        scale: coverScale,
-                        opacity: coverOpacity
+                        scale: coverScale
                     }}
                 >
                     {typeof coverContent === 'function'
-                        ? coverContent({ coverTextY, coverImageY, coverScale, coverOpacity, scrollY })
+                        ? coverContent({ coverTextY, coverImageY, coverScale, scrollY })
                         : coverContent}
                 </motion.div>
 
