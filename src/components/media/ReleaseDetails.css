@@ -111,7 +111,7 @@
     right: 50%;
     margin-left: -50vw;
     margin-right: -50vw;
-    background: var(--color-bg-dark);
+    background: #00000000;
 }
 
 .gallery-title {
