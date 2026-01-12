@@ -26,7 +26,7 @@ const ContactForm = () => {
         <div style={{
             marginTop: '32px',
             padding: '24px',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'rgb(45 45 45)',
             borderRadius: '12px',
             border: '1px solid rgba(255,255,255,0.05)',
             maxWidth: '600px', // Limit width for better reading line
