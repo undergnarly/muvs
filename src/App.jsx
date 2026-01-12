@@ -84,10 +84,13 @@ function App() {
 
 
 
+  // Check if current route is lecture page
+  const isLecturePage = location.pathname === ROUTES.LECTURE;
+
   return (
     <>
-      <TopBlur />
-      <PageGradient />
+      {!isLecturePage && <TopBlur />}
+      {!isLecturePage && <PageGradient />}
       <Routes>
         <Route path={ROUTES.HOME} element={<MusicPage />} />
         <Route path={ROUTES.ABOUT} element={<AboutPage />} />
