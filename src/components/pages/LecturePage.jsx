@@ -1,8 +1,57 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Home, Maximize, Minimize } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Home, Maximize, Minimize,
+  Lightbulb, Brain, Target, Zap, BookOpen, Heart, Sparkles,
+  MessageSquare, DollarSign, Workflow, Database, TrendingUp,
+  Briefcase, AlertTriangle, CheckCircle2, Clock, Calendar,
+  Code, Image, Video, Wrench, Link, FileText, Users
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './LecturePage.css';
+
+// Unified animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12
+    }
+  }
+};
+
+const scaleVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 200,
+      damping: 15
+    }
+  }
+};
+
+// Icon wrapper component
+const IconWrapper = ({ children, className = "" }) => (
+  <span className={`lecture-icon ${className}`}>{children}</span>
+);
 
 // Lecture slides data
 const lectureSlides = [
@@ -587,18 +636,21 @@ const LecturePage = () => {
             {slide.type === 'list' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <ul className="lecture-list">
+                <motion.ul
+                  className="lecture-list"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((item, idx) => (
                     <motion.li
                       key={idx}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={itemVariants}
                     >
                       {item}
                     </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
               </>
             )}
 
@@ -633,19 +685,23 @@ const LecturePage = () => {
             {slide.type === 'checklist' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-checklist">
+                <motion.div
+                  className="lecture-checklist"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((item, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-checklist-item"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={scaleVariants}
                     >
+                      <IconWrapper><CheckCircle2 size={20} className="lecture-check-icon" /></IconWrapper>
                       {item}
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
 
@@ -713,24 +769,39 @@ const LecturePage = () => {
             {slide.type === 'tools' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-tools-grid">
-                  {Object.entries(slide.content).map(([category, tools], idx) => (
-                    <motion.div
-                      key={category}
-                      className="lecture-tool-category"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
-                    >
-                      <h3>{category}</h3>
-                      <div className="lecture-tool-items">
-                        {Array.isArray(tools) && tools.map((tool, toolIdx) => (
-                          <span key={toolIdx} className="lecture-tool-badge">{tool}</span>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                <motion.div
+                  className="lecture-tools-grid"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {Object.entries(slide.content).map(([category, tools], idx) => {
+                    const categoryIcons = {
+                      'Текст': <FileText size={20} />,
+                      'Картинки': <Image size={20} />,
+                      'Видео': <Video size={20} />,
+                      'Код': <Code size={20} />,
+                      'Автоматизация': <Workflow size={20} />
+                    };
+                    return (
+                      <motion.div
+                        key={category}
+                        className="lecture-tool-category"
+                        variants={itemVariants}
+                      >
+                        <h3>
+                          <IconWrapper>{categoryIcons[category] || <Wrench size={20} />}</IconWrapper>
+                          {category}
+                        </h3>
+                        <div className="lecture-tool-items">
+                          {Array.isArray(tools) && tools.map((tool, toolIdx) => (
+                            <span key={toolIdx} className="lecture-tool-badge">{tool}</span>
+                          ))}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
               </>
             )}
 
@@ -748,325 +819,538 @@ const LecturePage = () => {
 
             {slide.type === 'warning' && (
               <>
-                <h2 className="lecture-slide-title">⚠️ {slide.title}</h2>
-                <div className="lecture-warning-list">
+                <h2 className="lecture-slide-title">
+                  <IconWrapper><AlertTriangle size={32} /></IconWrapper> {slide.title}
+                </h2>
+                <motion.div
+                  className="lecture-warning-list"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((item, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-warning-item"
-                      initial={{ x: 20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={itemVariants}
                     >
+                      <IconWrapper><AlertTriangle size={18} className="lecture-warning-icon" /></IconWrapper>
                       {item}
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'exercise' && (
-              <div className="lecture-exercise">
+              <motion.div
+                className="lecture-exercise"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+              >
                 <div className="lecture-exercise-header">
-                  <span className="lecture-exercise-badge">ПРАКТИКА</span>
+                  <span className="lecture-exercise-badge">
+                    <IconWrapper><Target size={16} /></IconWrapper> ПРАКТИКА
+                  </span>
                   <h2 className="lecture-exercise-title">{slide.content.task}</h2>
                 </div>
-                <div className="lecture-exercise-steps">
+                <motion.div
+                  className="lecture-exercise-steps"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {slide.content.steps.map((step, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-exercise-step"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={itemVariants}
                     >
                       <span className="lecture-step-num">{idx + 1}</span>
                       <span>{step}</span>
                     </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
 
             {slide.type === 'routine' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-routine">
+                <motion.div
+                  className="lecture-routine"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-routine-items">
                     {slide.content.items.map((item, idx) => (
-                      <div key={idx} className="lecture-routine-item">{item}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-routine-item"
+                        variants={itemVariants}
+                      >
+                        <IconWrapper><Clock size={20} className="lecture-item-icon-inline" /></IconWrapper>
+                        {item}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-integration">
+                  <motion.div
+                    className="lecture-integration"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><Link size={18} /></IconWrapper>
                     <strong>Интеграция:</strong> {slide.content.integration}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'learning' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-learning">
+                <motion.div
+                  className="lecture-learning"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-learning-features">
                     {slide.content.features.map((feature, idx) => (
-                      <div key={idx} className="lecture-learning-item">{feature}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-learning-item"
+                        variants={itemVariants}
+                      >
+                        <IconWrapper><BookOpen size={18} className="lecture-item-icon-inline" /></IconWrapper>
+                        {feature}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-learning-example">
+                  <motion.div
+                    className="lecture-learning-example"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><Lightbulb size={18} /></IconWrapper>
                     <strong>Пример:</strong> {slide.content.example}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'wellness' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-wellness">
+                <motion.div
+                  className="lecture-wellness"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-wellness-features">
                     {slide.content.features.map((feature, idx) => (
-                      <div key={idx} className="lecture-wellness-item">{feature}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-wellness-item"
+                        variants={itemVariants}
+                      >
+                        <IconWrapper><Heart size={18} className="lecture-item-icon-inline" /></IconWrapper>
+                        {feature}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-wellness-connection">
+                  <motion.div
+                    className="lecture-wellness-connection"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><Zap size={20} /></IconWrapper>
                     {slide.content.connection}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'creative' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-creative">
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-creative-item"
-                      initial={{ rotate: -5, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
-                    >
-                      {item}
-                    </motion.div>
-                  ))}
-                </div>
-                {slide.note && <p className="lecture-note">💡 {slide.note}</p>}
+                <motion.div
+                  className="lecture-creative"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {Array.isArray(slide.content) && slide.content.map((item, idx) => {
+                    const icons = [<Sparkles size={24} key="sparkles" />, <Lightbulb size={24} key="lightbulb" />, <Brain size={24} key="brain" />, <Zap size={24} key="zap" />];
+                    return (
+                      <motion.div
+                        key={idx}
+                        className="lecture-creative-item"
+                        variants={scaleVariants}
+                      >
+                        <IconWrapper><div className="lecture-item-icon">{icons[idx % icons.length]}</div></IconWrapper>
+                        <span>{item}</span>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+                {slide.note && (
+                  <motion.p
+                    className="lecture-note"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <IconWrapper><Lightbulb size={18} /></IconWrapper> {slide.note}
+                  </motion.p>
+                )}
               </>
             )}
 
             {slide.type === 'communication' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-communication">
+                <motion.div
+                  className="lecture-communication"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-communication-features">
                     {slide.content.features.map((feature, idx) => (
-                      <div key={idx} className="lecture-comm-item">{feature}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-comm-item"
+                        variants={itemVariants}
+                      >
+                        <IconWrapper><MessageSquare size={16} className="lecture-item-icon-inline" /></IconWrapper>
+                        {feature}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-comm-example">
+                  <motion.div
+                    className="lecture-comm-example"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><MessageSquare size={18} /></IconWrapper>
                     <strong>Пример:</strong> {slide.content.example}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'finance' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-finance">
+                <motion.div
+                  className="lecture-finance"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-finance-features">
                     {slide.content.features.map((feature, idx) => (
-                      <div key={idx} className="lecture-finance-item">{feature}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-finance-item"
+                        variants={itemVariants}
+                      >
+                        <IconWrapper><DollarSign size={18} className="lecture-item-icon-inline" /></IconWrapper>
+                        {feature}
+                      </motion.div>
                     ))}
                   </div>
                   {slide.content.warning && (
-                    <div className="lecture-finance-warning">
-                      ⚠️ {slide.content.warning}
-                    </div>
+                    <motion.div
+                      className="lecture-finance-warning"
+                      variants={itemVariants}
+                    >
+                      <IconWrapper><AlertTriangle size={18} /></IconWrapper>
+                      {slide.content.warning}
+                    </motion.div>
                   )}
-                </div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'automation-examples' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-auto-examples">
+                <motion.div
+                  className="lecture-auto-examples"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((example, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-auto-item"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={scaleVariants}
                     >
                       <span className="lecture-auto-number">{idx + 1}</span>
+                      <IconWrapper><Workflow size={18} className="lecture-item-icon-inline" /></IconWrapper>
                       {example}
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'system' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-system">
+                <motion.div
+                  className="lecture-system"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-para-method">
-                    <h3>PARA Метод</h3>
+                    <h3><IconWrapper><Database size={22} /></IconWrapper> PARA Метод</h3>
                     {Object.entries(slide.content.para).map(([key, value]) => (
-                      <div key={key} className="lecture-para-item">
+                      <motion.div
+                        key={key}
+                        className="lecture-para-item"
+                        variants={itemVariants}
+                      >
                         <strong>{key}:</strong> {value}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-system-ai">
+                  <motion.div
+                    className="lecture-system-ai"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><Brain size={20} /></IconWrapper>
                     {slide.content.ai}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'knowledge' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-knowledge">
+                <motion.div
+                  className="lecture-knowledge"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-knowledge-tools">
-                    <h3>Инструменты</h3>
+                    <h3><IconWrapper><Wrench size={22} /></IconWrapper> Инструменты</h3>
                     {slide.content.tools.map((tool, idx) => (
-                      <div key={idx} className="lecture-knowledge-tool">{tool}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-knowledge-tool"
+                        variants={scaleVariants}
+                      >
+                        {tool}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-knowledge-ai">
+                  <motion.div
+                    className="lecture-knowledge-ai"
+                    variants={itemVariants}
+                  >
+                    <IconWrapper><Sparkles size={18} /></IconWrapper>
                     {slide.content.ai}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'trends' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-trends">
+                <motion.div
+                  className="lecture-trends"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((trend, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-trend-item"
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={scaleVariants}
                     >
+                      <IconWrapper><TrendingUp size={24} className="lecture-item-icon" /></IconWrapper>
                       {trend}
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'skills' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-skills">
+                <motion.div
+                  className="lecture-skills"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((skill, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-skill-item"
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={itemVariants}
                     >
                       <span className="lecture-skill-number">{idx + 1}</span>
                       {skill}
                     </motion.div>
                   ))}
-                </div>
-                {slide.advice && <p className="lecture-advice">💡 {slide.advice}</p>}
+                </motion.div>
+                {slide.advice && (
+                  <motion.p
+                    className="lecture-advice"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <IconWrapper><Lightbulb size={18} /></IconWrapper> {slide.advice}
+                  </motion.p>
+                )}
               </>
             )}
 
             {slide.type === 'ethics' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-ethics">
+                <motion.div
+                  className="lecture-ethics"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <div key={idx} className="lecture-ethics-item">{item}</div>
+                    <motion.div
+                      key={idx}
+                      className="lecture-ethics-item"
+                      variants={itemVariants}
+                    >
+                      <IconWrapper><AlertTriangle size={18} className="lecture-item-icon-inline" /></IconWrapper>
+                      {item}
+                    </motion.div>
                   ))}
-                </div>
-                {slide.principle && <p className="lecture-principle">{slide.principle}</p>}
+                </motion.div>
+                {slide.principle && (
+                  <motion.p
+                    className="lecture-principle"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <IconWrapper><Brain size={22} /></IconWrapper>
+                    {slide.principle}
+                  </motion.p>
+                )}
               </>
             )}
 
             {slide.type === 'plan' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-plan">
+                <motion.div
+                  className="lecture-plan"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {Object.entries(slide.content).map(([week, action], idx) => (
                     <motion.div
                       key={week}
                       className="lecture-plan-week"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
+                      variants={itemVariants}
                     >
                       <div className="lecture-week-label">Неделя {week.replace('week', '')}</div>
                       <div className="lecture-week-action">{action}</div>
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'resources' && (
               <>
                 <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-resources">
+                <motion.div
+                  className="lecture-resources"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   <div className="lecture-resource-books">
-                    <h3>📚 Книги</h3>
+                    <h3><IconWrapper><BookOpen size={22} /></IconWrapper> Книги</h3>
                     {slide.content.books.map((book, idx) => (
-                      <div key={idx} className="lecture-book-item">{book}</div>
+                      <motion.div
+                        key={idx}
+                        className="lecture-book-item"
+                        variants={itemVariants}
+                      >
+                        {book}
+                      </motion.div>
                     ))}
                   </div>
-                  <div className="lecture-resource-links">
-                    <div className="lecture-resource-item">📢 {slide.content.channels}</div>
-                    <div className="lecture-resource-item">🎥 {slide.content.youtube}</div>
-                    <div className="lecture-resource-item">👥 {slide.content.community}</div>
-                  </div>
-                </div>
+                  <motion.div
+                    className="lecture-resource-links"
+                    variants={containerVariants}
+                  >
+                    <motion.div className="lecture-resource-item" variants={itemVariants}>
+                      <IconWrapper><Users size={18} /></IconWrapper> {slide.content.channels}
+                    </motion.div>
+                    <motion.div className="lecture-resource-item" variants={itemVariants}>
+                      <IconWrapper><Video size={18} /></IconWrapper> {slide.content.youtube}
+                    </motion.div>
+                    <motion.div className="lecture-resource-item" variants={itemVariants}>
+                      <IconWrapper><Users size={18} /></IconWrapper> {slide.content.community}
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {slide.type === 'final' && (
-              <div className="lecture-final">
+              <motion.div
+                className="lecture-final"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
                 <motion.div
                   className="lecture-final-quote"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  variants={scaleVariants}
                 >
+                  <IconWrapper><Sparkles size={32} className="lecture-quote-icon" /></IconWrapper>
                   "{slide.content.quote}"
                 </motion.div>
-                <div className="lecture-final-actions">
+                <motion.div
+                  className="lecture-final-actions"
+                  variants={containerVariants}
+                >
                   {slide.content.actions.map((action, idx) => (
                     <motion.div
                       key={idx}
                       className="lecture-final-action"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.4 + idx * 0.1 }}
+                      variants={scaleVariants}
                     >
+                      <IconWrapper><CheckCircle2 size={22} className="lecture-action-icon" /></IconWrapper>
                       {action}
                     </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
           </div>
 
           {/* Timing */}
           {slide.timing && (
-            <div className="lecture-timing">⏱ {slide.timing}</div>
+            <div className="lecture-timing">
+              <IconWrapper><Clock size={14} /></IconWrapper> {slide.timing}
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
