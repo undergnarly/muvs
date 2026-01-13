@@ -95,7 +95,7 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
 
                 {/* Circular Gallery */}
                 {project.gallery && project.gallery.length > 0 && (
-                    <motion.div className="gallery-container-full" style={{ marginTop: '48px', width: '100vw', position: 'relative', left: '50%', right: '50%', marginLeft: '-50vw', marginRight: '-50vw', background: 'var(--color-bg-dark)' }} variants={itemVariants}>
+                    <motion.div className="gallery-container-full" style={{ background: '#00000000' }} variants={itemVariants}>
                         <div className="gallery-wrapper">
                             <CircularGallery
                                 items={project.gallery}

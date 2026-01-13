@@ -6,6 +6,7 @@ export const ROUTES = {
     NEWS: '/news',
     ABOUT: '/about',
     LECTURE: '/lecture', // Hidden lecture page
+    LECTURE_TEXT: '/lecture-text', // Full text version
 };
 
 export const SOCIAL_LINKS = {

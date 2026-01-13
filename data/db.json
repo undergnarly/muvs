@@ -21,19 +21,49 @@
   "stats": {
     "visits": [],
     "detailViews": [],
-    "totalVisits": 4,
+    "totalVisits": 35,
     "daily": {
-      "2025-12-08": 4
+      "2025-12-08": 4,
+      "2026-01-12": 31
     },
     "pages": {
       "/login": 1,
       "/admin": 1,
       "/admin/music": 1,
-      "/": 1
+      "/": 1,
+      "/lecture": 20,
+      "/lecture-text": 11
     },
     "sources": {
-      "direct": 4
+      "direct": 27,
+      "localhost": 8
+    },
+    "countries": {
+      "Indonesia": 31
     }
   },
-  "messages": []
+  "messages": [],
+  "about": {
+    "title": "ABOUT",
+    "content": "I am a developer and music enthusiast passionate about building immersive digital experiences. With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.",
+    "backgroundImage": ""
+  },
+  "siteSettings": {
+    "favicon": "",
+    "siteName": "MUVS",
+    "siteDescription": "Audio • Visual • Code",
+    "socialLinks": {
+      "instagram": "https://instagram.com/muvs.dev",
+      "soundcloud": "https://soundcloud.com/muvs",
+      "bandcamp": "https://muvs.bandcamp.com",
+      "telegram": "https://t.me/muvs_dev"
+    },
+    "scrollAnimation": {
+      "scrollSectionHeight": 180,
+      "detailOverlay": -10,
+      "zoomOutMax": 0.65,
+      "imageParallaxY": -100,
+      "textParallaxY": 50
+    }
+  }
 }

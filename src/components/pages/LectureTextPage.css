@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700&display=swap');
+
+.lecture-text-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 100px;
+    background: #ffffff;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #111;
+    line-height: 1.7;
+}
+
+.lecture-text-header {
+    padding: 100px 0 60px;
+    text-align: left;
+    border-bottom: 2px solid #000;
+    margin-bottom: 80px;
+}
+
+.lecture-sticky-nav {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    padding: 20px 0;
+    margin: 0 -40px 40px;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #000;
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: #222;
+    transform: translateX(-4px);
+}
+
+.lecture-text-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 900;
+    margin-bottom: 24px;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.lecture-meta {
+    font-size: 16px;
+    color: #006d51;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.lecture-text-section {
+    margin-bottom: 120px;
+    position: relative;
+}
+
+.section-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 80px;
+    font-weight: 900;
+    color: rgba(0, 109, 81, 0.05);
+    position: absolute;
+    top: -40px;
+    left: -40px;
+    z-index: -1;
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #000;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.section-narrative {
+    font-size: 21px;
+    color: #333;
+    margin-bottom: 40px;
+    font-weight: 400;
+}
+
+.section-practice {
+    background: #f8faf9;
+    border-radius: 20px;
+    padding: 40px;
+    border: 1px solid rgba(0, 109, 81, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 109, 81, 0.03);
+    transition: transform 0.3s ease;
+}
+
+.section-practice:hover {
+    transform: translateY(-5px);
+}
+
+.practice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #006d51;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+}
+
+.practice-content {
+    font-size: 19px;
+    color: #1a3a30;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.lecture-text-footer {
+    padding-top: 40px;
+}
+
+.final-note {
+    background: #000;
+    color: #fff;
+    padding: 80px 60px;
+    border-radius: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+}
+
+.final-note h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.final-note p {
+    font-size: 20px;
+    color: #aaa;
+    margin-bottom: 24px;
+    max-width: 600px;
+}
+
+.cta-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 18px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cta-btn:hover {
+    transform: scale(1.05) translateY(-2px);
+    background: #eee;
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .lecture-text-container {
+        padding: 0 20px 60px;
+    }
+
+    .lecture-text-header h1 {
+        font-size: 42px;
+    }
+
+    .section-title {
+        font-size: 32px;
+    }
+
+    .section-number {
+        font-size: 60px;
+        left: 0;
+    }
+}

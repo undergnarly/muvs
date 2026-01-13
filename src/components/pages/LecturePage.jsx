@@ -1,1391 +1,478 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, ChevronRight, Home, Maximize, Minimize,
-  Lightbulb, Brain, Target, Zap, BookOpen, Heart, Sparkles,
-  MessageSquare, DollarSign, Workflow, Database, TrendingUp,
-  Briefcase, AlertTriangle, CheckCircle2, Clock, Calendar,
-  Code, Image, Video, Wrench, Link, FileText, Users
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { lectureSlides } from '../../data/lectureData';
 import './LecturePage.css';
+
+const {
+  ChevronLeft, ChevronRight, Home, Maximize, Minimize, ChevronDown, ChevronUp,
+  ExternalLink, CheckCircle2, BookOpen
+} = LucideIcons;
+
+// Dynamic icon component
+const DynamicIcon = ({ name, size = 24, className = "", color = "currentColor" }) => {
+  if (!name) return null;
+  const IconComponent = LucideIcons[name] || LucideIcons.HelpCircle;
+  return <IconComponent size={size} className={className} color={color} />;
+};
 
 // Unified animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.2
-    }
-  }
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.2 } }
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 12
-    }
-  }
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 12 } }
 };
 
 const scaleVariants = {
   hidden: { opacity: 0, scale: 0.9 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 200,
-      damping: 15
-    }
-  }
+  visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 200, damping: 15 } }
 };
 
-// Icon wrapper component
 const IconWrapper = ({ children, className = "" }) => (
   <span className={`lecture-icon ${className}`}>{children}</span>
 );
 
-// Lecture slides data
-const lectureSlides = [
-  // BLOCK 1: INTRODUCTION
-  {
-    block: 'intro',
-    id: 1,
-    title: 'Автоматизация и AI системы',
-    subtitle: 'Как изменить свою жизнь с помощью искусственного интеллекта',
-    type: 'title'
-  },
-  {
-    block: 'intro',
-    id: 2,
-    title: 'Мы на рубеже эпохи',
-    content: [
-      'AI — это не будущее, это настоящее',
-      'Те, кто освоит AI — будут лидерами',
-      'Те, кто проигнорирует — останутся позади'
-    ],
-    type: 'list',
-    timing: '3 мин'
-  },
-  {
-    block: 'intro',
-    id: 3,
-    title: 'Шаолинь + AI = Суперспособности',
-    content: [
-      'Шаолинь: дисциплина, фокус, практика',
-      'AI: ускорение, масштабирование, эффективность',
-      'Вместе: путь мастера новой эпохи'
-    ],
-    type: 'balance',
-    timing: '4 мин'
-  },
-  {
-    block: 'intro',
-    id: 4,
-    title: 'Чему вы научитесь за 2 часа',
-    content: [
-      '✓ Понимать как работает AI',
-      '✓ Внедрить AI в повседневную жизнь',
-      '✓ Автоматизировать рутинные задачи',
-      '✓ Создать личную систему продуктивности',
-      '✓ Подготовиться к будущему'
-    ],
-    type: 'checklist',
-    timing: '3 мин'
-  },
-  {
-    block: 'intro',
-    id: 5,
-    title: 'Моя история',
-    content: [
-      'Опыт работы с AI-технологиями',
-      'Реальные кейсы автоматизации',
-      'Личная трансформация через AI'
-    ],
-    type: 'bio',
-    timing: '3 мин'
-  },
+const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
+  const renderContent = () => {
+    switch (slide.type) {
+      case 'title':
+        return (
+          <motion.div className="lecture-title-slide" variants={containerVariants}>
+            <motion.h1 className="lecture-title-main" variants={itemVariants}>{slide.title}</motion.h1>
+            <motion.p className="lecture-subtitle-main" variants={itemVariants}>{slide.subtitle}</motion.p>
+          </motion.div>
+        );
+      case 'timeline':
+        return (
+          <div className="lecture-concept" style={{ width: '100%' }}>
+            <div className="lecture-horizontal-timeline">
+              {slide.content.phases.map((phase, idx) => (
+                <motion.div key={idx} className="lecture-h-step" variants={itemVariants}>
+                  <div className="lecture-h-dot">
+                    <DynamicIcon name={phase.icon} size={16} />
+                  </div>
+                  <span className="lecture-h-year">{phase.period}</span>
+                  <span className="lecture-h-title">{phase.title}</span>
+                  <p className="lecture-h-desc">{phase.expanded}</p>
+                </motion.div>
+              ))}
+            </div>
+            {slide.content.current_moment && (
+              <motion.div className="lecture-timeline-current" variants={itemVariants} style={{ marginTop: '40px', textAlign: 'center', width: '100%' }}>
+                <span className="lecture-timeline-label">Контекст 2026</span>
+                <p>{slide.content.current_moment}</p>
+              </motion.div>
+            )}
+            {slide.content.implication && (
+              <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ marginTop: '20px', textAlign: 'center', width: '100%' }}>
+                <span className="lecture-timeline-label">Вывод</span>
+                <p>{slide.content.implication}</p>
+              </motion.div>
+            )}
+          </div>
+        );
+      case 'balance':
+        return (
+          <div className="lecture-balance">
+            <div className="lecture-balance-content">
+              <motion.div className="lecture-balance-side lecture-shaolin" variants={scaleVariants}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <DynamicIcon name={slide.content[0].icon} size={24} />
+                  <h3 style={{ margin: 0 }}>Шаолинь</h3>
+                </div>
+                <p>{slide.content[0].text}</p>
+              </motion.div>
+              <div className="lecture-balance-center">+</div>
+              <motion.div className="lecture-balance-side lecture-ai" variants={scaleVariants}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <DynamicIcon name={slide.content[1].icon} size={24} color="white" />
+                  <h3 style={{ margin: 0, color: 'white' }}>AI</h3>
+                </div>
+                <p>{slide.content[1].text}</p>
+              </motion.div>
+            </div>
+            <motion.div className="lecture-balance-side lecture-result" variants={itemVariants} style={{ marginTop: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <DynamicIcon name={slide.content[2].icon} size={24} />
+                <h3 style={{ margin: 0 }}>Результат</h3>
+              </div>
+              <p>{slide.content[2].text}</p>
+            </motion.div>
+          </div>
+        );
+      case 'checklist':
+        return (
+          <div className="lecture-checklist">
+            {slide.content.map((item, idx) => (
+              <motion.div key={idx} className="lecture-checklist-item" variants={itemVariants}>
+                <IconWrapper><CheckCircle2 size={24} color="#006d51" /></IconWrapper>
+                {item.text}
+              </motion.div>
+            ))}
+          </div>
+        );
+      case 'bio':
+        return (
+          <div className="lecture-bio-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {slide.content.map((item, idx) => (
+              <motion.div key={idx} className="lecture-bio-item" variants={itemVariants} style={{
+                background: '#fafafa',
+                padding: '20px',
+                borderRadius: '12px',
+                marginBottom: '15px',
+                border: '1px solid #e0e0e0',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px'
+              }}>
+                <DynamicIcon name={item.icon} size={24} color="#006d51" />
+                <span style={{ fontSize: '20px', lineHeight: '1.5' }}>{item.text}</span>
+              </motion.div>
+            ))}
+          </div>
+        );
+      case 'tools':
+        return (
+          <div className="lecture-tools-grid">
+            {Object.entries(slide.content).map(([category, data], idx) => {
+              const itemId = `${slide.id}-${idx}`;
+              const isExpanded = expandedItems[itemId];
+              return (
+                <motion.div key={idx} className="lecture-tool-category" variants={itemVariants}>
+                  <div className="lecture-tool-header" onClick={() => toggleExpanded(itemId)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <DynamicIcon name={data.icon} size={20} />
+                      <h3 style={{ margin: 0 }}>{category}</h3>
+                    </div>
+                    <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                  </div>
+                  <div className="lecture-tool-items" style={{ marginTop: '10px' }}>
+                    {data.tools.map((tool, tIdx) => (
+                      <a key={tIdx} href={tool.url} target="_blank" rel="noopener noreferrer" className="lecture-tool-badge clickable">
+                        {tool.name} <ExternalLink size={12} className="lecture-tool-link-icon" />
+                      </a>
+                    ))}
+                  </div>
+                  <AnimatePresence mode="wait">
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                        animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className="lecture-tool-expanded"
+                      >
+                        {data.expanded}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </div>
+        );
+      case 'concept':
+        return (
+          <div className="lecture-concept">
+            <motion.p className="lecture-definition" variants={itemVariants}>{slide.content.definition}</motion.p>
+            <div className="lecture-timeline">
+              {slide.content.types.map((type, idx) => {
+                const itemId = `${slide.id}-${idx}`;
+                const isExpanded = expandedItems[itemId];
+                return (
+                  <motion.div key={idx} className="lecture-timeline-phase" variants={itemVariants}>
+                    <div className="lecture-timeline-phase-header" onClick={() => toggleExpanded(itemId)}>
+                      <IconWrapper><DynamicIcon name={type.icon} size={20} /></IconWrapper>
+                      <span className="lecture-timeline-title">{type.title}</span>
+                      <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="lecture-concept-expanded"
+                        >
+                          {type.expanded}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      case 'neural-simple':
+        return (
+          <div className="lecture-concept" style={{ width: '100%' }}>
+            <motion.p className="lecture-definition" variants={itemVariants}>{slide.content.what_is_nn}</motion.p>
 
-  // BLOCK 2: AI FUNDAMENTALS
-  {
-    block: 'fundamentals',
-    id: 6,
-    title: 'Что такое AI на самом деле',
-    content: {
-      definition: 'AI ≠ магия, это математика и данные',
-      types: ['Узкоспециализированный AI', 'Общий AI (AGI)', 'Генеративный AI']
-    },
-    type: 'concept',
-    timing: '5 мин'
-  },
-  {
-    block: 'fundamentals',
-    id: 7,
-    title: 'Как обучается AI',
-    content: ['Сбор данных', 'Обучение на примерах', 'Тестирование', 'Улучшение'],
-    type: 'process',
-    analogy: 'Как учится ученик Шаолиня',
-    timing: '4 мин'
-  },
-  {
-    block: 'fundamentals',
-    id: 8,
-    title: 'Основные инструменты 2025',
-    content: {
-      'Текст': ['ChatGPT', 'Claude', 'Gemini'],
-      'Картинки': ['Midjourney', 'DALL-E', 'Stable Diffusion'],
-      'Видео': ['Runway', 'Pika'],
-      'Код': ['Copilot', 'Cursor'],
-      'Автоматизация': ['Zapier', 'Make']
-    },
-    type: 'tools',
-    timing: '5 мин'
-  },
-  {
-    block: 'fundamentals',
-    id: 9,
-    title: 'Prompt Engineering — искусство запросов',
-    content: {
-      formula: 'Роль + Контекст + Задача + Ограничения + Формат',
-      example: '"Ты — эксперт по продуктивности. Мне нужно организовать рабочий день. Предложи расписание с учётом биоритмов. Только 3 приоритета. В виде таблицы."'
-    },
-    type: 'formula',
-    timing: '6 мин'
-  },
-  {
-    block: 'fundamentals',
-    id: 10,
-    title: 'Ограничения и этика',
-    content: [
-      'AI может ошибаться (галлюцинации)',
-      'Проверяйте факты',
-      'Личные данные — личные',
-      'Авторство и честность'
-    ],
-    type: 'warning',
-    timing: '4 мин'
-  },
-  {
-    block: 'fundamentals',
-    id: 11,
-    title: 'Практическое упражнение 1',
-    content: {
-      task: 'Ваш первый AI-диалог',
-      steps: [
-        'Откройте ChatGPT/Claude',
-        'Задайте вопрос о вашей проблеме',
-        'Попробуйте улучшить промпт',
-        'Сравните результаты'
-      ]
-    },
-    type: 'exercise',
-    timing: '8 мин'
-  },
+            <div className="lecture-horizontal-timeline">
+              {slide.content.timeline.map((event, idx) => (
+                <motion.div key={idx} className="lecture-h-step" variants={itemVariants}>
+                  <div className="lecture-h-dot">
+                    <DynamicIcon name={event.icon} size={16} />
+                  </div>
+                  <span className="lecture-h-year">{event.year}</span>
+                  <span className="lecture-h-title">{event.title}</span>
+                  <p className="lecture-h-desc">{event.desc}</p>
+                </motion.div>
+              ))}
+            </div>
 
-  // BLOCK 3: EVERYDAY LIFE
-  {
-    block: 'everyday',
-    id: 12,
-    title: 'Утренняя рутина с AI',
-    content: {
-      items: [
-        'AI-ассистент для планирования дня',
-        'Генерация идей для задач',
-        'Анализ приоритетов',
-        'Быстрые заметки голосом'
-      ],
-      integration: 'Календарь, задачи, заметки'
-    },
-    type: 'routine',
-    timing: '4 мин'
-  },
-  {
-    block: 'everyday',
-    id: 13,
-    title: 'Обучение и развитие',
-    content: {
-      features: [
-        'Объяснение сложных концепций простым языком',
-        'Создание учебных планов',
-        'Практика и тестирование знаний',
-        'Языковая практика'
-      ],
-      example: '"Объясни квантовую физику как будто мне 12 лет"'
-    },
-    type: 'learning',
-    timing: '5 мин'
-  },
-  {
-    block: 'everyday',
-    id: 14,
-    title: 'Здоровье и фитнес',
-    content: {
-      features: [
-        'Генерация тренировок по запросу',
-        'Анализ питания из фото',
-        'Трекер прогресса',
-        'Мотивация и напоминания'
-      ],
-      connection: 'Связь с Шаолинь: Комплексный подход'
-    },
-    type: 'wellness',
-    timing: '4 мин'
-  },
-  {
-    block: 'everyday',
-    id: 15,
-    title: 'Творчество и идеи',
-    content: [
-      'Генерация идей для проектов',
-      'Написание черновиков',
-      'Создание визуалов',
-      'Музыка и звук'
-    ],
-    type: 'creative',
-    note: 'Важно: AI = инструмент, вы = автор',
-    timing: '5 мин'
-  },
-  {
-    block: 'everyday',
-    id: 16,
-    title: 'Коммуникации',
-    content: {
-      features: [
-        'Черновики писем',
-        'Перевод и адаптация тона',
-        'Резюмирование длинных текстов',
-        'Анализ эмоционального тона'
-      ],
-      example: '"Ответь на это письмо вежливо, но твёрдо"'
-    },
-    type: 'communication',
-    timing: '4 мин'
-  },
-  {
-    block: 'everyday',
-    id: 17,
-    title: 'Финансы и планирование',
-    content: {
-      features: [
-        'Анализ трат',
-        'Бюджетирование',
-        'Инвестиционные идеи',
-        'Обучение финансовой грамотности'
-      ],
-      warning: 'Предостережение: Не доверяйте слепо, проверяйте'
-    },
-    type: 'finance',
-    timing: '4 мин'
-  },
-  {
-    block: 'everyday',
-    id: 18,
-    title: 'Практическое упражнение 2',
-    content: {
-      task: 'Создаём личного AI-ассистента',
-      steps: [
-        'Определите 3 рутинные задачи',
-        'Создайте промпт для автоматизации',
-        'Протестируйте и улучшите',
-        'Сохраните как шаблон'
-      ]
-    },
-    type: 'exercise',
-    timing: '10 мин'
-  },
+            <div className="lecture-checklist" style={{ marginTop: '40px', width: '100%', maxWidth: '1000px' }}>
+              {slide.content.why_now.map((item, idx) => (
+                <motion.div key={idx} className="lecture-checklist-item" variants={itemVariants}>
+                  <DynamicIcon name={item.icon} size={20} color="#006d51" />
+                  <span style={{ marginLeft: '10px' }}>{item.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'prompt-advanced':
+        return (
+          <div className="lecture-case-study">
+            <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ background: '#000', marginBottom: '30px' }}>
+              <span className="lecture-timeline-label" style={{ color: '#fff' }}>Формула</span>
+              <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{slide.content.formula}</p>
+            </motion.div>
+            <div className="lecture-timeline">
+              {slide.content.techniques.map((tech, idx) => {
+                const itemId = `${slide.id}-${idx}`;
+                const isExpanded = expandedItems[itemId];
+                return (
+                  <motion.div key={idx} className="lecture-timeline-phase" variants={itemVariants}>
+                    <div className="lecture-timeline-phase-header" onClick={() => toggleExpanded(itemId)}>
+                      <IconWrapper><DynamicIcon name={tech.icon} size={20} /></IconWrapper>
+                      <span className="lecture-timeline-title">{tech.title}</span>
+                      <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="lecture-timeline-expanded"
+                        >
+                          {tech.expanded}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+            <div className="lecture-prompt-comparison" style={{ marginTop: '30px' }}>
+              <div className="lecture-prompt-bad">
+                <h4 style={{ color: '#ff4d4d' }}>Bad Prompt</h4>
+                <p>{slide.content.example.bad}</p>
+              </div>
+              <div className="lecture-prompt-good">
+                <h4 style={{ color: '#006d51' }}>Good Prompt</h4>
+                <p>{slide.content.example.good}</p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'case-study':
+        return (
+          <div className="lecture-case-study">
+            {slide.subtitle && <motion.h3 className="lecture-subtitle" variants={itemVariants} style={{ color: '#006d51', marginBottom: '20px' }}>{slide.subtitle}</motion.h3>}
+            <div className="lecture-timeline">
+              {slide.content.process && slide.content.process.map((step, idx) => {
+                const itemId = `${slide.id}-step-${idx}`;
+                const isExpanded = expandedItems[itemId];
+                return (
+                  <motion.div key={idx} className="lecture-timeline-phase" variants={itemVariants}>
+                    <div className="lecture-timeline-phase-header" onClick={() => toggleExpanded(itemId)}>
+                      <IconWrapper><DynamicIcon name={step.icon} size={20} /></IconWrapper>
+                      <span className="lecture-timeline-title">{step.title}</span>
+                      <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="lecture-timeline-expanded"
+                        >
+                          {step.expanded}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
 
-  // BLOCK 4: AUTOMATION
-  {
-    block: 'automation',
-    id: 19,
-    title: 'Что такое автоматизация',
-    content: {
-      definition: 'Автоматизация = делаем один раз, используется много раз',
-      principles: [
-        'Если задачу делаете >2 раз — автоматизируйте',
-        'Начните с простого',
-        'Улучшайте постепенно'
-      ]
-    },
-    type: 'concept',
-    timing: '4 мин'
-  },
-  {
-    block: 'automation',
-    id: 20,
-    title: 'Инструменты автоматизации',
-    content: {
-      'Zapier/Make': 'Соединение сервисов',
-      'IFTTT': 'Простые правила если-то',
-      'n8n': 'Open source альтернатива',
-      'Google Sheets + Apps Script': 'Для продвинутых'
-    },
-    type: 'tools',
-    timing: '5 мин'
-  },
-  {
-    block: 'automation',
-    id: 21,
-    title: 'Примеры автоматизаций',
-    content: [
-      'Telegram → Notion (сохранение статей)',
-      'Длинные email → Краткое содержание',
-      'Новая задача → Google Calendar',
-      'Покупка → Google Sheets статистика',
-      'Новое видео → Пост в Telegram'
-    ],
-    type: 'automation-examples',
-    timing: '6 мин'
-  },
-  {
-    block: 'automation',
-    id: 22,
-    title: 'Построение второй системы мозга',
-    content: {
-      para: {
-        'Projects': 'Активные проекты',
-        'Areas': 'Области ответственности',
-        'Resources': 'Ресурсы для будущего',
-        'Archives': 'Завершённые проекты'
-      },
-      ai: 'AI-усиление: Автоматическая сортировка, поиск, связи'
-    },
-    type: 'system',
-    timing: '5 мин'
-  },
-  {
-    block: 'automation',
-    id: 23,
-    title: 'Персональная система знаний',
-    content: {
-      tools: ['Notion', 'Obsidian', 'Logseq', 'Evernote'],
-      ai: 'AI-функции: Автоматические теги, резюме, идеи'
-    },
-    type: 'knowledge',
-    timing: '4 мин'
-  },
-  {
-    block: 'automation',
-    id: 24,
-    title: 'Практическое упражнение 3',
-    content: {
-      task: 'Первая автоматизация',
-      steps: [
-        'Выберите простую задачу',
-        'Создайте сценарий в Make/Zapier',
-        'Протестируйте',
-        'Запланируйте расширение'
-      ]
-    },
-    type: 'exercise',
-    timing: '10 мин'
-  },
+              {/* Handling for weeks in slide 15 */}
+              {slide.content.weeks && slide.content.weeks.map((week, idx) => {
+                const itemId = `${slide.id}-week-${idx}`;
+                const isExpanded = expandedItems[itemId];
+                return (
+                  <motion.div key={idx} className="lecture-timeline-phase" variants={itemVariants}>
+                    <div className="lecture-timeline-phase-header" onClick={() => toggleExpanded(itemId)}>
+                      <IconWrapper><DynamicIcon name={week.icon} size={20} /></IconWrapper>
+                      <span className="lecture-timeline-title">{week.title}</span>
+                      <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="lecture-timeline-expanded"
+                        >
+                          {week.expanded}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
 
-  // BLOCK 5: FUTURE
-  {
-    block: 'future',
-    id: 25,
-    title: 'Тренды 2025-2030',
-    content: [
-      'Multimodal AI (текст + голос + видео)',
-      'Personal AI (персональные модели)',
-      'Autonomous agents (самостоятельные агенты)',
-      'AI в устройстве (приватность)'
-    ],
-    type: 'trends',
-    timing: '4 мин'
-  },
-  {
-    block: 'future',
-    id: 26,
-    title: 'Карьера в AI-эпоху',
-    content: [
-      'Prompt Engineering',
-      'AI-литератность',
-      'Критическое мышление',
-      'Адаптивность',
-      'Человеческие soft skills'
-    ],
-    type: 'skills',
-    advice: 'Учитесь постоянно, AI — ваш помощник',
-    timing: '5 мин'
-  },
-  {
-    block: 'future',
-    id: 27,
-    title: 'Вызов и ответственность',
-    content: [
-      'Приватность данных',
-      'Этичное использование',
-      'Экологический footprint',
-      'Цифровое неравенство'
-    ],
-    type: 'ethics',
-    principle: 'Шаолинь принцип: Баланс силы и ответственности',
-    timing: '4 мин'
-  },
-  {
-    block: 'future',
-    id: 28,
-    title: 'План действий на 30 дней',
-    content: {
-      week1: 'Изучение + эксперименты',
-      week2: 'Первые автоматизации',
-      week3: 'Построение системы',
-      week4: 'Оптимизация и масштабирование'
-    },
-    type: 'plan',
-    timing: '4 мин'
-  },
-  {
-    block: 'future',
-    id: 29,
-    title: 'Ресурсы для углубления',
-    content: {
-      books: ['Life 3.0', 'AI Superpowers', 'The Inevitable'],
-      channels: 'Telegram-каналы',
-      youtube: 'YouTube туториалы',
-      community: 'Сообщество практиков'
-    },
-    type: 'resources',
-    timing: '3 мин'
-  },
-  {
-    block: 'future',
-    id: 30,
-    title: 'Будущее создаёте вы',
-    content: {
-      quote: '"AI не заменит вас. Вас заменит человек с AI."',
-      actions: ['Начните сегодня', 'Экспериментируйте', 'Делитесь с другими', 'Растите вместе']
-    },
-    type: 'final',
-    timing: '3 мин'
-  }
-];
+              {/* Special handling for final slide message structure */}
+              {slide.content.message && slide.content.message.map((msg, idx) => {
+                const itemId = `${slide.id}-msg-${idx}`;
+                const isExpanded = expandedItems[itemId];
+                return (
+                  <motion.div key={idx} className="lecture-timeline-phase" variants={itemVariants}>
+                    <div className="lecture-timeline-phase-header" onClick={() => toggleExpanded(itemId)}>
+                      <IconWrapper><DynamicIcon name={msg.icon} size={20} /></IconWrapper>
+                      <span className="lecture-timeline-title">{msg.title}</span>
+                      <IconWrapper>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</IconWrapper>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 10 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className="lecture-timeline-expanded"
+                        >
+                          {msg.expanded}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {slide.content.insights && (
+              <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ marginTop: '20px' }}>
+                <span className="lecture-timeline-label">Инсайты</span>
+                <ul style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                  {slide.content.insights.map((insight, idx) => <li key={idx} style={{ marginBottom: '5px' }}>{insight}</li>)}
+                </ul>
+              </motion.div>
+            )}
+
+            {slide.content.final_quote && (
+              <motion.div variants={scaleVariants} style={{ marginTop: '40px', padding: '30px', background: '#fafafa', borderRadius: '15px', border: '2px solid #000' }}>
+                <p style={{ fontSize: '22px', fontStyle: 'italic', margin: 0 }}>"{slide.content.final_quote}"</p>
+                {slide.content.call_to_action && <p style={{ marginTop: '20px', fontWeight: 'bold', color: '#006d51' }}>{slide.content.call_to_action}</p>}
+              </motion.div>
+            )}
+
+            {slide.content.tools && (
+              <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {slide.content.tools.map((tool, idx) => <span key={idx} className="lecture-tool-badge">{tool}</span>)}
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return <div className="lecture-placeholder">Content type {slide.type} not implemented yet</div>;
+    }
+  };
+
+  return (
+    <motion.div className="lecture-content" variants={containerVariants} initial="hidden" animate="visible">
+      {slide.type !== 'title' && <motion.h2 className="lecture-slide-title" variants={itemVariants}>{slide.title}</motion.h2>}
+      {renderContent()}
+    </motion.div>
+  );
+};
 
 const LecturePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showNav, setShowNav] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState({});
   const navigate = useNavigate();
 
-  // Toggle fullscreen
+  const toggleExpanded = useCallback((itemId) => {
+    setExpandedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+  }, []);
+
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch(err => {
-        console.log('Fullscreen error:', err);
-      });
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true));
     } else {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-      });
+      document.exitFullscreen().then(() => setIsFullscreen(false));
     }
   }, []);
 
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        goNext();
-      } else if (e.key === 'ArrowLeft') {
-        goPrev();
-      } else if (e.key === 'Escape') {
-        if (isFullscreen) {
-          toggleFullscreen();
-        } else {
-          navigate('/');
-        }
-      } else if (e.key === 'f' || e.key === 'F') {
-        toggleFullscreen();
-      } else if (e.key >= '0' && e.key <= '9') {
-        const slideNum = parseInt(e.key);
-        if (slideNum > 0 && slideNum <= lectureSlides.length) {
-          setCurrentSlide(slideNum - 1);
-        }
-      }
+      if (e.key === 'ArrowRight' || e.key === ' ') setCurrentSlide(p => Math.min(p + 1, lectureSlides.length - 1));
+      else if (e.key === 'ArrowLeft') setCurrentSlide(p => Math.max(p - 1, 0));
+      else if (e.key === 'Escape') isFullscreen ? toggleFullscreen() : navigate('/');
+      else if (e.key.toLowerCase() === 'f') toggleFullscreen();
     };
-
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentSlide, navigate, isFullscreen, toggleFullscreen]);
-
-  const goNext = useCallback(() => {
-    if (currentSlide < lectureSlides.length - 1) {
-      setCurrentSlide(prev => prev + 1);
-    }
-  }, [currentSlide]);
-
-  const goPrev = useCallback(() => {
-    if (currentSlide > 0) {
-      setCurrentSlide(prev => prev - 1);
-    }
-  }, [currentSlide]);
-
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
-  };
+  }, [isFullscreen, navigate, toggleFullscreen]);
 
   const slide = lectureSlides[currentSlide];
   const progress = ((currentSlide + 1) / lectureSlides.length) * 100;
 
-  // Get block indicator
-  const blockNames = {
-    intro: 'Введение',
-    fundamentals: 'Основы AI',
-    everyday: 'Повседневность',
-    automation: 'Автоматизация',
-    future: 'Будущее'
-  };
-
   return (
     <div className="lecture-page">
-      {/* Progress bar */}
-      <div className="lecture-progress">
-        <motion.div
-          className="lecture-progress-bar"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      {/* Slide counter */}
-      <div className="lecture-counter">
-        {currentSlide + 1} / {lectureSlides.length}
-      </div>
-
-      {/* Home button */}
-      <button
-        className="lecture-home-btn"
-        onClick={() => navigate('/')}
-        aria-label="Home"
-      >
-        <Home size={24} />
+      <div className="lecture-progress"><motion.div className="lecture-progress-bar" animate={{ width: `${progress}%` }} /></div>
+      <div className="lecture-counter">{currentSlide + 1} / {lectureSlides.length}</div>
+      <button className="lecture-home-btn" onClick={() => navigate('/')}><Home size={20} /></button>
+      <button className="lecture-text-btn" onClick={() => navigate('/lecture-text')}>
+        <BookOpen size={20} />
+      </button>
+      <button className="lecture-fullscreen-btn" onClick={toggleFullscreen}>
+        {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
       </button>
 
-      {/* Fullscreen button */}
-      <button
-        className="lecture-home-btn lecture-fullscreen-btn"
-        onClick={toggleFullscreen}
-        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        style={{ left: '80px' }}
-      >
-        {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
-      </button>
-
-      {/* Main slide content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentSlide}
-          className="lecture-slide"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Block indicator */}
-          <div className="lecture-block-indicator">
-            {blockNames[slide.block]}
-          </div>
-
-          {/* Slide content */}
-          <div className="lecture-content">
-            {slide.type === 'title' && (
-              <>
-                <motion.h1
-                  className="lecture-title-main"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {slide.title}
-                </motion.h1>
-                <motion.p
-                  className="lecture-subtitle-main"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {slide.subtitle}
-                </motion.p>
-              </>
-            )}
-
-            {slide.type === 'list' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.ul
-                  className="lecture-list"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.li
-                      key={idx}
-                      variants={itemVariants}
-                    >
-                      {item}
-                    </motion.li>
-                  ))}
-                </motion.ul>
-              </>
-            )}
-
-            {slide.type === 'balance' && (
-              <div className="lecture-balance">
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-balance-content">
-                  <div className="lecture-balance-side lecture-shaolin">
-                    <h3>Шаолинь</h3>
-                    {Array.isArray(slide.content) && slide.content.slice(0, 1).map((item, idx) => (
-                      <p key={idx}>{item}</p>
-                    ))}
-                  </div>
-                  <div className="lecture-balance-center">+</div>
-                  <div className="lecture-balance-side lecture-ai">
-                    <h3>AI</h3>
-                    {Array.isArray(slide.content) && slide.content.slice(1, 2).map((item, idx) => (
-                      <p key={idx}>{item}</p>
-                    ))}
-                  </div>
-                  <div className="lecture-balance-center">=</div>
-                  <div className="lecture-balance-side lecture-result">
-                    <h3>Результат</h3>
-                    {Array.isArray(slide.content) && slide.content.slice(2).map((item, idx) => (
-                      <p key={idx}>{item}</p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {slide.type === 'checklist' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-checklist"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-checklist-item"
-                      variants={scaleVariants}
-                    >
-                      <IconWrapper><CheckCircle2 size={20} className="lecture-check-icon" /></IconWrapper>
-                      {item}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'bio' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-bio">
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.p
-                      key={idx}
-                      className="lecture-bio-item"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.2 }}
-                    >
-                      {item}
-                    </motion.p>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {slide.type === 'concept' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-concept">
-                  {slide.content.definition && (
-                    <p className="lecture-definition">{slide.content.definition}</p>
-                  )}
-                  {slide.content.types && (
-                    <div className="lecture-types">
-                      {slide.content.types.map((type, idx) => (
-                        <div key={idx} className="lecture-type-badge">{type}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {slide.type === 'process' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-process">
-                  {Array.isArray(slide.content) && slide.content.map((step, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-process-step"
-                      initial={{ x: -50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.15 }}
-                    >
-                      <div className="lecture-step-number">{idx + 1}</div>
-                      <div className="lecture-step-text">{step}</div>
-                      {idx < slide.content.length - 1 && <div className="lecture-step-arrow">→</div>}
-                    </motion.div>
-                  ))}
-                </div>
-                {slide.analogy && (
-                  <p className="lecture-analogy">💡 {slide.analogy}</p>
-                )}
-              </>
-            )}
-
-            {slide.type === 'tools' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-tools-grid"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Object.entries(slide.content).map(([category, tools], idx) => {
-                    const categoryIcons = {
-                      'Текст': <FileText size={20} />,
-                      'Картинки': <Image size={20} />,
-                      'Видео': <Video size={20} />,
-                      'Код': <Code size={20} />,
-                      'Автоматизация': <Workflow size={20} />
-                    };
-                    return (
-                      <motion.div
-                        key={category}
-                        className="lecture-tool-category"
-                        variants={itemVariants}
-                      >
-                        <h3>
-                          <IconWrapper>{categoryIcons[category] || <Wrench size={20} />}</IconWrapper>
-                          {category}
-                        </h3>
-                        <div className="lecture-tool-items">
-                          {Array.isArray(tools) && tools.map((tool, toolIdx) => (
-                            <span key={toolIdx} className="lecture-tool-badge">{tool}</span>
-                          ))}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'formula' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <div className="lecture-formula-box">
-                  <div className="lecture-formula">{slide.content.formula}</div>
-                  <div className="lecture-example">
-                    <strong>Пример:</strong> {slide.content.example}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {slide.type === 'warning' && (
-              <>
-                <h2 className="lecture-slide-title">
-                  <IconWrapper><AlertTriangle size={32} /></IconWrapper> {slide.title}
-                </h2>
-                <motion.div
-                  className="lecture-warning-list"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-warning-item"
-                      variants={itemVariants}
-                    >
-                      <IconWrapper><AlertTriangle size={18} className="lecture-warning-icon" /></IconWrapper>
-                      {item}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'exercise' && (
-              <motion.div
-                className="lecture-exercise"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="lecture-exercise-header">
-                  <span className="lecture-exercise-badge">
-                    <IconWrapper><Target size={16} /></IconWrapper> ПРАКТИКА
-                  </span>
-                  <h2 className="lecture-exercise-title">{slide.content.task}</h2>
-                </div>
-                <motion.div
-                  className="lecture-exercise-steps"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {slide.content.steps.map((step, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-exercise-step"
-                      variants={itemVariants}
-                    >
-                      <span className="lecture-step-num">{idx + 1}</span>
-                      <span>{step}</span>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </motion.div>
-            )}
-
-            {slide.type === 'routine' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-routine"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-routine-items">
-                    {slide.content.items.map((item, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-routine-item"
-                        variants={itemVariants}
-                      >
-                        <IconWrapper><Clock size={20} className="lecture-item-icon-inline" /></IconWrapper>
-                        {item}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-integration"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><Link size={18} /></IconWrapper>
-                    <strong>Интеграция:</strong> {slide.content.integration}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'learning' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-learning"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-learning-features">
-                    {slide.content.features.map((feature, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-learning-item"
-                        variants={itemVariants}
-                      >
-                        <IconWrapper><BookOpen size={18} className="lecture-item-icon-inline" /></IconWrapper>
-                        {feature}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-learning-example"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><Lightbulb size={18} /></IconWrapper>
-                    <strong>Пример:</strong> {slide.content.example}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'wellness' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-wellness"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-wellness-features">
-                    {slide.content.features.map((feature, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-wellness-item"
-                        variants={itemVariants}
-                      >
-                        <IconWrapper><Heart size={18} className="lecture-item-icon-inline" /></IconWrapper>
-                        {feature}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-wellness-connection"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><Zap size={20} /></IconWrapper>
-                    {slide.content.connection}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'creative' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-creative"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => {
-                    const icons = [<Sparkles size={24} key="sparkles" />, <Lightbulb size={24} key="lightbulb" />, <Brain size={24} key="brain" />, <Zap size={24} key="zap" />];
-                    return (
-                      <motion.div
-                        key={idx}
-                        className="lecture-creative-item"
-                        variants={scaleVariants}
-                      >
-                        <IconWrapper><div className="lecture-item-icon">{icons[idx % icons.length]}</div></IconWrapper>
-                        <span>{item}</span>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-                {slide.note && (
-                  <motion.p
-                    className="lecture-note"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <IconWrapper><Lightbulb size={18} /></IconWrapper> {slide.note}
-                  </motion.p>
-                )}
-              </>
-            )}
-
-            {slide.type === 'communication' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-communication"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-communication-features">
-                    {slide.content.features.map((feature, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-comm-item"
-                        variants={itemVariants}
-                      >
-                        <IconWrapper><MessageSquare size={16} className="lecture-item-icon-inline" /></IconWrapper>
-                        {feature}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-comm-example"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><MessageSquare size={18} /></IconWrapper>
-                    <strong>Пример:</strong> {slide.content.example}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'finance' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-finance"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-finance-features">
-                    {slide.content.features.map((feature, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-finance-item"
-                        variants={itemVariants}
-                      >
-                        <IconWrapper><DollarSign size={18} className="lecture-item-icon-inline" /></IconWrapper>
-                        {feature}
-                      </motion.div>
-                    ))}
-                  </div>
-                  {slide.content.warning && (
-                    <motion.div
-                      className="lecture-finance-warning"
-                      variants={itemVariants}
-                    >
-                      <IconWrapper><AlertTriangle size={18} /></IconWrapper>
-                      {slide.content.warning}
-                    </motion.div>
-                  )}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'automation-examples' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-auto-examples"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((example, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-auto-item"
-                      variants={scaleVariants}
-                    >
-                      <span className="lecture-auto-number">{idx + 1}</span>
-                      <IconWrapper><Workflow size={18} className="lecture-item-icon-inline" /></IconWrapper>
-                      {example}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'system' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-system"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-para-method">
-                    <h3><IconWrapper><Database size={22} /></IconWrapper> PARA Метод</h3>
-                    {Object.entries(slide.content.para).map(([key, value]) => (
-                      <motion.div
-                        key={key}
-                        className="lecture-para-item"
-                        variants={itemVariants}
-                      >
-                        <strong>{key}:</strong> {value}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-system-ai"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><Brain size={20} /></IconWrapper>
-                    {slide.content.ai}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'knowledge' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-knowledge"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-knowledge-tools">
-                    <h3><IconWrapper><Wrench size={22} /></IconWrapper> Инструменты</h3>
-                    {slide.content.tools.map((tool, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-knowledge-tool"
-                        variants={scaleVariants}
-                      >
-                        {tool}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-knowledge-ai"
-                    variants={itemVariants}
-                  >
-                    <IconWrapper><Sparkles size={18} /></IconWrapper>
-                    {slide.content.ai}
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'trends' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-trends"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((trend, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-trend-item"
-                      variants={scaleVariants}
-                    >
-                      <IconWrapper><TrendingUp size={24} className="lecture-item-icon" /></IconWrapper>
-                      {trend}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'skills' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-skills"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((skill, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-skill-item"
-                      variants={itemVariants}
-                    >
-                      <span className="lecture-skill-number">{idx + 1}</span>
-                      {skill}
-                    </motion.div>
-                  ))}
-                </motion.div>
-                {slide.advice && (
-                  <motion.p
-                    className="lecture-advice"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <IconWrapper><Lightbulb size={18} /></IconWrapper> {slide.advice}
-                  </motion.p>
-                )}
-              </>
-            )}
-
-            {slide.type === 'ethics' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-ethics"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Array.isArray(slide.content) && slide.content.map((item, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-ethics-item"
-                      variants={itemVariants}
-                    >
-                      <IconWrapper><AlertTriangle size={18} className="lecture-item-icon-inline" /></IconWrapper>
-                      {item}
-                    </motion.div>
-                  ))}
-                </motion.div>
-                {slide.principle && (
-                  <motion.p
-                    className="lecture-principle"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    <IconWrapper><Brain size={22} /></IconWrapper>
-                    {slide.principle}
-                  </motion.p>
-                )}
-              </>
-            )}
-
-            {slide.type === 'plan' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-plan"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {Object.entries(slide.content).map(([week, action], idx) => (
-                    <motion.div
-                      key={week}
-                      className="lecture-plan-week"
-                      variants={itemVariants}
-                    >
-                      <div className="lecture-week-label">Неделя {week.replace('week', '')}</div>
-                      <div className="lecture-week-action">{action}</div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'resources' && (
-              <>
-                <h2 className="lecture-slide-title">{slide.title}</h2>
-                <motion.div
-                  className="lecture-resources"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <div className="lecture-resource-books">
-                    <h3><IconWrapper><BookOpen size={22} /></IconWrapper> Книги</h3>
-                    {slide.content.books.map((book, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="lecture-book-item"
-                        variants={itemVariants}
-                      >
-                        {book}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <motion.div
-                    className="lecture-resource-links"
-                    variants={containerVariants}
-                  >
-                    <motion.div className="lecture-resource-item" variants={itemVariants}>
-                      <IconWrapper><Users size={18} /></IconWrapper> {slide.content.channels}
-                    </motion.div>
-                    <motion.div className="lecture-resource-item" variants={itemVariants}>
-                      <IconWrapper><Video size={18} /></IconWrapper> {slide.content.youtube}
-                    </motion.div>
-                    <motion.div className="lecture-resource-item" variants={itemVariants}>
-                      <IconWrapper><Users size={18} /></IconWrapper> {slide.content.community}
-                    </motion.div>
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-
-            {slide.type === 'final' && (
-              <motion.div
-                className="lecture-final"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <motion.div
-                  className="lecture-final-quote"
-                  variants={scaleVariants}
-                >
-                  <IconWrapper><Sparkles size={32} className="lecture-quote-icon" /></IconWrapper>
-                  "{slide.content.quote}"
-                </motion.div>
-                <motion.div
-                  className="lecture-final-actions"
-                  variants={containerVariants}
-                >
-                  {slide.content.actions.map((action, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="lecture-final-action"
-                      variants={scaleVariants}
-                    >
-                      <IconWrapper><CheckCircle2 size={22} className="lecture-action-icon" /></IconWrapper>
-                      {action}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Timing */}
-          {slide.timing && (
-            <div className="lecture-timing">
-              <IconWrapper><Clock size={14} /></IconWrapper> {slide.timing}
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Navigation */}
-      <div className={`lecture-nav ${showNav ? 'visible' : 'hidden'}`}>
-        <button
-          className="lecture-nav-btn lecture-prev-btn"
-          onClick={goPrev}
-          disabled={currentSlide === 0}
-          aria-label="Previous slide"
-        >
-          <ChevronLeft size={32} />
-        </button>
-
-        <button
-          className="lecture-nav-btn lecture-next-btn"
-          onClick={goNext}
-          disabled={currentSlide === lectureSlides.length - 1}
-          aria-label="Next slide"
-        >
-          <ChevronRight size={32} />
-        </button>
+      <div className="lecture-slide">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            style={{ width: '100%' }}
+          >
+            <SlideRenderer slide={slide} expandedItems={expandedItems} toggleExpanded={toggleExpanded} />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Slide indicators (thumbnails) */}
-      <div className="lecture-indicators">
-        {lectureSlides.map((_, idx) => (
-          <button
-            key={idx}
-            className={`lecture-indicator ${idx === currentSlide ? 'active' : ''}`}
-            onClick={() => goToSlide(idx)}
-            aria-label={`Go to slide ${idx + 1}`}
-          />
-        ))}
+      <div className="lecture-nav">
+        <button className="lecture-nav-btn" onClick={() => setCurrentSlide(p => Math.max(p - 1, 0))} disabled={currentSlide === 0}><ChevronLeft size={32} /></button>
+        <button className="lecture-nav-btn" onClick={() => setCurrentSlide(p => Math.min(p + 1, lectureSlides.length - 1))} disabled={currentSlide === lectureSlides.length - 1}><ChevronRight size={32} /></button>
       </div>
     </div>
   );
