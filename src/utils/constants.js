@@ -4,6 +4,7 @@ export const ROUTES = {
     MIXES: '/mixes',
     CODE: '/code',
     NEWS: '/news',
+    CV: '/cv',
     ABOUT: '/about',
     LECTURE: '/lecture', // Hidden lecture page
     LECTURE_TEXT: '/lecture-text', // Full text version
