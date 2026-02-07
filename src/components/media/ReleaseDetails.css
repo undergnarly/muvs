@@ -135,3 +135,100 @@
         /* Full screen on desktop */
     }
 }
+
+/* Download Section */
+.release-download-section {
+    margin-top: 24px;
+    max-width: 400px;
+}
+
+.download-email-input-wrap {
+    overflow: hidden;
+}
+
+.download-email-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.download-email-input:focus {
+    border-color: var(--color-accent);
+}
+
+.download-email-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    width: 100%;
+}
+
+.download-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.download-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.download-btn--ready {
+    background: rgba(204, 255, 0, 0.1);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.download-btn--ready:hover:not(:disabled) {
+    background: rgba(204, 255, 0, 0.2);
+    color: var(--color-accent);
+}
+
+.download-btn--sending {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.download-btn--sent {
+    background: rgba(0, 200, 83, 0.15);
+    border-color: #00c853;
+    color: #00c853;
+}
+
+.download-btn--error {
+    background: rgba(255, 85, 85, 0.1);
+    border-color: #ff5555;
+    color: #ff5555;
+}
+
+.download-message {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #00c853;
+}
+
+.download-message--error {
+    color: #ff5555;
+}

@@ -35,7 +35,8 @@ const MusicManager = () => {
         description: '',
         tracks: [],
         gallery: [],
-        genres: []
+        genres: [],
+        downloadEnabled: true
     };
     const [formData, setFormData] = useState(initialForm);
 
@@ -468,6 +469,59 @@ const MusicManager = () => {
                             )}
                         </div>
 
+                        {/* Download Toggle */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '16px',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '8px'
+                        }}>
+                            <label style={{
+                                position: 'relative',
+                                display: 'inline-block',
+                                width: '48px',
+                                height: '26px',
+                                flexShrink: 0
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.downloadEnabled !== false}
+                                    onChange={e => setFormData({ ...formData, downloadEnabled: e.target.checked })}
+                                    style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                                />
+                                <span style={{
+                                    position: 'absolute',
+                                    cursor: 'pointer',
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    background: formData.downloadEnabled !== false ? 'var(--color-accent)' : 'rgba(255,255,255,0.15)',
+                                    borderRadius: '26px',
+                                    transition: 'background 0.25s'
+                                }}>
+                                    <span style={{
+                                        position: 'absolute',
+                                        content: '""',
+                                        height: '20px',
+                                        width: '20px',
+                                        left: formData.downloadEnabled !== false ? '25px' : '3px',
+                                        bottom: '3px',
+                                        background: formData.downloadEnabled !== false ? '#000' : '#fff',
+                                        borderRadius: '50%',
+                                        transition: 'left 0.25s, background 0.25s'
+                                    }} />
+                                </span>
+                            </label>
+                            <div>
+                                <div style={{ color: 'var(--color-text-light)', fontSize: '14px', fontWeight: '500' }}>
+                                    Allow Download
+                                </div>
+                                <div style={{ color: 'var(--color-text-dim)', fontSize: '12px', marginTop: '2px' }}>
+                                    Show download button on release page. Users enter email to receive the release as ZIP.
+                                </div>
+                            </div>
+                        </div>
+
                         <textarea
                             placeholder="Description (supports HTML for links)"
                             value={formData.description}
@@ -721,6 +775,9 @@ const MusicManager = () => {
                                 <h3 style={{ color: 'var(--color-text-light)', marginBottom: '4px' }}>{item.title}</h3>
                                 <div style={{ fontSize: '14px', color: 'var(--color-text-dim)' }}>
                                     {item.releaseDate} • {item.tracks ? item.tracks.length : 0} Tracks
+                                    {item.downloadEnabled !== false && (
+                                        <span style={{ color: 'var(--color-accent)', marginLeft: '8px', fontSize: '12px' }}>DL</span>
+                                    )}
                                 </div>
                             </div>
                         </div>

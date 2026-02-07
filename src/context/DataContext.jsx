@@ -52,6 +52,7 @@ export const DataProvider = ({ children }) => {
         detailViews: 0
     });
     const [messages, setMessages] = useState([]);
+    const [downloadEmails, setDownloadEmails] = useState([]);
     const [adminSettings, setAdminSettings] = useState({ pin: '1234' });
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -70,6 +71,7 @@ export const DataProvider = ({ children }) => {
                     if (data.about) setAbout(data.about);
                     if (data.siteSettings) setSiteSettings(data.siteSettings);
                     if (data.messages) setMessages(data.messages);
+                    if (data.downloadEmails) setDownloadEmails(data.downloadEmails);
                     if (data.adminSettings) setAdminSettings(data.adminSettings);
                     if (data.stats) setStats(data.stats);
                 }
@@ -105,6 +107,7 @@ export const DataProvider = ({ children }) => {
     // For now we sync them as is.
     useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
+    useEffect(() => { if (isLoaded) saveToApi('downloadEmails', downloadEmails); }, [downloadEmails, isLoaded]);
 
     const updateData = (type, newData) => {
         switch (type) {
@@ -203,6 +206,7 @@ export const DataProvider = ({ children }) => {
         siteSettings,
         stats,
         messages,
+        downloadEmails,
         adminSettings,
         updateData,
         updateSiteSettings,

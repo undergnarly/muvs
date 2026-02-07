@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { createReleaseArchive, sendReleaseEmail } = require('./emailService');
 
 const app = express();
 const PORT = 3001;
@@ -179,6 +180,60 @@ app.post('/api/upload-audio', audioUpload.single('audio'), (req, res) => {
     // Return relative URL that Nginx will map to the file
     const fileUrl = `/uploads/audio/${req.file.filename}`;
     res.json({ url: fileUrl });
+});
+
+// Request Release Download - sends archive to email
+app.post('/api/release-download', async (req, res) => {
+    const { releaseId, email } = req.body;
+
+    if (!releaseId || !email) {
+        return res.status(400).json({ error: 'Missing releaseId or email' });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    const db = getDb();
+    const release = (db.releases || []).find(r => r.id === releaseId);
+
+    if (!release) {
+        return res.status(404).json({ error: 'Release not found' });
+    }
+
+    if (release.downloadEnabled === false) {
+        return res.status(403).json({ error: 'Downloads are disabled for this release' });
+    }
+
+    // Save email to downloadEmails collection
+    if (!db.downloadEmails) db.downloadEmails = [];
+    db.downloadEmails.push({
+        id: Date.now(),
+        email,
+        releaseId,
+        releaseTitle: release.title,
+        timestamp: new Date().toISOString()
+    });
+    saveDb(db);
+
+    // Create archive and send email
+    try {
+        const archivePath = await createReleaseArchive(release, DATA_DIR);
+        await sendReleaseEmail(email, release, archivePath);
+
+        // Clean up archive after sending
+        try { fs.unlinkSync(archivePath); } catch (e) { /* ignore cleanup errors */ }
+
+        res.json({ success: true, message: 'Release sent to your email' });
+    } catch (error) {
+        console.error('Release download error:', error);
+        res.status(500).json({
+            error: 'Failed to send release. Please check SMTP configuration.',
+            details: error.message
+        });
+    }
 });
 
 // Start Server

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import Button from '../ui/Button';
 import CircularGallery from './CircularGallery';
 import NavigationFooter from '../layout/NavigationFooter';
@@ -7,6 +7,7 @@ import TechTag from '../ui/TechTag';
 import AnimatedGradient from '../ui/AnimatedGradient';
 import { fixLinks } from '../../utils/linkUtils';
 import { useData } from '../../context/DataContext';
+import { FiDownload, FiSend } from 'react-icons/fi';
 import './ReleaseDetails.css';
 
 // Animation variants for stagger effect
@@ -37,6 +38,10 @@ const itemVariants = {
 const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     const { siteSettings } = useData();
     const [isVisible, setIsVisible] = useState(false);
+    const [showEmailInput, setShowEmailInput] = useState(false);
+    const [downloadEmail, setDownloadEmail] = useState('');
+    const [downloadStatus, setDownloadStatus] = useState(''); // '' | 'sending' | 'sent' | 'error'
+    const [downloadMessage, setDownloadMessage] = useState('');
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.3 });
 
@@ -52,6 +57,55 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
     const hasPlaylist = release.soundcloudUrl && release.soundcloudUrl.includes('/sets/');
 
     const gradientSettings = siteSettings?.gradientSettings || {};
+
+    const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const handleDownloadClick = () => {
+        if (!showEmailInput) {
+            setShowEmailInput(true);
+            setDownloadStatus('');
+            setDownloadMessage('');
+            return;
+        }
+
+        if (!isValidEmail(downloadEmail)) return;
+
+        // Send request
+        setDownloadStatus('sending');
+        fetch('/api/release-download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ releaseId: release.id, email: downloadEmail })
+        })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok) {
+                    setDownloadStatus('sent');
+                    setDownloadMessage('Release sent to your email!');
+                    setTimeout(() => {
+                        setShowEmailInput(false);
+                        setDownloadEmail('');
+                        setDownloadStatus('');
+                        setDownloadMessage('');
+                    }, 4000);
+                } else {
+                    setDownloadStatus('error');
+                    setDownloadMessage(data.error || 'Failed to send');
+                    setTimeout(() => {
+                        setDownloadStatus('');
+                        setDownloadMessage('');
+                    }, 4000);
+                }
+            })
+            .catch(() => {
+                setDownloadStatus('error');
+                setDownloadMessage('Network error. Try again.');
+                setTimeout(() => {
+                    setDownloadStatus('');
+                    setDownloadMessage('');
+                }, 4000);
+            });
+    };
 
     return (
         <motion.div
@@ -133,6 +187,53 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                         </Button>
                     )}
                 </motion.div>
+
+                {/* Download Section */}
+                {release.downloadEnabled !== false && (
+                    <motion.div className="release-download-section" variants={itemVariants}>
+                        <AnimatePresence>
+                            {showEmailInput && (
+                                <motion.div
+                                    className="download-email-input-wrap"
+                                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                    animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <input
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={downloadEmail}
+                                        onChange={(e) => setDownloadEmail(e.target.value)}
+                                        className="download-email-input"
+                                        disabled={downloadStatus === 'sending' || downloadStatus === 'sent'}
+                                        autoFocus
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <button
+                            className={`download-btn ${showEmailInput && isValidEmail(downloadEmail) ? 'download-btn--ready' : ''} ${downloadStatus === 'sending' ? 'download-btn--sending' : ''} ${downloadStatus === 'sent' ? 'download-btn--sent' : ''} ${downloadStatus === 'error' ? 'download-btn--error' : ''}`}
+                            onClick={handleDownloadClick}
+                            disabled={downloadStatus === 'sending' || downloadStatus === 'sent' || (showEmailInput && !isValidEmail(downloadEmail))}
+                        >
+                            {downloadStatus === 'sending' ? (
+                                <>Sending...</>
+                            ) : downloadStatus === 'sent' ? (
+                                <>Sent!</>
+                            ) : showEmailInput ? (
+                                <><FiSend style={{ marginRight: 8 }} /> Send to Email</>
+                            ) : (
+                                <><FiDownload style={{ marginRight: 8 }} /> Download Release</>
+                            )}
+                        </button>
+                        {downloadMessage && (
+                            <div className={`download-message ${downloadStatus === 'error' ? 'download-message--error' : ''}`}>
+                                {downloadMessage}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
 
                 {/* Circular Gallery */}
                 {
