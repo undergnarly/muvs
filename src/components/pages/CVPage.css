@@ -1,0 +1,222 @@
+.cv-cover-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.cv-title-background {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.cv-title-text {
+    font-size: 80px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    color: var(--color-text-light);
+    line-height: 1;
+    margin: 0;
+    padding: 0 20px;
+}
+
+.cv-cover-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.cv-image-placeholder {
+    width: 100%;
+    height: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cv-image-placeholder img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    display: block;
+}
+
+.cv-details-container {
+    display: flex;
+    justify-content: center;
+    min-height: 100%;
+    padding: var(--spacing-xl);
+    background: var(--color-bg-dark);
+}
+
+.cv-content {
+    max-width: 900px;
+    width: 100%;
+    color: var(--color-text-light);
+}
+
+.cv-section {
+    margin-bottom: 48px;
+}
+
+.cv-section h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.cv-item {
+    margin-bottom: 32px;
+}
+
+.cv-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.cv-item-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.cv-item-date {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+}
+
+.cv-item-subtitle {
+    font-size: 16px;
+    color: var(--color-accent);
+    margin-bottom: 12px;
+}
+
+.cv-item-description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.cv-skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+}
+
+.cv-skill-category h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.cv-skill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cv-skill-tag {
+    font-size: 13px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--color-text-light);
+}
+
+.cv-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.cv-info-item .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.cv-info-item .value {
+    font-size: 18px;
+    color: #fff;
+}
+
+.cv-download-btn {
+    margin-top: 64px;
+    display: flex;
+    justify-content: center;
+}
+
+.cv-btn-accent {
+    background: var(--color-accent);
+    color: var(--color-text-dark);
+    font-weight: 700;
+    border: none;
+    transition: all var(--transition-fast);
+}
+
+.cv-btn-accent:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(204, 255, 0, 0.3);
+}
+
+.cv-btn-accent .icon {
+    color: var(--color-text-dark);
+}
+
+@media (max-width: 768px) {
+    .cv-title-text {
+        font-size: 36px;
+    }
+
+    .cv-details-container {
+        padding: 0;
+    }
+
+    .cv-item-header {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+
+    .cv-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-content {
+        padding: 24px;
+    }
+}

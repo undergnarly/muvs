@@ -33,6 +33,8 @@ const MusicManager = () => {
         soundcloudTrackUrl: '',
         bandcampUrl: '',
         description: '',
+        bassReactive: true,
+        bassIntensity: 5,
         tracks: [],
         gallery: [],
         genres: []
@@ -213,6 +215,30 @@ const MusicManager = () => {
                                 onChange={e => setFormData({ ...formData, bpm: e.target.value })}
                                 style={inputStyle}
                             />
+                        </div>
+
+                        {/* Bass Reactor Controls */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'center' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.bassReactive !== false}
+                                    onChange={e => setFormData({ ...formData, bassReactive: e.target.checked })}
+                                />
+                                Bass Reactive Effect
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                Intensity: {formData.bassIntensity || 5}
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="10"
+                                    value={formData.bassIntensity || 5}
+                                    onChange={e => setFormData({ ...formData, bassIntensity: parseInt(e.target.value) })}
+                                    style={{ flex: 1 }}
+                                    disabled={formData.bassReactive === false}
+                                />
+                            </label>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>

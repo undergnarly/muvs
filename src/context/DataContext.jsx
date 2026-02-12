@@ -54,6 +54,8 @@ export const DataProvider = ({ children }) => {
     const [messages, setMessages] = useState([]);
     const [adminSettings, setAdminSettings] = useState({ pin: '1234' });
     const [isLoaded, setIsLoaded] = useState(false);
+    // Track whether user/admin made changes (not initial load)
+    const userChangedRef = React.useRef(new Set());
 
     // Fetch data from API on mount
     useEffect(() => {
@@ -82,9 +84,10 @@ export const DataProvider = ({ children }) => {
         fetchData();
     }, []);
 
-    // Helper to save to API
+    // Helper to save to API — only saves if explicitly marked as changed
     const saveToApi = (key, data) => {
-        if (!isLoaded) return; // Don't save defaults over DB before loading
+        if (!userChangedRef.current.has(key)) return;
+        userChangedRef.current.delete(key);
 
         fetch('/api/data', {
             method: 'POST',
@@ -93,7 +96,7 @@ export const DataProvider = ({ children }) => {
         }).catch(err => console.error(`Error saving ${key}:`, err));
     };
 
-    // Persist changes to API
+    // Persist changes to API — only fires after explicit user changes
     useEffect(() => { if (isLoaded) saveToApi('releases', releases); }, [releases, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('mixes', mixes); }, [mixes, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
@@ -101,12 +104,11 @@ export const DataProvider = ({ children }) => {
     useEffect(() => { if (isLoaded) saveToApi('about', about); }, [about, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('siteSettings', siteSettings); }, [siteSettings, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('adminSettings', adminSettings); }, [adminSettings, isLoaded]);
-    // Stats and Messages might be updated very frequently, consider debouncing or batching in real app
-    // For now we sync them as is.
     useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
 
     const updateData = (type, newData) => {
+        userChangedRef.current.add(type);
         switch (type) {
             case 'releases': setReleases(newData); break;
             case 'mixes': setMixes(newData); break;
@@ -118,6 +120,7 @@ export const DataProvider = ({ children }) => {
     };
 
     const updateSiteSettings = (newSettings) => {
+        userChangedRef.current.add('siteSettings');
         setSiteSettings(newSettings);
     };
 
@@ -139,6 +142,7 @@ export const DataProvider = ({ children }) => {
             console.warn('Failed to resolve country:', e);
         }
 
+        userChangedRef.current.add('stats');
         setStats(prev => {
             const newStats = { ...prev };
             newStats.totalVisits = (newStats.totalVisits || 0) + 1;
@@ -168,19 +172,23 @@ export const DataProvider = ({ children }) => {
     };
 
     const trackDetailView = () => {
+        userChangedRef.current.add('stats');
         setStats(prev => ({ ...prev, detailViews: (prev.detailViews || 0) + 1 }));
     };
 
     const updatePin = (newPin) => {
+        userChangedRef.current.add('adminSettings');
         setAdminSettings({ pin: newPin });
     };
 
     const addMessage = (msg) => {
+        userChangedRef.current.add('messages');
         const newMessage = { id: Date.now(), timestamp: new Date().toLocaleString(), ...msg };
         setMessages(prev => [newMessage, ...prev]);
     };
 
     const deleteMessage = (id) => {
+        userChangedRef.current.add('messages');
         setMessages(prev => prev.filter(m => m.id !== id));
     };
 

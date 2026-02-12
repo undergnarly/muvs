@@ -13,11 +13,13 @@ const PORT = 3001;
 // Paths to persistent data
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const AUDIO_UPLOADS_DIR = path.join(DATA_DIR, 'uploads', 'audio');
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(AUDIO_UPLOADS_DIR)) fs.mkdirSync(AUDIO_UPLOADS_DIR, { recursive: true });
 
@@ -90,7 +92,25 @@ const getDb = () => {
 
 const saveDb = (data) => {
     try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+        // Backup current DB before overwriting
+        if (fs.existsSync(DB_FILE)) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const backupFile = path.join(BACKUP_DIR, "db-" + timestamp + ".json");
+            fs.copyFileSync(DB_FILE, backupFile);
+
+            // Rotate: keep only last 50 backups
+            const backups = fs.readdirSync(BACKUP_DIR)
+                .filter(f => f.startsWith('db-') && f.endsWith('.json'))
+                .sort();
+            while (backups.length > 50) {
+                fs.unlinkSync(path.join(BACKUP_DIR, backups.shift()));
+            }
+        }
+
+        // Atomic write: write to temp file first, then rename
+        const tmpFile = DB_FILE + '.tmp';
+        fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2));
+        fs.renameSync(tmpFile, DB_FILE);
         return true;
     } catch (e) {
         console.error('Error writing DB:', e);

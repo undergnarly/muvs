@@ -63,7 +63,7 @@ const ProjectSlide = ({ project, priority = false, allProjects, onNavigate }) =>
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: priority ? 0 : 0.2 }}
             >
-                {project.thumbnail.startsWith('/images') && !project.thumbnail.includes('.') ? (
+                {!project.thumbnail || (project.thumbnail.startsWith('/images') && !project.thumbnail.includes('.')) ? (
                     <div className="mock-project-preview">
                         <span className="preview-title">{project.title}</span>
                         <div className="preview-ui-mock">
