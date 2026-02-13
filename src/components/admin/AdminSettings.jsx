@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaLock, FaUpload, FaTrash, FaSave, FaCog } from 'react-icons/fa';
+import { FaLock, FaUpload, FaTrash, FaSave, FaCog, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const AdminSettings = () => {
     const { adminSettings, updatePin, siteSettings, updateSiteSettings } = useData();
@@ -15,6 +16,7 @@ const AdminSettings = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [faviconPreview, setFaviconPreview] = useState(siteSettings?.favicon || null);
+    const [galleryOpen, setGalleryOpen] = useState(false);
     const [siteFormData, setSiteFormData] = useState({
         favicon: siteSettings?.favicon || '',
         siteName: siteSettings?.siteName || 'MUVS',
@@ -832,6 +834,9 @@ const AdminSettings = () => {
                                     <FaUpload style={{ marginRight: '8px' }} />
                                     {uploading ? 'Uploading...' : 'Upload Favicon'}
                                 </label>
+                                <button type="button" onClick={() => setGalleryOpen(true)} style={uploadButtonStyle}>
+                                    <FaImages style={{ marginRight: '8px' }} /> Browse Gallery
+                                </button>
                                 {(faviconPreview || siteFormData.favicon) && (
                                     <button
                                         type="button"
@@ -987,6 +992,14 @@ const AdminSettings = () => {
                     </Button>
                 </form>
             </div>
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    setSiteFormData(prev => ({ ...prev, favicon: url }));
+                    setFaviconPreview(url);
+                }}
+            />
         </div>
     );
 };

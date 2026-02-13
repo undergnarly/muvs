@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaUpload, FaTrash, FaSave } from 'react-icons/fa';
+import { FaUpload, FaTrash, FaSave, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const AboutManager = () => {
     const { about, updateData } = useData();
@@ -13,6 +14,8 @@ const AboutManager = () => {
     const [imagePreviewDesktop, setImagePreviewDesktop] = useState(about.backgroundImageDesktop || null);
     const [imagePreviewMobile, setImagePreviewMobile] = useState(about.backgroundImageMobile || null);
     const [keepOriginal, setKeepOriginal] = useState(false);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryTarget, setGalleryTarget] = useState(null);
 
     // Initialize formData from about when component mounts or about changes
     useEffect(() => {
@@ -183,6 +186,9 @@ const AboutManager = () => {
                                     <FaUpload style={{ marginRight: '8px' }} />
                                     {uploading ? 'Uploading...' : 'Upload Desktop'}
                                 </label>
+                                <button type="button" onClick={() => { setGalleryTarget('desktop'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                    <FaImages style={{ marginRight: '8px' }} /> Browse Gallery
+                                </button>
                                 {formData.backgroundImageDesktop && (
                                     <button
                                         type="button"
@@ -220,6 +226,9 @@ const AboutManager = () => {
                                     <FaUpload style={{ marginRight: '8px' }} />
                                     {uploading ? 'Uploading...' : 'Upload Mobile'}
                                 </label>
+                                <button type="button" onClick={() => { setGalleryTarget('mobile'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                    <FaImages style={{ marginRight: '8px' }} /> Browse Gallery
+                                </button>
                                 {formData.backgroundImageMobile && (
                                     <button
                                         type="button"
@@ -246,6 +255,19 @@ const AboutManager = () => {
                     </div>
                 </form>
             </div>
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    if (galleryTarget === 'desktop') {
+                        setFormData(prev => ({ ...prev, backgroundImageDesktop: url }));
+                        setImagePreviewDesktop(url);
+                    } else if (galleryTarget === 'mobile') {
+                        setFormData(prev => ({ ...prev, backgroundImageMobile: url }));
+                        setImagePreviewMobile(url);
+                    }
+                }}
+            />
         </div>
     );
 };

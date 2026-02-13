@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { validateImageFile } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const NewsManager = () => {
     const { news, newsSettings, updateData } = useData();
@@ -12,6 +13,8 @@ const NewsManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryTarget, setGalleryTarget] = useState(null);
 
     // Settings State
     const [settingsData, setSettingsData] = useState(newsSettings || {
@@ -260,6 +263,9 @@ const NewsManager = () => {
                                                 accept="image/*"
                                             />
                                         </label>
+                                        <button type="button" onClick={() => { setGalleryTarget('item'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                            <FaImages /> Browse Gallery
+                                        </button>
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
                                             Server-side optimization
                                         </label>
@@ -347,6 +353,9 @@ const NewsManager = () => {
                                         accept="image/*"
                                     />
                                 </label>
+                                <button type="button" onClick={() => { setGalleryTarget('settings-desktop'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                    <FaImages /> Browse Gallery
+                                </button>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
                                     Server-side optimization
                                 </label>
@@ -381,6 +390,9 @@ const NewsManager = () => {
                                         accept="image/*"
                                     />
                                 </label>
+                                <button type="button" onClick={() => { setGalleryTarget('settings-mobile'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                    <FaImages /> Browse Gallery
+                                </button>
                             </div>
                             {settingsImagePreviewMobile && (
                                 <div style={{ marginTop: '10px', position: 'relative', maxWidth: '300px' }}>
@@ -407,6 +419,22 @@ const NewsManager = () => {
                     </form>
                 </div>
             )}
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    if (galleryTarget === 'item') {
+                        setFormData(prev => ({ ...prev, image: url }));
+                        setImagePreview(url);
+                    } else if (galleryTarget === 'settings-desktop') {
+                        setSettingsData(prev => ({ ...prev, backgroundImageDesktop: url }));
+                        setSettingsImagePreviewDesktop(url);
+                    } else if (galleryTarget === 'settings-mobile') {
+                        setSettingsData(prev => ({ ...prev, backgroundImageMobile: url }));
+                        setSettingsImagePreviewMobile(url);
+                    }
+                }}
+            />
         </div>
     );
 };

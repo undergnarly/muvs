@@ -11,6 +11,7 @@ import CodePage from './components/pages/CodePage';
 import LecturePage from './components/pages/LecturePage';
 import LectureTextPage from './components/pages/LectureTextPage';
 import CVPage from './components/pages/CVPage';
+import TestPage from './components/pages/TestPage';
 
 // Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
 const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
@@ -102,6 +103,7 @@ function AppRoot() {
                 <Route path={ROUTES.LECTURE} element={<LecturePage />} />
                 <Route path={ROUTES.LECTURE_TEXT} element={<LectureTextPage />} />
                 <Route path={ROUTES.CV} element={<CVPage />} />
+                <Route path={ROUTES.TEST} element={<TestPage />} />
                 <Route path="/login" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <LoginPage />

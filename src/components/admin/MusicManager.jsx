@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const MusicManager = () => {
     const { releases, updateData } = useData();
@@ -11,6 +12,8 @@ const MusicManager = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryTarget, setGalleryTarget] = useState(null);
 
     // Initial State
     const initialForm = {
@@ -413,6 +416,9 @@ const MusicManager = () => {
                                             <FaUpload style={{ marginRight: '8px' }} />
                                             {uploading ? 'Uploading...' : 'Upload Image'}
                                         </label>
+                                        <button type="button" onClick={() => { setGalleryTarget('cover'); setGalleryOpen(true); }} style={uploadButtonStyle}>
+                                            <FaImages style={{ marginRight: '8px' }} /> Browse Gallery
+                                        </button>
                                         {(imagePreview || formData.coverImage) && (
                                             <button
                                                 type="button"
@@ -604,6 +610,9 @@ const MusicManager = () => {
                                                         <FaUpload style={{ marginRight: '6px' }} />
                                                         {item.image ? 'Change Image' : 'Upload Image'}
                                                     </label>
+                                                    <button type="button" onClick={() => { setGalleryTarget({ type: 'gallery', index }); setGalleryOpen(true); }} style={{ ...uploadButtonStyle, display: 'inline-flex', fontSize: '12px', padding: '8px 16px' }}>
+                                                        <FaImages style={{ marginRight: '6px' }} /> Browse
+                                                    </button>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -761,6 +770,23 @@ const MusicManager = () => {
                     </div>
                 ))}
             </div>
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    if (galleryTarget === 'cover') {
+                        setFormData(prev => ({ ...prev, coverImage: url }));
+                        setImagePreview(url);
+                    } else if (galleryTarget && galleryTarget.type === 'gallery') {
+                        const idx = galleryTarget.index;
+                        setFormData(prev => {
+                            const updated = [...prev.gallery];
+                            updated[idx] = { ...updated[idx], image: url };
+                            return { ...prev, gallery: updated };
+                        });
+                    }
+                }}
+            />
         </div >
     );
 };

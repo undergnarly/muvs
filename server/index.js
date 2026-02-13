@@ -156,6 +156,33 @@ app.post('/api/auth/validate-pin', (req, res) => {
     }
 });
 
+// List all uploaded images
+app.get('/api/uploads', (req, res) => {
+    try {
+        const imageExts = ['.webp', '.jpg', '.jpeg', '.png', '.gif'];
+        const files = fs.readdirSync(UPLOADS_DIR)
+            .filter(f => {
+                const ext = path.extname(f).toLowerCase();
+                return imageExts.includes(ext);
+            })
+            .map(f => {
+                const filePath = path.join(UPLOADS_DIR, f);
+                const stats = fs.statSync(filePath);
+                return {
+                    name: f,
+                    url: `/uploads/${f}`,
+                    size: stats.size,
+                    mtime: stats.mtimeMs
+                };
+            })
+            .sort((a, b) => b.mtime - a.mtime);
+        res.json(files);
+    } catch (error) {
+        console.error('Error listing uploads:', error);
+        res.status(500).json({ error: 'Failed to list uploads' });
+    }
+});
+
 // Upload File with Optimization
 app.post('/api/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {

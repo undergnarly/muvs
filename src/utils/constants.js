@@ -8,6 +8,7 @@ export const ROUTES = {
     ABOUT: '/about',
     LECTURE: '/lecture', // Hidden lecture page
     LECTURE_TEXT: '/lecture-text', // Full text version
+    TEST: '/test', // Test page with Star Wars crawl effect
 };
 
 export const SOCIAL_LINKS = {

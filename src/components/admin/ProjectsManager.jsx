@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const ProjectsManager = () => {
     const { projects, updateData } = useData();
@@ -10,6 +11,8 @@ const ProjectsManager = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryTarget, setGalleryTarget] = useState(null);
 
     const initialForm = {
         title: '',
@@ -162,6 +165,9 @@ const ProjectsManager = () => {
                                     <FaUpload />
                                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} disabled={uploading} />
                                 </label>
+                                <button type="button" onClick={() => { setGalleryTarget('cover'); setGalleryOpen(true); }} style={{ ...inputStyle, width: 'auto', display: 'flex', alignItems: 'center', cursor: 'pointer', background: 'var(--color-surface)', gap: '6px', whiteSpace: 'nowrap', fontSize: '14px' }}>
+                                    <FaImages /> Browse
+                                </button>
                             </div>
                             <input
                                 type="text"
@@ -401,6 +407,9 @@ const ProjectsManager = () => {
                                                         <FaUpload style={{ marginRight: '6px' }} />
                                                         {item.image ? 'Change Image' : 'Upload Image'}
                                                     </label>
+                                                    <button type="button" onClick={() => { setGalleryTarget({ type: 'gallery', index }); setGalleryOpen(true); }} style={{ background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'var(--color-text-light)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', fontSize: '12px', padding: '8px 16px' }}>
+                                                        <FaImages style={{ marginRight: '6px' }} /> Browse
+                                                    </button>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -474,6 +483,22 @@ const ProjectsManager = () => {
                     </div>
                 ))}
             </div>
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    if (galleryTarget === 'cover') {
+                        setFormData(prev => ({ ...prev, coverImage: url }));
+                    } else if (galleryTarget && galleryTarget.type === 'gallery') {
+                        const idx = galleryTarget.index;
+                        setFormData(prev => {
+                            const updated = [...prev.gallery];
+                            updated[idx] = { ...updated[idx], image: url };
+                            return { ...prev, gallery: updated };
+                        });
+                    }
+                }}
+            />
         </div>
     );
 };

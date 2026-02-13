@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { validateImageFile } from '../../utils/imageCompression';
+import MediaGallery from './MediaGallery';
 
 const MixesManager = () => {
     const { mixes, updateData } = useData();
@@ -12,6 +13,7 @@ const MixesManager = () => {
     const [uploadStatus, setUploadStatus] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
     const [keepOriginal, setKeepOriginal] = useState(false);
+    const [galleryOpen, setGalleryOpen] = useState(false);
 
     const initialForm = {
         title: '',
@@ -273,6 +275,9 @@ const MixesManager = () => {
                                     <FaUpload style={{ marginRight: '8px' }} />
                                     {uploading ? 'Uploading...' : 'Upload Image'}
                                 </label>
+                                <button type="button" onClick={() => setGalleryOpen(true)} style={uploadButtonStyle}>
+                                    <FaImages style={{ marginRight: '8px' }} /> Browse Gallery
+                                </button>
                                 {formData.backgroundImage && (
                                     <button
                                         type="button"
@@ -407,6 +412,14 @@ const MixesManager = () => {
                     </div>
                 ))}
             </div>
+            <MediaGallery
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                onSelect={(url) => {
+                    setFormData(prev => ({ ...prev, backgroundImage: url }));
+                    setImagePreview(url);
+                }}
+            />
         </div>
     );
 };
