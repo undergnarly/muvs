@@ -36,6 +36,9 @@ const TestPage = () => {
     // Perspective rotation - text appears to be on a floor
     const crawlRotateX = useTransform(scrollYProgress, [0.1, 0.5], [60, 45]);
 
+    // Counter-rotation for image - keeps it flat (no perspective distortion)
+    const imageRotateX = useTransform(crawlRotateX, v => -v);
+
     return (
         <div className="test-page" ref={containerRef}>
             <Header />
@@ -83,12 +86,13 @@ const TestPage = () => {
                         }}
                     >
                         <div className="crawl-text">
-                            {/* Cover image - part of the crawl */}
+                            {/* Cover image - NO perspective distortion, only scale */}
                             {release.coverImage && (
-                                <img
+                                <motion.img
                                     src={release.coverImage}
                                     alt={release.title}
                                     className="crawl-cover-img"
+                                    style={{ rotateX: imageRotateX }}
                                 />
                             )}
                             <h2>EPISODE I</h2>
