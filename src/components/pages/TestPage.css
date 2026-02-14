@@ -1,171 +1,207 @@
-/* Scroll height - controls animation duration */
 .test-page {
-    height: 500vh;
+    min-height: 400vh;
     width: 100%;
+    background: var(--color-bg-dark);
     position: relative;
 }
 
-/* === MAIN FIXED CONTAINER === */
-.perspective-container {
-    position: fixed;
+/* Hero - sticky section */
+.test-hero-sticky {
+    position: sticky;
     top: 0;
-    left: 0;
-    width: 100%;
     height: 100vh;
-
-    /* Static gradient: grey top -> white bottom */
-    background: linear-gradient(
-        to bottom,
-        #e0e0e0 0%,
-        #f5f5f5 30%,
-        #ffffff 100%
-    );
-
-    /* 3D perspective - vanishing point at 25% from top, center */
-    perspective: 800px;
-    perspective-origin: 50% 25%;
-
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
+    z-index: 1;
 }
 
-/* === COVER IMAGE === */
-.perspective-cover {
+.test-hero-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+}
+
+/* Title background */
+.test-title-bg {
     position: absolute;
-    top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    top: 20%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 10;
+    gap: 0;
 }
 
-.cover-title-bg {
-    position: absolute;
-    width: 100vw;
-    text-align: center;
-    top: -80px;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: none;
-}
-
-.cover-artists {
-    font-size: clamp(18px, 5vw, 40px);
+.test-artists {
+    font-size: min(12vw, 60px);
     font-weight: 300;
-    letter-spacing: 0.4em;
-    color: rgba(0, 0, 0, 0.08);
-    text-transform: uppercase;
-    margin: 0 0 8px 0;
-}
-
-.cover-title {
-    font-size: clamp(40px, 15vw, 140px);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: rgba(0, 0, 0, 0.06);
+    letter-spacing: 0.3em;
+    color: rgba(0, 0, 0, 0.15);
     text-transform: uppercase;
     margin: 0;
-    line-height: 0.85;
+    line-height: 1;
 }
 
-.cover-img {
-    width: min(70vw, 450px);
-    height: auto;
+.test-title {
+    font-size: min(24vw, 140px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: rgba(0, 0, 0, 0.12);
+    text-transform: uppercase;
+    margin: 0;
+    line-height: 0.9;
+}
+
+/* Cover image */
+.test-cover-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 100vw;
+    max-width: 500px;
     aspect-ratio: 1;
-    object-fit: contain;
-    filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.25));
 }
 
-/* === STAR WARS CRAWL === */
-.crawl-container {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+.test-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.3));
+}
+
+/* Star Wars Crawl Section */
+.test-crawl-section {
+    position: relative;
+    height: 200vh;
+    width: 100%;
+    background: linear-gradient(to bottom,
+        var(--color-bg-dark) 0%,
+        #f5f5f5 10%,
+        #ffffff 50%,
+        #f5f5f5 100%
+    );
+    z-index: 10;
+    overflow: hidden;
+}
+
+.test-crawl-perspective {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    perspective: 400px;
+    perspective-origin: 50% 100%;
+    overflow: hidden;
     display: flex;
+    align-items: flex-end;
     justify-content: center;
+}
+
+.test-crawl-content {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    max-width: 800px;
+    padding: 0 20px;
     transform-style: preserve-3d;
-    z-index: 5;
+    transform-origin: 50% 100%;
 }
 
 .crawl-text {
-    width: 90%;
-    max-width: 700px;
     text-align: center;
-    color: #222;
+    color: #1a1a1a;
+    padding-bottom: 100vh;
+}
+
+.crawl-cover-img {
+    width: min(70vw, 400px);
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    margin-bottom: 60px;
+    filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.3));
 }
 
 .crawl-text h2 {
-    font-size: clamp(16px, 4vw, 28px);
+    font-size: clamp(16px, 4vw, 24px);
     font-weight: 400;
-    letter-spacing: 0.5em;
-    color: #888;
-    margin: 0 0 16px 0;
-    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: #666;
+    margin-bottom: 20px;
 }
 
 .crawl-text h1 {
-    font-size: clamp(28px, 8vw, 64px);
+    font-size: clamp(32px, 8vw, 64px);
     font-weight: 700;
-    letter-spacing: 0.02em;
-    color: #333;
+    letter-spacing: 0.05em;
+    margin-bottom: 60px;
+    color: #1a1a1a;
     text-transform: uppercase;
-    margin: 0 0 40px 0;
-    line-height: 1.1;
 }
 
 .crawl-text p {
-    font-size: clamp(16px, 4vw, 28px);
-    line-height: 1.6;
-    margin: 0 0 32px 0;
-    color: #444;
+    font-size: clamp(18px, 4vw, 28px);
+    line-height: 1.8;
+    margin-bottom: 40px;
+    color: #333;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-/* Horizon fade - objects disappear into distance */
-.horizon-fade {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 30%;
-    background: linear-gradient(
-        to bottom,
-        rgba(224, 224, 224, 1) 0%,
-        rgba(240, 240, 240, 0.8) 40%,
-        rgba(255, 255, 255, 0) 100%
-    );
-    pointer-events: none;
-    z-index: 100;
+/* White floor section */
+.test-white-floor {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    background: #ffffff;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Debug horizon line - uncomment to see */
-.horizon-line {
-    position: absolute;
-    top: 25%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    /* background: red; */
-    pointer-events: none;
-    z-index: 200;
+.floor-content {
+    text-align: center;
+    color: #1a1a1a;
 }
 
-/* === MOBILE === */
+.floor-content h2 {
+    font-size: clamp(24px, 5vw, 48px);
+    font-weight: 300;
+    margin-bottom: 20px;
+}
+
+.floor-content p {
+    font-size: 18px;
+    color: #666;
+}
+
+/* Mobile adjustments */
 @media (max-width: 768px) {
-    .perspective-container {
-        perspective: 500px;
+    .test-cover-wrapper {
+        max-width: 85vw;
     }
 
-    .cover-img {
-        width: 80vw;
+    .test-title-bg {
+        top: 15%;
     }
 
-    .cover-title-bg {
-        top: -60px;
+    .test-crawl-perspective {
+        perspective: 300px;
     }
 
     .crawl-text p {
-        margin-bottom: 24px;
+        line-height: 1.6;
+        margin-bottom: 30px;
     }
 }
