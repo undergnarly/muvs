@@ -29,17 +29,17 @@ const LectureTextPage = () => {
         <div className="lecture-text-container">
             <nav className="lecture-sticky-nav">
                 <button className="back-btn" onClick={() => navigate('/lecture')}>
-                    <ChevronLeft size={16} /> Слайды
+                    <ChevronLeft size={16} /> Slides
                 </button>
                 <div className="lecture-meta">
-                    2026 Edition <span className="dot">•</span> Конспект
+                    2026 Edition <span className="dot">•</span> Notes
                 </div>
             </nav>
 
             <header className="lecture-text-header">
-                <h1>Автоматизация и AI системы</h1>
+                <h1>Automation & AI Systems</h1>
                 <div className="lecture-meta">
-                    2 часа интенсивного погружения в архитектуру будущего
+                    2 hours of intensive deep-dive into the architecture of the future
                 </div>
             </header>
 
@@ -61,7 +61,7 @@ const LectureTextPage = () => {
                         {slide.practice && (
                             <div className="section-practice">
                                 <div className="practice-badge">
-                                    <Zap size={14} /> Практика & Демо
+                                    <Zap size={14} /> Practice & Demo
                                 </div>
                                 <div className="practice-content">
                                     {slide.practice}
@@ -74,10 +74,10 @@ const LectureTextPage = () => {
                 <footer className="lecture-text-footer">
                     <div className="final-note">
                         <Target size={40} />
-                        <h3>Готовы стать архитектором?</h3>
-                        <p>Этот конспект — ваша дорожная карта. Начните с малого, стройте системы, автоматизируйте хаос.</p>
+                        <h3>Ready to become an architect?</h3>
+                        <p>These notes are your roadmap. Start small, build systems, automate the chaos.</p>
                         <button className="cta-btn" onClick={() => navigate('/lecture')}>
-                            Вернуться к слайдам <ArrowRight size={20} />
+                            Back to slides <ArrowRight size={20} />
                         </button>
                     </div>
                 </footer>

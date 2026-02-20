@@ -64,13 +64,13 @@ const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
             </div>
             {slide.content.current_moment && (
               <motion.div className="lecture-timeline-current" variants={itemVariants} style={{ marginTop: '40px', textAlign: 'center', width: '100%' }}>
-                <span className="lecture-timeline-label">Контекст 2026</span>
+                <span className="lecture-timeline-label">Context 2026</span>
                 <p>{slide.content.current_moment}</p>
               </motion.div>
             )}
             {slide.content.implication && (
               <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ marginTop: '20px', textAlign: 'center', width: '100%' }}>
-                <span className="lecture-timeline-label">Вывод</span>
+                <span className="lecture-timeline-label">Takeaway</span>
                 <p>{slide.content.implication}</p>
               </motion.div>
             )}
@@ -83,7 +83,7 @@ const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
               <motion.div className="lecture-balance-side lecture-shaolin" variants={scaleVariants}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <DynamicIcon name={slide.content[0].icon} size={24} />
-                  <h3 style={{ margin: 0 }}>Шаолинь</h3>
+                  <h3 style={{ margin: 0 }}>Shaolin</h3>
                 </div>
                 <p>{slide.content[0].text}</p>
               </motion.div>
@@ -99,7 +99,7 @@ const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
             <motion.div className="lecture-balance-side lecture-result" variants={itemVariants} style={{ marginTop: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 <DynamicIcon name={slide.content[2].icon} size={24} />
-                <h3 style={{ margin: 0 }}>Результат</h3>
+                <h3 style={{ margin: 0 }}>Result</h3>
               </div>
               <p>{slide.content[2].text}</p>
             </motion.div>
@@ -243,7 +243,7 @@ const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
         return (
           <div className="lecture-case-study">
             <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ background: '#000', marginBottom: '30px' }}>
-              <span className="lecture-timeline-label" style={{ color: '#fff' }}>Формула</span>
+              <span className="lecture-timeline-label" style={{ color: '#fff' }}>Formula</span>
               <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{slide.content.formula}</p>
             </motion.div>
             <div className="lecture-timeline">
@@ -377,7 +377,7 @@ const SlideRenderer = ({ slide, expandedItems, toggleExpanded }) => {
 
             {slide.content.insights && (
               <motion.div className="lecture-timeline-implication" variants={itemVariants} style={{ marginTop: '20px' }}>
-                <span className="lecture-timeline-label">Инсайты</span>
+                <span className="lecture-timeline-label">Insights</span>
                 <ul style={{ textAlign: 'left', paddingLeft: '20px' }}>
                   {slide.content.insights.map((insight, idx) => <li key={idx} style={{ marginBottom: '5px' }}>{insight}</li>)}
                 </ul>
