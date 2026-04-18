@@ -35,28 +35,97 @@ const Floor = () => (
 );
 
 const JEEP_SCALE = 2;
+const JEEP_YAW = Math.PI / 6;
+
+// Fit plane y = a*x + b*z + c to 4 lowest points (one per XZ quadrant),
+// then return pitch/roll that makes that plane horizontal.
+const computeWheelLeveling = (scene) => {
+    scene.rotation.set(0, 0, 0);
+    scene.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(scene);
+    const xMid = (box.min.x + box.max.x) / 2;
+    const zMid = (box.min.z + box.max.z) / 2;
+
+    const corners = [
+        { xs: -1, zs: -1, pt: null },
+        { xs:  1, zs: -1, pt: null },
+        { xs: -1, zs:  1, pt: null },
+        { xs:  1, zs:  1, pt: null },
+    ];
+
+    const v = new THREE.Vector3();
+    scene.traverse((obj) => {
+        if (!obj.isMesh || !obj.geometry?.attributes?.position) return;
+        const pos = obj.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            v.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+            const dx = Math.sign(v.x - xMid);
+            const dz = Math.sign(v.z - zMid);
+            if (dx === 0 || dz === 0) continue;
+            for (const c of corners) {
+                if (dx === c.xs && dz === c.zs) {
+                    if (!c.pt || v.y < c.pt.y) c.pt = v.clone();
+                }
+            }
+        }
+    });
+
+    if (corners.some((c) => !c.pt)) return { rx: 0, rz: 0 };
+
+    // Normal equations for y = a x + b z + c
+    let sx = 0, sz = 0, sy = 0, sxx = 0, szz = 0, sxz = 0, sxy = 0, szy = 0;
+    const n = corners.length;
+    for (const { pt } of corners) {
+        sx += pt.x; sz += pt.z; sy += pt.y;
+        sxx += pt.x * pt.x; szz += pt.z * pt.z; sxz += pt.x * pt.z;
+        sxy += pt.x * pt.y; szy += pt.z * pt.y;
+    }
+    const m = [
+        [sxx, sxz, sx, sxy],
+        [sxz, szz, sz, szy],
+        [sx,  sz,  n,  sy ],
+    ];
+    for (let i = 0; i < 3; i++) {
+        let maxRow = i;
+        for (let k = i + 1; k < 3; k++) if (Math.abs(m[k][i]) > Math.abs(m[maxRow][i])) maxRow = k;
+        [m[i], m[maxRow]] = [m[maxRow], m[i]];
+        if (Math.abs(m[i][i]) < 1e-9) return { rx: 0, rz: 0 };
+        for (let k = i + 1; k < 3; k++) {
+            const f = m[k][i] / m[i][i];
+            for (let j = i; j < 4; j++) m[k][j] -= f * m[i][j];
+        }
+    }
+    const c = m[2][3] / m[2][2];
+    const b = (m[1][3] - m[1][2] * c) / m[1][1];
+    const a = (m[0][3] - m[0][2] * c - m[0][1] * b) / m[0][0];
+
+    return { rx: Math.atan(b), rz: -Math.atan(a) };
+};
 
 const Jeep = () => {
     const { scene } = useGLTF(JEEP_URL);
 
-    const yOffset = useMemo(() => {
+    const { yOffset, rx, rz } = useMemo(() => {
         scene.traverse((obj) => {
             if (obj.isMesh) {
                 obj.castShadow = true;
                 obj.receiveShadow = true;
             }
         });
+
+        const { rx, rz } = computeWheelLeveling(scene);
+        scene.rotation.set(rx, 0, rz);
+        scene.updateMatrixWorld(true);
+
         const box = new THREE.Box3().setFromObject(scene);
-        return -box.min.y * JEEP_SCALE;
+        return { yOffset: -box.min.y * JEEP_SCALE, rx, rz };
     }, [scene]);
 
     return (
-        <primitive
-            object={scene}
-            position={[0, FLOOR_Y + yOffset, 0]}
-            scale={JEEP_SCALE}
-            rotation={[0, Math.PI / 6, 0]}
-        />
+        <group position={[0, FLOOR_Y + yOffset, 0]} rotation={[0, JEEP_YAW, 0]}>
+            <primitive object={scene} scale={JEEP_SCALE} rotation={[rx, 0, rz]} />
+        </group>
     );
 };
 
