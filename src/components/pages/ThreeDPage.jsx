@@ -1,8 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls, Text, useGLTF } from '@react-three/drei';
 import Header from '../layout/Header';
 import './ThreeDPage.css';
+
+const JEEP_URL = '/models/jeep.glb';
+useGLTF.preload(JEEP_URL);
 
 const FLOOR_Y = 0;
 const MAIN_CUBE_SIZE = 2;
@@ -30,12 +33,28 @@ const Floor = () => (
     </mesh>
 );
 
-const MainCube = () => (
-    <mesh
-        position={[0, FLOOR_Y + MAIN_CUBE_SIZE / 2, 0]}
-        castShadow
-        receiveShadow
-    >
+const Jeep = () => {
+    const { scene } = useGLTF(JEEP_URL);
+    React.useEffect(() => {
+        scene.traverse((obj) => {
+            if (obj.isMesh) {
+                obj.castShadow = true;
+                obj.receiveShadow = true;
+            }
+        });
+    }, [scene]);
+    return (
+        <primitive
+            object={scene}
+            position={[0, FLOOR_Y, 0]}
+            scale={2}
+            rotation={[0, Math.PI / 6, 0]}
+        />
+    );
+};
+
+const CenterFallbackCube = () => (
+    <mesh position={[0, FLOOR_Y + MAIN_CUBE_SIZE / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[MAIN_CUBE_SIZE, MAIN_CUBE_SIZE, MAIN_CUBE_SIZE]} />
         <meshStandardMaterial color="#606060" roughness={0.55} metalness={0.05} />
     </mesh>
@@ -174,7 +193,9 @@ const ThreeDPage = () => {
                     />
 
                     <Floor />
-                    <MainCube />
+                    <Suspense fallback={<CenterFallbackCube />}>
+                        <Jeep />
+                    </Suspense>
 
                     <TextCube position={[0, FLOOR_Y, -SIDE_DISTANCE]} label="MUVS" />
                     <ColorCube position={[SIDE_DISTANCE, FLOOR_Y, 0]} />
