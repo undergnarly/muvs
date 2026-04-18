@@ -89,11 +89,13 @@ function AppRoot() {
 
     // Check if current route is lecture page
     const isLecturePage = location.pathname === ROUTES.LECTURE;
+    const isThreeDPage = location.pathname === ROUTES.THREE_D;
+    const hideOverlays = isLecturePage || isThreeDPage;
 
     return (
         <>
-            {!isLecturePage && <TopBlur />}
-            {!isLecturePage && <PageGradient />}
+            {!hideOverlays && <TopBlur />}
+            {!hideOverlays && <PageGradient />}
             <Routes>
                 <Route path={ROUTES.HOME} element={<MusicPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutPage />} />
