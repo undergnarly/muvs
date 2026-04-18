@@ -1,0 +1,26 @@
+.three-d-page {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.three-d-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.three-d-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 400px;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(to bottom, #767676 0%, rgba(255, 255, 255, 0) 100%);
+}

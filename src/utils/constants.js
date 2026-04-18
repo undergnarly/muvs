@@ -9,6 +9,7 @@ export const ROUTES = {
     LECTURE: '/lecture', // Hidden lecture page
     LECTURE_TEXT: '/lecture-text', // Full text version
     TEST: '/test', // Test page with Star Wars crawl effect
+    THREE_D: '/3d', // 3D scene page with rotating camera around a cube
 };
 
 export const SOCIAL_LINKS = {
