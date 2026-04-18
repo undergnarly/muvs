@@ -1,4 +1,5 @@
-import React, { Suspense, useRef, useState } from 'react';
+import React, { Suspense, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, useGLTF } from '@react-three/drei';
 import Header from '../layout/Header';
@@ -33,21 +34,27 @@ const Floor = () => (
     </mesh>
 );
 
+const JEEP_SCALE = 2;
+
 const Jeep = () => {
     const { scene } = useGLTF(JEEP_URL);
-    React.useEffect(() => {
+
+    const yOffset = useMemo(() => {
         scene.traverse((obj) => {
             if (obj.isMesh) {
                 obj.castShadow = true;
                 obj.receiveShadow = true;
             }
         });
+        const box = new THREE.Box3().setFromObject(scene);
+        return -box.min.y * JEEP_SCALE;
     }, [scene]);
+
     return (
         <primitive
             object={scene}
-            position={[0, FLOOR_Y, 0]}
-            scale={2}
+            position={[0, FLOOR_Y + yOffset, 0]}
+            scale={JEEP_SCALE}
             rotation={[0, Math.PI / 6, 0]}
         />
     );
