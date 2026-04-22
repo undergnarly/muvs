@@ -92,15 +92,16 @@ const ReleaseDetails = ({ release, allReleases, onNavigate }) => {
                     <motion.div className="soundcloud-embed" variants={itemVariants}>
                         <iframe
                             width="100%"
-                            height={release.soundcloudTrackUrl || !hasPlaylist ? "166" : "450"}
+                            height={hasPlaylist ? "450" : "300"}
                             scrolling="no"
                             frameBorder="no"
                             allow="autoplay"
-                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent((release.soundcloudTrackUrl || release.soundcloudUrl).split('?')[0])}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=${hasPlaylist ? 'true' : 'false'}`}
+                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent((release.soundcloudTrackUrl || release.soundcloudUrl).split('?')[0])}&color=%23ccff00&auto_play=false&hide_related=true&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true`}
                             style={{
                                 borderRadius: '8px',
                                 marginTop: '16px',
-                                marginBottom: '24px'
+                                marginBottom: '24px',
+                                background: '#000000'
                             }}
                         ></iframe>
                     </motion.div>
