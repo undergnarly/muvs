@@ -28,9 +28,9 @@ const useHoverCursor = () => {
 };
 
 const Floor = () => (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FLOOR_Y, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, FLOOR_Y, 0]}>
         <planeGeometry args={[400, 400]} />
-        <meshStandardMaterial color="#ffffff" />
+        <meshBasicMaterial color="#ffffff" />
     </mesh>
 );
 
