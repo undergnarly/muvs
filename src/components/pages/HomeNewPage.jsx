@@ -619,6 +619,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
+        <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[6, 12, 8]} intensity={0.55} />
@@ -1039,7 +1040,7 @@ export const Scene3DShell = ({
                 <div className="home-new-canvas">
                     <Canvas
                         camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
-                        gl={{ antialias: true, alpha: true }}
+                        gl={{ antialias: true }}
                         dpr={[1, 2]}
                     >
                         <Scene
