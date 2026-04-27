@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Text, useTexture, Grid } from '@react-three/drei';
+import { Text, useTexture } from '@react-three/drei';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
 import './HomeNewPage.css';
@@ -248,25 +248,10 @@ const FloorText = ({ release, x, z }) => {
 };
 
 const Floor = () => (
-    <>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-            <planeGeometry args={[160, 80]} />
-            <meshBasicMaterial color="#ffffff" />
-        </mesh>
-        <Grid
-            position={[0, 0.001, 0]}
-            args={[80, 40]}
-            cellSize={1}
-            cellThickness={0.6}
-            cellColor="#cccccc"
-            sectionSize={5}
-            sectionThickness={1.2}
-            sectionColor="#888888"
-            fadeDistance={28}
-            fadeStrength={1.2}
-            infiniteGrid={false}
-        />
-    </>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <planeGeometry args={[160, 80]} />
+        <meshBasicMaterial color="#ffffff" />
+    </mesh>
 );
 
 const lerp = (a, b, t) => a + (b - a) * t;
