@@ -24,7 +24,8 @@ const DEFAULT_CFG = {
     lookStart: { x: 0, y: 2.6, z: 0.0 },
     lookEnd:   { x: 0, y: -2.0, z: 9.0 },
     floorTextZ: 4.0,
-    fov: 50,
+    fovStart: 40,
+    fovEnd: 80,
     fogNear: 14,
     fogFar: 32,
 };
@@ -159,8 +160,9 @@ const ScrollCamera = ({ cfgRef, scrollProgressRef }) => {
         );
         camera.lookAt(lookAt.current);
 
-        if (camera.fov !== c.fov) {
-            camera.fov = c.fov;
+        const fov = c.fovStart + e * (c.fovEnd - c.fovStart);
+        if (Math.abs(camera.fov - fov) > 0.01) {
+            camera.fov = fov;
             camera.updateProjectionMatrix();
         }
     });
@@ -276,9 +278,10 @@ const DebugPanel = ({ cfg, setCfg, scrollProgressRef }) => {
             <div className="dbg-block">
                 <div className="dbg-title">scene</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
-                <Row label="fov"          value={cfg.fov}        min={20}  max={90} step={1} onChange={(v) => setCfg({ ...cfg, fov: v })} />
-                <Row label="fog near"     value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
-                <Row label="fog far"      value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
+                <Row label="fov · start" value={cfg.fovStart}   min={10}  max={120} step={1} onChange={(v) => setCfg({ ...cfg, fovStart: v })} />
+                <Row label="fov · end"   value={cfg.fovEnd}     min={10}  max={120} step={1} onChange={(v) => setCfg({ ...cfg, fovEnd: v })} />
+                <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
+                <Row label="fog far"     value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
             </div>
         </div>
     );
@@ -303,7 +306,7 @@ const HomeNewPage = () => {
             {release && (
                 <div className="home-new-canvas">
                     <Canvas
-                        camera={{ position: [0, 2.6, 6.5], fov: cfg.fov }}
+                        camera={{ position: [0, 2.6, 6.5], fov: cfg.fovStart }}
                         gl={{ antialias: true }}
                         dpr={[1, 2]}
                     >
