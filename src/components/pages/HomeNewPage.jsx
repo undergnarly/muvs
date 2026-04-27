@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { ScrollControls, useScroll, Text, useTexture } from '@react-three/drei';
+import { ScrollControls, useScroll, Text, useTexture, Grid } from '@react-three/drei';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
 import './HomeNewPage.css';
@@ -95,30 +95,56 @@ const FloorText = ({ release }) => {
 };
 
 const Floor = () => (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshBasicMaterial color="#ffffff" />
-    </mesh>
+    <>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+            <planeGeometry args={[80, 80]} />
+            <meshBasicMaterial color="#ffffff" />
+        </mesh>
+        <Grid
+            position={[0, 0.001, 0]}
+            args={[40, 40]}
+            cellSize={1}
+            cellThickness={0.6}
+            cellColor="#cccccc"
+            sectionSize={5}
+            sectionThickness={1.2}
+            sectionColor="#888888"
+            fadeDistance={28}
+            fadeStrength={1.2}
+            infiniteGrid={false}
+        />
+        {/* z-axis line (forward direction) */}
+        <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.04, 30]} />
+            <meshBasicMaterial color="#ff4444" />
+        </mesh>
+        {/* x-axis line */}
+        <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[0.04, 30]} />
+            <meshBasicMaterial color="#4488ff" />
+        </mesh>
+    </>
 );
 
 // Drives the default camera along a scroll-bound path.
+// Both ends keep a shallow downward angle so the floor text stays readable.
 const ScrollCamera = () => {
     const scroll = useScroll();
     const lookAt = React.useRef(new THREE.Vector3());
 
     useFrame(({ camera }) => {
         const t = THREE.MathUtils.clamp(scroll.offset, 0, 1);
-        // Smoothstep for nicer easing
         const e = t * t * (3 - 2 * t);
 
-        // Start: close, eye-level with billboard
-        // End: pulled back, raised, tilted down toward floor
+        // Eye-level near billboard but already a bit elevated so floor is in view.
+        // Pulls back along +z, rises slightly. lookAt slides down so the floor
+        // becomes the dominant subject by the end.
         camera.position.set(
             0,
-            2.6 + e * 4.2,
-            6.5 + e * 9.5,
+            3.2 + e * 2.3,
+            7.5 + e * 7.5,
         );
-        lookAt.current.set(0, 2.6 - e * 3.0, 0 - e * 2.5);
+        lookAt.current.set(0, 2.4 - e * 2.6, 0 + e * 1.5);
         camera.lookAt(lookAt.current);
     });
 
