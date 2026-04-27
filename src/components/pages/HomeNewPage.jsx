@@ -361,13 +361,11 @@ const Billboard = ({ release, x, billboard }) => {
 
             <mesh position={[0, billboard.coverY, 0]}>
                 <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
-                <meshBasicMaterial
-                    map={tex || null}
-                    color={tex ? '#ffffff' : '#111111'}
-                    transparent
-                    opacity={tex ? 1 : 0.92}
-                    toneMapped={false}
-                />
+                {tex ? (
+                    <meshBasicMaterial map={tex} toneMapped={false} />
+                ) : (
+                    <meshBasicMaterial color="#111111" transparent opacity={0.92} />
+                )}
             </mesh>
         </group>
     );
@@ -959,14 +957,7 @@ export const Scene3DShell = ({
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
         const sorted = [...(source || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
-        if (sorted.length >= 2) return sorted;
-        if (sorted.length === 1) {
-            return [
-                sorted[0],
-                { ...sorted[0], id: `${sorted[0].id ?? 'demo'}-2`, title: `${sorted[0].title || 'Untitled'} II` },
-            ];
-        }
-        return [];
+        return sorted;
     }, [itemsProp, releases]);
 
     const loadLocal = useCallback(() => {
