@@ -88,6 +88,8 @@ const hydrateCfg = (cfg) => {
     };
 };
 
+const texCache = new Map();
+
 const useSafeTexture = (url) => {
     const [texture, setTexture] = useState(null);
 
@@ -95,6 +97,11 @@ const useSafeTexture = (url) => {
         let cancelled = false;
         setTexture(null);
         if (!url) return undefined;
+
+        if (texCache.has(url)) {
+            setTexture(texCache.get(url));
+            return undefined;
+        }
 
         const loader = new THREE.TextureLoader();
         loader.load(
@@ -106,6 +113,7 @@ const useSafeTexture = (url) => {
                 }
                 loaded.colorSpace = THREE.SRGBColorSpace;
                 loaded.needsUpdate = true;
+                texCache.set(url, loaded);
                 setTexture(loaded);
             },
             undefined,
@@ -118,10 +126,6 @@ const useSafeTexture = (url) => {
             cancelled = true;
         };
     }, [url]);
-
-    useEffect(() => () => {
-        texture?.dispose();
-    }, [texture]);
 
     return texture;
 };
