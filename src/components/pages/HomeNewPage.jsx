@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -329,14 +329,20 @@ const useReleaseSwitcher = (count, onSwitch) => {
 // ================ scene parts ================
 
 const Billboard = ({ release, x, billboard }) => {
-    const tex = useSafeTexture(release.coverImage);
+    const tex = useTexture(release.coverImage);
+    useEffect(() => {
+        if (tex) {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.needsUpdate = true;
+        }
+    }, [tex]);
 
     return (
         <group position={[x, 2.6, 0]}>
             <Text
                 position={[0, billboard.titleY, billboard.titleZ]}
                 fontSize={billboard.titleSize}
-                color="#1a1a1a"
+                color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={9}
@@ -350,7 +356,7 @@ const Billboard = ({ release, x, billboard }) => {
             <Text
                 position={[0, billboard.artistY, billboard.artistZ]}
                 fontSize={billboard.artistSize}
-                color="#1a1a1a"
+                color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
@@ -361,11 +367,7 @@ const Billboard = ({ release, x, billboard }) => {
 
             <mesh position={[0, billboard.coverY, 0]}>
                 <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
-                {tex ? (
-                    <meshBasicMaterial map={tex} transparent toneMapped={false} />
-                ) : (
-                    <meshBasicMaterial color="#111111" transparent opacity={0.92} />
-                )}
+                <meshBasicMaterial map={tex} transparent toneMapped={false} />
             </mesh>
         </group>
     );
@@ -621,7 +623,6 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
-        <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[6, 12, 8]} intensity={0.55} />
@@ -1035,7 +1036,7 @@ export const Scene3DShell = ({
                 <div className="home-new-canvas">
                     <Canvas
                         camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
-                        gl={{ antialias: true }}
+                        gl={{ antialias: true, alpha: true }}
                         dpr={[1, 2]}
                     >
                         <Scene
