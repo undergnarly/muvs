@@ -12,6 +12,41 @@
 </head>
 
 <body>
+  <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#ffffff;transition:opacity .6s ease">
+    <style>#splash-screen.hidden{opacity:0;pointer-events:none}</style>
+    <div style="text-align:center;font-family:Urbanist,sans-serif">
+      <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;color:#0a0a0a">MUVS</div>
+      <div id="splash-status" style="margin-top:12px;font-size:13px;font-weight:500;letter-spacing:.08em;color:#888">LOADING</div>
+      <div style="margin-top:16px;width:120px;height:2px;background:#e0e0e0;border-radius:1px;overflow:hidden">
+        <div id="splash-bar" style="width:0%;height:100%;background:#0a0a0a;border-radius:1px;transition:width .3s ease"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var bar=document.getElementById('splash-bar');
+      var status=document.getElementById('splash-status');
+      var progress=0;
+      var steps=[
+        [10,'SCRIPTS'],
+        [30,'FONTS'],
+        [55,'ASSETS'],
+        [75,'TEXTURES'],
+        [90,'RENDER'],
+        [100,'READY']
+      ];
+      var i=0;
+      function tick(){
+        if(i>=steps.length)return;
+        var s=steps[i];
+        bar.style.width=s[0]+'%';
+        status.textContent=s[1];
+        i++;
+        setTimeout(tick,300+Math.random()*400);
+      }
+      setTimeout(tick,100);
+    })();
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
