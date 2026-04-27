@@ -12,14 +12,14 @@
 </head>
 
 <body>
-  <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#ffffff;transition:opacity .6s ease">
+  <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(to bottom,#767676,#8f8f8fc2 35%,#ffffff);transition:opacity .6s ease">
     <style>#splash-screen.hidden{opacity:0;pointer-events:none}</style>
     <div style="text-align:center;font-family:Urbanist,sans-serif">
-      <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;color:#0a0a0a">MUVS</div>
-      <div id="splash-status" style="margin-top:12px;font-size:13px;font-weight:500;letter-spacing:.08em;color:#888">LOADING</div>
-      <div style="margin-top:16px;width:120px;height:2px;background:#e0e0e0;border-radius:1px;overflow:hidden">
-        <div id="splash-bar" style="width:0%;height:100%;background:#0a0a0a;border-radius:1px;transition:width .3s ease"></div>
+      <div style="width:140px;height:70px;margin:0 auto;background-color:#fff;-webkit-mask:url('/images/logo.png') center/contain no-repeat;mask:url('/images/logo.png') center/contain no-repeat"></div>
+      <div style="margin-top:22px;width:180px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;overflow:hidden">
+        <div id="splash-bar" style="width:0%;height:100%;background:#ffffff;border-radius:1px;transition:width .3s ease"></div>
       </div>
+      <div id="splash-status" style="margin-top:10px;font-size:11px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,0.85)">LOADING</div>
     </div>
   </div>
   <script>
