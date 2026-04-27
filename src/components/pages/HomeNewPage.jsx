@@ -59,6 +59,7 @@ const DEFAULT_SUPPORT = {
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 7.3,
+    photoZ: 5.8,
     fogNear: 14,
     fogFar: 32,
     billboard: DEFAULT_BILLBOARD,
@@ -404,9 +405,9 @@ const FloorText = ({ release, x, z }) => {
 };
 
 const FLOOR_PHOTO_SHEETS = [
-    { x: 4.7, y: -0.45, r: -0.18, color: '#f7f4ec', image: '#d9dfe3' },
-    { x: 5.55, y: 0.55, r: 0.1, color: '#fbfaf6', image: '#e2d7cb' },
-    { x: 3.95, y: 0.85, r: 0.22, color: '#f3f0e8', image: '#cfd8d2' },
+    { x: -2.6, y: -0.35, r: -0.22, color: '#f7f4ec', image: '#d9dfe3' },
+    { x:  0.3, y:  0.55, r:  0.14, color: '#fbfaf6', image: '#e2d7cb' },
+    { x: -1.1, y:  0.9,  r:  0.25, color: '#f3f0e8', image: '#cfd8d2' },
 ];
 
 const FloorPhotoSheet = ({ sheet }) => (
@@ -614,7 +615,7 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard, stack, support, simple }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -637,8 +638,8 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, bi
                 <Suspense fallback={null}>
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
+                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} />
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
-                <FloorPhotoSheets x={i * RELEASE_SPACING} z={floorTextZ} />
                 {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
         ))}
@@ -912,6 +913,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
             <div className="dbg-block">
                 <div className="dbg-title">scene</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
+                <Row label="photo z"     value={cfg.photoZ}     min={-15} max={20} onChange={(v) => setCfg({ ...cfg, photoZ: v })} />
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
                 <Row label="fog far"     value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
             </div>
@@ -1046,6 +1048,7 @@ export const Scene3DShell = ({
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
                             floorTextZ={cfg.floorTextZ}
+                            photoZ={cfg.photoZ}
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
