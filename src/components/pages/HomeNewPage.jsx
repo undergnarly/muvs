@@ -1123,15 +1123,6 @@ export const Scene3DShell = ({
                 />
             )}
 
-            <DebugPanel
-                cfg={cfg}
-                setCfg={setCfg}
-                currentIndex={currentIndex}
-                goTo={goTo}
-                progressRef={progressRef}
-                onSaveToServer={saveCfg}
-                onResetServer={clearCfg}
-            />
         </div>
     );
 };
