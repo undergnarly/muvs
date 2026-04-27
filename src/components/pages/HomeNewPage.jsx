@@ -29,38 +29,38 @@ const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/f
 const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
 
 const DEFAULT_STOPS = [
-    { pos: { x: 0, y: 3.0, z: 7.0  }, look: { x: 0, y:  2.6, z: 0.0 }, fov: 40 },
-    { pos: { x: 0, y: 5.0, z: 12.0 }, look: { x: 0, y:  0.5, z: 4.0 }, fov: 55 },
-    { pos: { x: 0, y: 7.0, z: 17.0 }, look: { x: 0, y: -1.0, z: 7.0 }, fov: 70 },
-    { pos: { x: 0, y: 8.5, z: 21.0 }, look: { x: 0, y: -2.0, z: 9.0 }, fov: 80 },
+    { pos: { x: 0,    y: 3.0,  z: 7.0  }, look: { x: 0,    y:  2.6, z: 0.0  }, fov: 46  },
+    { pos: { x: 0,    y: 5.2,  z: 10.3 }, look: { x: 0,    y: -0.2, z: 9.7  }, fov: 113 },
+    { pos: { x: -7.6, y: 8.8,  z: 30.0 }, look: { x: -0.7, y:  1.6, z: 17.0 }, fov: 21  },
+    { pos: { x: 2.7,  y: 15.4, z: 30.0 }, look: { x: -5.3, y:  0.1, z: 11.4 }, fov: 27  },
 ];
 
 const DEFAULT_BILLBOARD = {
-    coverSize: 2.6,
-    coverY: -0.4,
-    titleY: 0.6,
-    titleZ: -0.4,
-    titleSize: 0.85,
+    coverSize: 3,
+    coverY: 0.25,
+    titleY: 1.15,
+    titleZ: -3,
+    titleSize: 0.72,
     artistY: 1.6,
-    artistZ: -0.4,
-    artistSize: 0.28,
+    artistZ: -3,
+    artistSize: 0.26,
 };
 
 const DEFAULT_STACK = {
-    pos: { x: 0, y: 0, z: 15 },
+    pos: { x: 0.4, y: -0.05, z: 14.8 },
     boxSize: 0.7,
     gap: 0.04,
 };
 
 const DEFAULT_SUPPORT = {
-    pos: { x: 0, y: 0.01, z: 17 },
+    pos: { x: -0.9, y: 0.98, z: 17.4 },
     fontSize: 0.42,
     metaSize: 0.22,
 };
 
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
-    floorTextZ: 4.0,
+    floorTextZ: 7.3,
     fogNear: 14,
     fogFar: 32,
     billboard: DEFAULT_BILLBOARD,
@@ -78,20 +78,23 @@ const PLATFORMS = [
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 
+const hydrateCfg = (cfg) => {
+    if (cfg?.stops?.length !== DEFAULT_STOPS.length) return null;
+    return {
+        ...DEFAULT_CFG,
+        ...cfg,
+        billboard: { ...DEFAULT_BILLBOARD, ...(cfg.billboard || {}) },
+        stack: { ...DEFAULT_STACK, ...(cfg.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(cfg.stack?.pos || {}) } },
+        support: { ...DEFAULT_SUPPORT, ...(cfg.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(cfg.support?.pos || {}) } },
+    };
+};
+
 const loadSavedCfg = () => {
     try {
         const raw = localStorage.getItem(CFG_STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        if (parsed?.stops?.length !== DEFAULT_STOPS.length) return null;
-        // Hydrate billboard if older saved cfg lacks it
-        return {
-            ...DEFAULT_CFG,
-            ...parsed,
-            billboard: { ...DEFAULT_BILLBOARD, ...(parsed.billboard || {}) },
-            stack: { ...DEFAULT_STACK, ...(parsed.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(parsed.stack?.pos || {}) } },
-            support: { ...DEFAULT_SUPPORT, ...(parsed.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(parsed.support?.pos || {}) } },
-        };
+        return hydrateCfg(parsed);
     } catch (_) { /* ignore */ }
     return null;
 };
@@ -737,7 +740,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
     </div>
 );
 
-const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
+const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
     const [progress, setProgress] = useState(0);
@@ -767,15 +770,17 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
         navigator.clipboard?.writeText(txt);
         console.log('camera config:', cfg);
     };
-    const saveCfg = () => {
+    const saveCfg = async () => {
         try {
             localStorage.setItem(CFG_STORAGE_KEY, JSON.stringify(cfg));
+            await onSaveToServer?.(cfg);
             setSavedFlash(true);
             setTimeout(() => setSavedFlash(false), 900);
         } catch (e) { console.error('save failed', e); }
     };
-    const clearSaved = () => {
+    const clearSaved = async () => {
         try { localStorage.removeItem(CFG_STORAGE_KEY); } catch (_) { /* ignore */ }
+        await onResetServer?.();
         setCfg(DEFAULT_CFG);
     };
 
@@ -870,7 +875,7 @@ const StopIndicator = ({ count, currentIndex, goTo }) => (
 // ================ page ================
 
 const HomeNewPage = () => {
-    const { releases } = useData();
+    const { releases, siteSettings, updateSiteSettings } = useData();
 
     const displayReleases = React.useMemo(() => {
         const sorted = [...(releases || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -884,9 +889,41 @@ const HomeNewPage = () => {
         return [];
     }, [releases]);
 
-    const [cfg, setCfg] = useState(() => loadSavedCfg() || DEFAULT_CFG);
+    const [cfg, setCfg] = useState(() => loadSavedCfg() || hydrateCfg(siteSettings?.homeNewConfig) || DEFAULT_CFG);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
+    const localCfgSyncedRef = useRef(false);
+
+    const saveCfgToServer = useCallback((nextCfg) => {
+        const hydrated = hydrateCfg(nextCfg);
+        if (!hydrated) return;
+        updateSiteSettings({
+            ...siteSettings,
+            homeNewConfig: hydrated,
+        });
+    }, [siteSettings, updateSiteSettings]);
+
+    const resetServerCfg = useCallback(() => {
+        const { homeNewConfig, ...rest } = siteSettings || {};
+        updateSiteSettings(rest);
+    }, [siteSettings, updateSiteSettings]);
+
+    useEffect(() => {
+        const localCfg = loadSavedCfg();
+        if (localCfg && !localCfgSyncedRef.current) {
+            localCfgSyncedRef.current = true;
+            setCfg(localCfg);
+            if (JSON.stringify(siteSettings?.homeNewConfig) !== JSON.stringify(localCfg)) {
+                saveCfgToServer(localCfg);
+            }
+            return;
+        }
+
+        if (!localCfg) {
+            const serverCfg = hydrateCfg(siteSettings?.homeNewConfig);
+            if (serverCfg) setCfg(serverCfg);
+        }
+    }, [siteSettings?.homeNewConfig, saveCfgToServer]);
 
     const { progressRef, currentIndex, goTo } = useSnapScroll(STOP_COUNT);
     const releaseSwitcher = useReleaseSwitcher(
@@ -943,6 +980,8 @@ const HomeNewPage = () => {
                 currentIndex={currentIndex}
                 goTo={goTo}
                 progressRef={progressRef}
+                onSaveToServer={saveCfgToServer}
+                onResetServer={resetServerCfg}
             />
         </div>
     );
