@@ -47,13 +47,13 @@ const DEFAULT_BILLBOARD = {
 };
 
 const DEFAULT_STACK = {
-    pos: { x: 0, y: 0, z: 10 },
+    pos: { x: 0, y: 0, z: 15 },
     boxSize: 0.7,
     gap: 0.04,
 };
 
 const DEFAULT_SUPPORT = {
-    pos: { x: 0, y: 0.01, z: 14 },
+    pos: { x: 0, y: 0.01, z: 17 },
     fontSize: 0.42,
     metaSize: 0.22,
 };
@@ -443,20 +443,34 @@ const PlatformBox = ({ pos, size, label, color, url }) => {
     );
 };
 
+// Pyramid: row 0 = 3 bottom boxes (i=0,1,2), row 1 = 2 top boxes (i=3,4) sitting
+// in the valleys between adjacent bottom boxes. Z splits the bottom row into a
+// shallow front/back so the top boxes have a stable triangular footprint.
+const PYRAMID_LAYOUT = [
+    { col: -1, row: 0, dz: 0 },
+    { col:  0, row: 0, dz: 0 },
+    { col:  1, row: 0, dz: 0 },
+    { col: -0.5, row: 1, dz: 0 },
+    { col:  0.5, row: 1, dz: 0 },
+];
+
 const PlatformStack = ({ release, x, stackCfg }) => {
     const { pos, boxSize, gap } = stackCfg;
     const baseX = x + pos.x;
+    const D = boxSize + gap;
     return PLATFORMS.map((p, i) => {
-        const url = release?.[p.urlField];
-        const y = pos.y + boxSize / 2 + i * (boxSize + gap);
+        const layout = PYRAMID_LAYOUT[i] || { col: 0, row: 0, dz: 0 };
+        const px = baseX + layout.col * D;
+        const py = pos.y + boxSize / 2 + layout.row * (boxSize + gap);
+        const pz = pos.z + layout.dz;
         return (
             <PlatformBox
                 key={p.key}
-                pos={[baseX, y, pos.z]}
+                pos={[px, py, pz]}
                 size={boxSize}
                 label={p.label}
                 color={p.color}
-                url={url}
+                url={release?.[p.urlField]}
             />
         );
     });
