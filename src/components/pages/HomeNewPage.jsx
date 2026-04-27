@@ -137,20 +137,19 @@ const ScrollCamera = () => {
         const t = THREE.MathUtils.clamp(scroll.offset, 0, 1);
         const e = t * t * (3 - 2 * t);
 
-        // Position: small lift + small dolly back.
+        // Camera "takes off" above the floor and dollies strongly back
+        // toward the viewer; meanwhile it rotates downward so the floor
+        // becomes the dominant subject by the end.
         camera.position.set(
             0,
-            3.0 + e * 2.5,   // y: 3.0 -> 5.5
-            8.0 + e * 4.0,   // z: 8.0 -> 12.0
+            3.0 + e * 5.5,    // y: 3.0 -> 8.5  (lift)
+            7.0 + e * 14.0,   // z: 7.0 -> 21.0 (strong dolly back)
         );
 
-        // lookAt rotates from billboard centre down to the floor point under
-        // the camera's path. This swings the look angle from ~horizontal to
-        // ~45° downward, pulling the floor text into clear reading territory.
         lookAt.current.set(
             0,
-            2.6 - e * 3.4,   // y: 2.6 -> -0.8 (under floor, forces tilt)
-            0  + e * 5.5,    // z: 0   -> 5.5  (pulls focus closer to camera)
+            2.6 - e * 4.6,    // y: 2.6 -> -2.0 (steep downward tilt)
+            0  + e * 9.0,     // z: 0   -> 9.0  (focus pulls toward camera)
         );
         camera.lookAt(lookAt.current);
     });
