@@ -19,6 +19,8 @@ const stripHtml = (html) =>
         .trim();
 
 const STOP_COUNT = 4;
+const RELEASE_SPACING = 14;
+const FALLBACK_COVER = '/uploads/1770869263167-matr_fin2_trans_2.webp';
 
 const DEFAULT_STOPS = [
     { pos: { x: 0, y: 3.0, z: 7.0  }, look: { x: 0, y:  2.6, z: 0.0 }, fov: 40 },
@@ -34,7 +36,19 @@ const DEFAULT_CFG = {
     fogFar: 32,
 };
 
-// ------------ snap scroll ------------
+const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
+
+const loadSavedCfg = () => {
+    try {
+        const raw = localStorage.getItem(CFG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed?.stops?.length === DEFAULT_STOPS.length) return parsed;
+    } catch (_) { /* ignore */ }
+    return null;
+};
+
+// ================ snap scroll (vertical) ================
 
 const useSnapScroll = (numStops) => {
     const indexRef = useRef(0);
@@ -65,13 +79,11 @@ const useSnapScroll = (numStops) => {
                 setCurrentIndex(next);
             }
         };
-
         let touchY = null;
         const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
         const onTouchEnd = (e) => {
             if (touchY == null) return;
-            const endY = e.changedTouches[0]?.clientY ?? touchY;
-            const dy = touchY - endY;
+            const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
             if (Math.abs(dy) > 40) {
                 const dir = dy > 0 ? 1 : -1;
                 const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
@@ -82,21 +94,17 @@ const useSnapScroll = (numStops) => {
             }
             touchY = null;
         };
-
         const onKey = (e) => {
             if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
                 e.preventDefault();
                 const next = Math.min(numStops - 1, indexRef.current + 1);
-                indexRef.current = next;
-                setCurrentIndex(next);
+                indexRef.current = next; setCurrentIndex(next);
             } else if (['ArrowUp', 'PageUp'].includes(e.key)) {
                 e.preventDefault();
                 const next = Math.max(0, indexRef.current - 1);
-                indexRef.current = next;
-                setCurrentIndex(next);
+                indexRef.current = next; setCurrentIndex(next);
             }
         };
-
         window.addEventListener('wheel', onWheel, { passive: false });
         window.addEventListener('touchstart', onTouchStart, { passive: true });
         window.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -126,10 +134,45 @@ const useSnapScroll = (numStops) => {
     return { progressRef, currentIndex, goTo };
 };
 
-// ------------ scene ------------
+// ================ release switcher (horizontal) ================
 
-const Billboard = ({ release }) => {
-    const tex = useTexture(release.coverImage || '/uploads/1770869263167-matr_fin2_trans_2.webp');
+const useReleaseSwitcher = (count) => {
+    const indexRef = useRef(0);
+    const offsetRef = useRef(0);
+    const [current, setCurrent] = useState(0);
+
+    const setIndex = useCallback((next) => {
+        const i = Math.max(0, Math.min(count - 1, next));
+        indexRef.current = i;
+        setCurrent(i);
+    }, [count]);
+
+    useEffect(() => {
+        let raf;
+        const tick = () => {
+            const target = indexRef.current * RELEASE_SPACING;
+            const cur = offsetRef.current;
+            const next = cur + (target - cur) * 0.08;
+            offsetRef.current = Math.abs(target - next) < 0.001 ? target : next;
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    return {
+        offsetRef,
+        current,
+        prev: () => setIndex(current - 1),
+        next: () => setIndex(current + 1),
+        goTo: setIndex,
+    };
+};
+
+// ================ scene parts ================
+
+const Billboard = ({ release, x }) => {
+    const tex = useTexture(release.coverImage || FALLBACK_COVER);
     useEffect(() => {
         if (tex) {
             tex.colorSpace = THREE.SRGBColorSpace;
@@ -138,7 +181,7 @@ const Billboard = ({ release }) => {
     }, [tex]);
 
     return (
-        <group position={[0, 2.6, 0]}>
+        <group position={[x, 2.6, 0]}>
             <Text
                 position={[0, 2.55, -0.05]}
                 fontSize={0.85}
@@ -171,12 +214,12 @@ const Billboard = ({ release }) => {
     );
 };
 
-const FloorText = ({ release, z }) => {
+const FloorText = ({ release, x, z }) => {
     const description = stripHtml(release.description);
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
 
     return (
-        <group position={[0, 0.01, z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[x, 0.01, z]} rotation={[-Math.PI / 2, 0, 0]}>
             <Text
                 position={[0, 0, 0]}
                 fontSize={0.22}
@@ -207,12 +250,12 @@ const FloorText = ({ release, z }) => {
 const Floor = () => (
     <>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-            <planeGeometry args={[80, 80]} />
+            <planeGeometry args={[160, 80]} />
             <meshBasicMaterial color="#ffffff" />
         </mesh>
         <Grid
             position={[0, 0.001, 0]}
-            args={[40, 40]}
+            args={[80, 40]}
             cellSize={1}
             cellThickness={0.6}
             cellColor="#cccccc"
@@ -223,21 +266,13 @@ const Floor = () => (
             fadeStrength={1.2}
             infiniteGrid={false}
         />
-        <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.04, 30]} />
-            <meshBasicMaterial color="#ff4444" />
-        </mesh>
-        <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-            <planeGeometry args={[0.04, 30]} />
-            <meshBasicMaterial color="#4488ff" />
-        </mesh>
     </>
 );
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 
-const ScrollCamera = ({ cfgRef, progressRef }) => {
+const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
     useFrame(({ camera }) => {
@@ -255,9 +290,10 @@ const ScrollCamera = ({ cfgRef, progressRef }) => {
         const pos = lerpVec(a.pos, b.pos, e);
         const look = lerpVec(a.look, b.look, e);
         const fov = lerp(a.fov, b.fov, e);
+        const offX = releaseOffsetRef.current;
 
-        camera.position.set(pos.x, pos.y, pos.z);
-        lookAt.current.set(look.x, look.y, look.z);
+        camera.position.set(pos.x + offX, pos.y, pos.z);
+        lookAt.current.set(look.x + offX, look.y, look.z);
         camera.lookAt(lookAt.current);
 
         if (Math.abs(camera.fov - fov) > 0.01) {
@@ -280,41 +316,170 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ release, cfgRef, progressRef, floorTextZ }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ }) => (
     <>
-        <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} />
+        <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
         <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
         <ambientLight intensity={1.0} />
         <Floor />
-        <Suspense fallback={null}>
-            <Billboard release={release} />
-        </Suspense>
-        <FloorText release={release} z={floorTextZ} />
+        {releases.map((r, i) => (
+            <React.Fragment key={r.id ?? i}>
+                <Suspense fallback={null}>
+                    <Billboard release={r} x={i * RELEASE_SPACING} />
+                </Suspense>
+                <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
+            </React.Fragment>
+        ))}
     </>
 );
 
-// ------------ debug panel ------------
+// ================ SoundCloud Widget API ================
+
+let scScriptPromise = null;
+const loadScScript = () => {
+    if (window.SC) return Promise.resolve();
+    if (scScriptPromise) return scScriptPromise;
+    scScriptPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://w.soundcloud.com/player/api.js';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('SC API failed'));
+        document.head.appendChild(s);
+    });
+    return scScriptPromise;
+};
+
+const useScWidget = (url) => {
+    const iframeRef = useRef(null);
+    const widgetRef = useRef(null);
+    const [playing, setPlaying] = useState(false);
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        setPlaying(false);
+        setReady(false);
+        if (!url || !iframeRef.current) return;
+        let cancelled = false;
+        loadScScript().then(() => {
+            if (cancelled || !iframeRef.current || !window.SC) return;
+            const w = window.SC.Widget(iframeRef.current);
+            widgetRef.current = w;
+            const onReady = () => setReady(true);
+            const onPlay = () => setPlaying(true);
+            const onPause = () => setPlaying(false);
+            const onFinish = () => setPlaying(false);
+            w.bind(window.SC.Widget.Events.READY, onReady);
+            w.bind(window.SC.Widget.Events.PLAY, onPlay);
+            w.bind(window.SC.Widget.Events.PAUSE, onPause);
+            w.bind(window.SC.Widget.Events.FINISH, onFinish);
+        }).catch(() => {});
+        return () => {
+            cancelled = true;
+            const w = widgetRef.current;
+            if (w) {
+                try {
+                    w.unbind(window.SC.Widget.Events.READY);
+                    w.unbind(window.SC.Widget.Events.PLAY);
+                    w.unbind(window.SC.Widget.Events.PAUSE);
+                    w.unbind(window.SC.Widget.Events.FINISH);
+                } catch (_) { /* ignore */ }
+            }
+            widgetRef.current = null;
+        };
+    }, [url]);
+
+    const toggle = useCallback(() => {
+        const w = widgetRef.current;
+        if (!w || !ready) return;
+        w.toggle();
+    }, [ready]);
+
+    return { iframeRef, playing, ready, toggle };
+};
+
+// ================ player UI ================
+
+const FAKE_BARS = Array.from({ length: 36 }).map((_, i) => {
+    // deterministic pseudo-waveform
+    const v = Math.sin(i * 0.55) * 0.5 + Math.sin(i * 1.3) * 0.3 + 0.5;
+    return Math.max(0.18, Math.min(1, v));
+});
+
+const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
+    const url = (release?.soundcloudTrackUrl || release?.soundcloudUrl || '').split('?')[0];
+    const { iframeRef, playing, ready, toggle } = useScWidget(url);
+    const title = release ? `${release.artists || ''} — ${release.title || ''}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
+
+    return (
+        <div className="hn-player">
+            <button
+                className="hn-player-nav"
+                onClick={onPrev}
+                disabled={!canPrev}
+                aria-label="Previous release"
+            >
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+            </button>
+
+            <div className="hn-player-pill">
+                <button
+                    className="hn-player-play"
+                    onClick={toggle}
+                    disabled={!url || !ready}
+                    aria-label={playing ? 'Pause' : 'Play'}
+                >
+                    {playing ? (
+                        <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" /><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" /></svg>
+                    ) : (
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor" /></svg>
+                    )}
+                </button>
+
+                <div className="hn-player-wave" aria-hidden="true">
+                    {FAKE_BARS.map((h, i) => (
+                        <span key={i} className="hn-player-bar" style={{ height: `${h * 100}%` }} />
+                    ))}
+                </div>
+
+                <div className="hn-player-title">{title}</div>
+            </div>
+
+            <button
+                className="hn-player-nav"
+                onClick={onNext}
+                disabled={!canNext}
+                aria-label="Next release"
+            >
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+            </button>
+
+            {url && (
+                <iframe
+                    ref={iframeRef}
+                    title="sc-widget"
+                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`}
+                    allow="autoplay"
+                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, border: 0, pointerEvents: 'none' }}
+                />
+            )}
+        </div>
+    );
+};
+
+// ================ debug panel ================
 
 const Row = ({ label, value, onChange, min = -30, max = 30, step = 0.1 }) => (
     <div className="dbg-row">
         <span className="dbg-label">{label}</span>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-        />
-        <input
-            type="number"
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="dbg-num"
-        />
+        <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} />
+        <input type="number" step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="dbg-num" />
     </div>
 );
 
@@ -322,12 +487,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
     <div className="dbg-block">
         <div className="dbg-title">{title}</div>
         {['x', 'y', 'z'].map((k) => (
-            <Row
-                key={k}
-                label={k.toUpperCase()}
-                value={vec[k]}
-                onChange={(v) => setVec({ ...vec, [k]: v })}
-            />
+            <Row key={k} label={k.toUpperCase()} value={vec[k]} onChange={(v) => setVec({ ...vec, [k]: v })} />
         ))}
     </div>
 );
@@ -356,22 +516,33 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
 
     const stop = cfg.stops[editIdx];
 
+    const [savedFlash, setSavedFlash] = useState(false);
     const exportCfg = () => {
         const txt = JSON.stringify(cfg, null, 2);
         navigator.clipboard?.writeText(txt);
         console.log('camera config:', cfg);
     };
+    const saveCfg = () => {
+        try {
+            localStorage.setItem(CFG_STORAGE_KEY, JSON.stringify(cfg));
+            setSavedFlash(true);
+            setTimeout(() => setSavedFlash(false), 900);
+        } catch (e) { console.error('save failed', e); }
+    };
+    const clearSaved = () => {
+        try { localStorage.removeItem(CFG_STORAGE_KEY); } catch (_) { /* ignore */ }
+        setCfg(DEFAULT_CFG);
+    };
 
-    if (!open) {
-        return <button className="dbg-toggle" onClick={() => setOpen(true)}>cam</button>;
-    }
+    if (!open) return <button className="dbg-toggle" onClick={() => setOpen(true)}>cam</button>;
 
     return (
         <div className="dbg-panel">
             <div className="dbg-head">
                 <span>camera tuner</span>
                 <span className="dbg-progress">{(progress * 100).toFixed(0)}%</span>
-                <button onClick={() => setCfg(DEFAULT_CFG)} className="dbg-btn">reset</button>
+                <button onClick={saveCfg} className={`dbg-btn dbg-btn-primary ${savedFlash ? 'flash' : ''}`}>{savedFlash ? 'saved!' : 'save'}</button>
+                <button onClick={clearSaved} className="dbg-btn">reset</button>
                 <button onClick={exportCfg} className="dbg-btn">copy</button>
                 <button onClick={() => setOpen(false)} className="dbg-btn">×</button>
             </div>
@@ -390,8 +561,8 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
 
             <div className="dbg-edit-hint">editing stop {editIdx} ({Math.round((editIdx / (cfg.stops.length - 1)) * 100)}%)</div>
 
-            <Vec3Block title="position"  vec={stop.pos}  setVec={(v) => updateStop(editIdx, { pos: v })} />
-            <Vec3Block title="look at"   vec={stop.look} setVec={(v) => updateStop(editIdx, { look: v })} />
+            <Vec3Block title="position" vec={stop.pos} setVec={(v) => updateStop(editIdx, { pos: v })} />
+            <Vec3Block title="look at"  vec={stop.look} setVec={(v) => updateStop(editIdx, { look: v })} />
 
             <div className="dbg-block">
                 <div className="dbg-title">fov · stop {editIdx}</div>
@@ -408,8 +579,6 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
     );
 };
 
-// ------------ stop indicator dots ------------
-
 const StopIndicator = ({ count, currentIndex, goTo }) => (
     <div className="hn-dots" aria-hidden="true">
         {Array.from({ length: count }).map((_, i) => (
@@ -423,25 +592,39 @@ const StopIndicator = ({ count, currentIndex, goTo }) => (
     </div>
 );
 
-// ------------ page ------------
+// ================ page ================
 
 const HomeNewPage = () => {
     const { releases } = useData();
-    const sorted = React.useMemo(
-        () => [...(releases || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
-        [releases],
-    );
-    const release = sorted[0];
 
-    const [cfg, setCfg] = useState(DEFAULT_CFG);
+    const displayReleases = React.useMemo(() => {
+        const sorted = [...(releases || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+        if (sorted.length >= 2) return sorted;
+        if (sorted.length === 1) {
+            return [
+                sorted[0],
+                { ...sorted[0], id: `${sorted[0].id ?? 'demo'}-2`, title: `${sorted[0].title || 'Untitled'} II` },
+            ];
+        }
+        return [];
+    }, [releases]);
+
+    const [cfg, setCfg] = useState(() => loadSavedCfg() || DEFAULT_CFG);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
     const { progressRef, currentIndex, goTo } = useSnapScroll(STOP_COUNT);
+    const releaseSwitcher = useReleaseSwitcher(displayReleases.length);
+    const currentRelease = displayReleases[releaseSwitcher.current];
+
+    useEffect(() => {
+        document.body.classList.add('home-new-active');
+        return () => document.body.classList.remove('home-new-active');
+    }, []);
 
     return (
         <div className="home-new-page">
-            {release && (
+            {displayReleases.length > 0 && (
                 <div className="home-new-canvas">
                     <Canvas
                         camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
@@ -449,17 +632,30 @@ const HomeNewPage = () => {
                         dpr={[1, 2]}
                     >
                         <Scene
-                            release={release}
+                            releases={displayReleases}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
+                            releaseOffsetRef={releaseSwitcher.offsetRef}
                             floorTextZ={cfg.floorTextZ}
                         />
                     </Canvas>
                 </div>
             )}
+
             <div className="home-new-gradient" aria-hidden="true" />
             <Header />
             <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
+
+            {currentRelease && (
+                <Player
+                    release={currentRelease}
+                    onPrev={releaseSwitcher.prev}
+                    onNext={releaseSwitcher.next}
+                    canPrev={releaseSwitcher.current > 0}
+                    canNext={releaseSwitcher.current < displayReleases.length - 1}
+                />
+            )}
+
             <DebugPanel
                 cfg={cfg}
                 setCfg={setCfg}
