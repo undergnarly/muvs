@@ -1,8 +1,7 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Public Pages - Static Import for maximum speed and smooth transitions
-import HomePage from './components/pages/HomePage';
 import AboutPage from './components/pages/AboutPage';
 import NewsPage from './components/pages/NewsPage';
 import MusicPage from './components/pages/MusicPage';
@@ -14,6 +13,13 @@ import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
 import ThreeDPage from './components/pages/ThreeDPage';
 import HomeNewPage from './components/pages/HomeNewPage';
+import AboutPage3D from './components/pages/AboutPage3D';
+import NewsPage3D from './components/pages/NewsPage3D';
+import MixesPage3D from './components/pages/MixesPage3D';
+import CodePage3D from './components/pages/CodePage3D';
+import CVPage3D from './components/pages/CVPage3D';
+import LecturePage3D from './components/pages/LecturePage3D';
+import LectureTextPage3D from './components/pages/LectureTextPage3D';
 
 // Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
 const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
@@ -88,29 +94,45 @@ function AppRoot() {
         }
     }, [siteSettings?.siteName, siteSettings?.siteDescription]);
 
-    // Check if current route is lecture page
-    const isLecturePage = location.pathname === ROUTES.LECTURE;
-    const isThreeDPage = location.pathname === ROUTES.THREE_D;
-    const isHomeNewPage = location.pathname === ROUTES.HOME_NEW;
-    const hideOverlays = isLecturePage || isThreeDPage || isHomeNewPage;
+    const scene3DPaths = [
+        ROUTES.HOME,
+        ROUTES.MUSIC,
+        ROUTES.ABOUT,
+        ROUTES.NEWS,
+        ROUTES.MIXES,
+        ROUTES.CODE,
+        ROUTES.CV,
+        ROUTES.LECTURE,
+        ROUTES.LECTURE_TEXT,
+        ROUTES.THREE_D,
+    ];
+    const hideOverlays = scene3DPaths.includes(location.pathname);
 
     return (
         <>
             {!hideOverlays && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <Routes>
-                <Route path={ROUTES.HOME} element={<MusicPage />} />
-                <Route path={ROUTES.ABOUT} element={<AboutPage />} />
-                <Route path={ROUTES.NEWS} element={<NewsPage />} />
-                <Route path={ROUTES.MUSIC} element={<MusicPage />} />
-                <Route path={ROUTES.MIXES} element={<MixesPage />} />
-                <Route path={ROUTES.CODE} element={<CodePage />} />
-                <Route path={ROUTES.LECTURE} element={<LecturePage />} />
-                <Route path={ROUTES.LECTURE_TEXT} element={<LectureTextPage />} />
-                <Route path={ROUTES.CV} element={<CVPage />} />
+                <Route path={ROUTES.HOME} element={<HomeNewPage />} />
+                <Route path={ROUTES.MUSIC} element={<HomeNewPage />} />
+                <Route path={ROUTES.ABOUT} element={<AboutPage3D />} />
+                <Route path={ROUTES.NEWS} element={<NewsPage3D />} />
+                <Route path={ROUTES.MIXES} element={<MixesPage3D />} />
+                <Route path={ROUTES.CODE} element={<CodePage3D />} />
+                <Route path={ROUTES.LECTURE} element={<LecturePage3D />} />
+                <Route path={ROUTES.LECTURE_TEXT} element={<LectureTextPage3D />} />
+                <Route path={ROUTES.CV} element={<CVPage3D />} />
+                <Route path={ROUTES.HOME_OLD} element={<MusicPage />} />
+                <Route path={ROUTES.MUSIC_OLD} element={<MusicPage />} />
+                <Route path={ROUTES.ABOUT_OLD} element={<AboutPage />} />
+                <Route path={ROUTES.NEWS_OLD} element={<NewsPage />} />
+                <Route path={ROUTES.MIXES_OLD} element={<MixesPage />} />
+                <Route path={ROUTES.CODE_OLD} element={<CodePage />} />
+                <Route path={ROUTES.LECTURE_OLD} element={<LecturePage />} />
+                <Route path={ROUTES.LECTURE_TEXT_OLD} element={<LectureTextPage />} />
+                <Route path={ROUTES.CV_OLD} element={<CVPage />} />
                 <Route path={ROUTES.TEST} element={<TestPage />} />
                 <Route path={ROUTES.THREE_D} element={<ThreeDPage />} />
-                <Route path={ROUTES.HOME_NEW} element={<HomeNewPage />} />
                 <Route path="/login" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <LoginPage />

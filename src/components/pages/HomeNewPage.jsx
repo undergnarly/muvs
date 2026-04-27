@@ -89,16 +89,6 @@ const hydrateCfg = (cfg) => {
     };
 };
 
-const loadSavedCfg = () => {
-    try {
-        const raw = localStorage.getItem(CFG_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return hydrateCfg(parsed);
-    } catch (_) { /* ignore */ }
-    return null;
-};
-
 // ================ snap scroll (vertical) ================
 
 const useSnapScroll = (numStops) => {
@@ -588,7 +578,7 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard, stack, support }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard, stack, support, simple }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -596,15 +586,16 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, bi
         <ambientLight intensity={0.75} />
         <directionalLight position={[6, 12, 8]} intensity={0.55} />
         <Floor />
-        <Physics gravity={[0, -9.81, 0]}>
-            {/* Invisible fixed floor collider so platform boxes can rest on it */}
-            <RigidBody type="fixed" colliders={false}>
-                <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
-            </RigidBody>
-            {releases.map((r, i) => (
-                <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
-            ))}
-        </Physics>
+        {!simple && (
+            <Physics gravity={[0, -9.81, 0]}>
+                <RigidBody type="fixed" colliders={false}>
+                    <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
+                </RigidBody>
+                {releases.map((r, i) => (
+                    <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
+                ))}
+            </Physics>
+        )}
         {releases.map((r, i) => (
             <React.Fragment key={r.id ?? i}>
                 <Suspense fallback={null}>
@@ -612,7 +603,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, bi
                 </Suspense>
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
                 <FloorPhotoSheets x={i * RELEASE_SPACING} z={floorTextZ} />
-                <SupportFloorText x={i * RELEASE_SPACING} support={support} />
+                {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
         ))}
     </>
@@ -668,7 +659,7 @@ const useScWidget = (url) => {
                     w.unbind(window.SC.Widget.Events.PLAY);
                     w.unbind(window.SC.Widget.Events.PAUSE);
                     w.unbind(window.SC.Widget.Events.FINISH);
-                } catch (_) { /* ignore */ }
+                } catch { /* ignore */ }
             }
             widgetRef.current = null;
         };
@@ -807,14 +798,12 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
     };
     const saveCfg = async () => {
         try {
-            localStorage.setItem(CFG_STORAGE_KEY, JSON.stringify(cfg));
             await onSaveToServer?.(cfg);
             setSavedFlash(true);
             setTimeout(() => setSavedFlash(false), 900);
         } catch (e) { console.error('save failed', e); }
     };
     const clearSaved = async () => {
-        try { localStorage.removeItem(CFG_STORAGE_KEY); } catch (_) { /* ignore */ }
         await onResetServer?.();
         setCfg(DEFAULT_CFG);
     };
@@ -907,13 +896,26 @@ const StopIndicator = ({ count, currentIndex, goTo }) => (
     </div>
 );
 
-// ================ page ================
+// ================ shell ================
 
-const HomeNewPage = () => {
+// Configurable 3D shell. Accepts a flat list of "items" (release-like records:
+// title, artists, description, releaseDate, coverImage, *Url). When `simple`,
+// the platform stack, support text and player are hidden — useful for
+// non-music pages that only need the billboard + floor text. cfgStorageKey
+// scopes the camera/billboard tuner config per page so /about can be tuned
+// independently from /. serverCfgKey, when provided, also persists the cfg
+// into siteSettings under that key (used only by the music home for now).
+export const Scene3DShell = ({
+    items: itemsProp = null,
+    simple = false,
+    cfgStorageKey = CFG_STORAGE_KEY,
+    serverCfgKey = null,
+}) => {
     const { releases, siteSettings, updateSiteSettings } = useData();
 
-    const displayReleases = React.useMemo(() => {
-        const sorted = [...(releases || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const displayItems = React.useMemo(() => {
+        const source = itemsProp ?? releases;
+        const sorted = [...(source || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
         if (sorted.length >= 2) return sorted;
         if (sorted.length === 1) {
             return [
@@ -922,59 +924,80 @@ const HomeNewPage = () => {
             ];
         }
         return [];
-    }, [releases]);
+    }, [itemsProp, releases]);
 
-    const [cfg, setCfg] = useState(() => loadSavedCfg() || hydrateCfg(siteSettings?.homeNewConfig) || DEFAULT_CFG);
+    const loadLocal = useCallback(() => {
+        try {
+            const raw = localStorage.getItem(cfgStorageKey);
+            if (!raw) return null;
+            return hydrateCfg(JSON.parse(raw));
+        } catch { return null; }
+    }, [cfgStorageKey]);
+
+    const serverCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
+
+    const [cfg, setCfg] = useState(() => loadLocal() || hydrateCfg(serverCfg) || DEFAULT_CFG);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
     const localCfgSyncedRef = useRef(false);
 
     const saveCfgToServer = useCallback((nextCfg) => {
+        if (!serverCfgKey) return;
         const hydrated = hydrateCfg(nextCfg);
         if (!hydrated) return;
-        updateSiteSettings({
-            ...siteSettings,
-            homeNewConfig: hydrated,
-        });
-    }, [siteSettings, updateSiteSettings]);
+        updateSiteSettings({ ...siteSettings, [serverCfgKey]: hydrated });
+    }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
     const resetServerCfg = useCallback(() => {
-        const { homeNewConfig, ...rest } = siteSettings || {};
-        updateSiteSettings(rest);
-    }, [siteSettings, updateSiteSettings]);
+        if (!serverCfgKey) return;
+        const nextSettings = { ...(siteSettings || {}) };
+        delete nextSettings[serverCfgKey];
+        updateSiteSettings(nextSettings);
+    }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
     useEffect(() => {
-        const localCfg = loadSavedCfg();
+        const localCfg = loadLocal();
         if (localCfg && !localCfgSyncedRef.current) {
             localCfgSyncedRef.current = true;
             setCfg(localCfg);
-            if (JSON.stringify(siteSettings?.homeNewConfig) !== JSON.stringify(localCfg)) {
+            if (serverCfgKey && JSON.stringify(serverCfg) !== JSON.stringify(localCfg)) {
                 saveCfgToServer(localCfg);
             }
             return;
         }
-
         if (!localCfg) {
-            const serverCfg = hydrateCfg(siteSettings?.homeNewConfig);
-            if (serverCfg) setCfg(serverCfg);
+            const hydrated = hydrateCfg(serverCfg);
+            if (hydrated) setCfg(hydrated);
         }
-    }, [siteSettings?.homeNewConfig, saveCfgToServer]);
+    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey]);
 
     const { progressRef, currentIndex, goTo } = useSnapScroll(STOP_COUNT);
     const releaseSwitcher = useReleaseSwitcher(
-        displayReleases.length,
+        displayItems.length,
         useCallback(() => goTo(0), [goTo]),
     );
-    const currentRelease = displayReleases[releaseSwitcher.current];
+    const currentRelease = displayItems[releaseSwitcher.current];
 
     useEffect(() => {
         document.body.classList.add('home-new-active');
         return () => document.body.classList.remove('home-new-active');
     }, []);
 
+    const saveCfg = useCallback(async (nextCfg) => {
+        try {
+            localStorage.setItem(cfgStorageKey, JSON.stringify(nextCfg));
+            await saveCfgToServer(nextCfg);
+        } catch (e) { console.error('save failed', e); }
+    }, [cfgStorageKey, saveCfgToServer]);
+
+    const clearCfg = useCallback(async () => {
+        try { localStorage.removeItem(cfgStorageKey); } catch { /* ignore */ }
+        await resetServerCfg();
+    }, [cfgStorageKey, resetServerCfg]);
+
     return (
         <div className="home-new-page">
-            {displayReleases.length > 0 && (
+            {displayItems.length > 0 && (
                 <div className="home-new-canvas">
                     <Canvas
                         camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
@@ -982,7 +1005,7 @@ const HomeNewPage = () => {
                         dpr={[1, 2]}
                     >
                         <Scene
-                            releases={displayReleases}
+                            releases={displayItems}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
@@ -990,6 +1013,7 @@ const HomeNewPage = () => {
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
+                            simple={simple}
                         />
                     </Canvas>
                 </div>
@@ -999,13 +1023,13 @@ const HomeNewPage = () => {
             <Header />
             <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
 
-            {currentRelease && (
+            {!simple && currentRelease && (
                 <Player
                     release={currentRelease}
                     onPrev={releaseSwitcher.prev}
                     onNext={releaseSwitcher.next}
                     canPrev={releaseSwitcher.current > 0}
-                    canNext={releaseSwitcher.current < displayReleases.length - 1}
+                    canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
             )}
 
@@ -1015,11 +1039,13 @@ const HomeNewPage = () => {
                 currentIndex={currentIndex}
                 goTo={goTo}
                 progressRef={progressRef}
-                onSaveToServer={saveCfgToServer}
-                onResetServer={resetServerCfg}
+                onSaveToServer={saveCfg}
+                onResetServer={clearCfg}
             />
         </div>
     );
 };
+
+const HomeNewPage = () => <Scene3DShell serverCfgKey="homeNewConfig" />;
 
 export default HomeNewPage;

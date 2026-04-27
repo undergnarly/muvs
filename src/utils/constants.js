@@ -1,16 +1,27 @@
 export const ROUTES = {
     HOME: '/',
-    MUSIC: '/',
+    MUSIC: '/music',
     MIXES: '/mixes',
     CODE: '/code',
     NEWS: '/news',
     CV: '/cv',
     ABOUT: '/about',
-    LECTURE: '/lecture', // Hidden lecture page
-    LECTURE_TEXT: '/lecture-text', // Full text version
-    TEST: '/test', // Test page with Star Wars crawl effect
-    THREE_D: '/3d', // 3D scene page with rotating camera around a cube
-    HOME_NEW: '/home-new', // Experimental 3D-scrolled home page
+    LECTURE: '/lecture',
+    LECTURE_TEXT: '/lecture-text',
+    TEST: '/test',
+    THREE_D: '/3d',
+
+    // Pre-3D versions kept for reference. The new 3D pages live on the
+    // canonical paths above; the old DOM versions hang off /*-old.
+    HOME_OLD: '/home-old',
+    MUSIC_OLD: '/music-old',
+    MIXES_OLD: '/mixes-old',
+    CODE_OLD: '/code-old',
+    NEWS_OLD: '/news-old',
+    CV_OLD: '/cv-old',
+    ABOUT_OLD: '/about-old',
+    LECTURE_OLD: '/lecture-old',
+    LECTURE_TEXT_OLD: '/lecture-text-old',
 };
 
 export const SOCIAL_LINKS = {
