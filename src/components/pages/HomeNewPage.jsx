@@ -377,6 +377,41 @@ const FloorText = ({ release, x, z }) => {
     );
 };
 
+const FLOOR_PHOTO_SHEETS = [
+    { x: 4.7, y: -0.45, r: -0.18, color: '#f7f4ec', image: '#d9dfe3' },
+    { x: 5.55, y: 0.55, r: 0.1, color: '#fbfaf6', image: '#e2d7cb' },
+    { x: 3.95, y: 0.85, r: 0.22, color: '#f3f0e8', image: '#cfd8d2' },
+];
+
+const FloorPhotoSheet = ({ sheet }) => (
+    <group position={[sheet.x, sheet.y, 0]} rotation={[0, 0, sheet.r]}>
+        <mesh position={[0, 0, 0.004]}>
+            <planeGeometry args={[2.35, 1.45]} />
+            <meshStandardMaterial color={sheet.color} roughness={0.92} metalness={0} />
+        </mesh>
+        <mesh position={[0, 0.08, 0.008]}>
+            <planeGeometry args={[2.02, 1.14]} />
+            <meshStandardMaterial color={sheet.image} roughness={0.86} metalness={0} />
+        </mesh>
+        <mesh position={[-0.55, -0.62, 0.01]}>
+            <planeGeometry args={[0.74, 0.045]} />
+            <meshStandardMaterial color="#d6d1c8" roughness={0.9} metalness={0} />
+        </mesh>
+        <mesh position={[0.34, -0.62, 0.01]}>
+            <planeGeometry args={[0.48, 0.045]} />
+            <meshStandardMaterial color="#ded9d0" roughness={0.9} metalness={0} />
+        </mesh>
+    </group>
+);
+
+const FloorPhotoSheets = ({ x, z }) => (
+    <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
+        {FLOOR_PHOTO_SHEETS.map((sheet, index) => (
+            <FloorPhotoSheet key={index} sheet={sheet} />
+        ))}
+    </group>
+);
+
 const Floor = () => (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[160, 80]} />
@@ -577,6 +612,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, bi
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
+                <FloorPhotoSheets x={i * RELEASE_SPACING} z={floorTextZ} />
                 <SupportFloorText x={i * RELEASE_SPACING} support={support} />
             </React.Fragment>
         ))}
