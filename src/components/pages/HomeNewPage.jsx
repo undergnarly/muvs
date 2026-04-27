@@ -66,7 +66,7 @@ const FloorText = ({ release }) => {
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
 
     return (
-        <group position={[0, 0.01, 1.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, 0.01, 4.0]} rotation={[-Math.PI / 2, 0, 0]}>
             <Text
                 position={[0, 0, 0]}
                 fontSize={0.22}
@@ -127,7 +127,8 @@ const Floor = () => (
 );
 
 // Drives the default camera along a scroll-bound path.
-// Both ends keep a shallow downward angle so the floor text stays readable.
+// Camera lifts up slightly and rotates strongly toward the floor so by the
+// end of the scroll the floor text is read at a steep, comfortable angle.
 const ScrollCamera = () => {
     const scroll = useScroll();
     const lookAt = React.useRef(new THREE.Vector3());
@@ -136,15 +137,21 @@ const ScrollCamera = () => {
         const t = THREE.MathUtils.clamp(scroll.offset, 0, 1);
         const e = t * t * (3 - 2 * t);
 
-        // Eye-level near billboard but already a bit elevated so floor is in view.
-        // Pulls back along +z, rises slightly. lookAt slides down so the floor
-        // becomes the dominant subject by the end.
+        // Position: small lift + small dolly back.
         camera.position.set(
             0,
-            3.2 + e * 2.3,
-            7.5 + e * 7.5,
+            3.0 + e * 2.5,   // y: 3.0 -> 5.5
+            8.0 + e * 4.0,   // z: 8.0 -> 12.0
         );
-        lookAt.current.set(0, 2.4 - e * 2.6, 0 + e * 1.5);
+
+        // lookAt rotates from billboard centre down to the floor point under
+        // the camera's path. This swings the look angle from ~horizontal to
+        // ~45° downward, pulling the floor text into clear reading territory.
+        lookAt.current.set(
+            0,
+            2.6 - e * 3.4,   // y: 2.6 -> -0.8 (under floor, forces tilt)
+            0  + e * 5.5,    // z: 0   -> 5.5  (pulls focus closer to camera)
+        );
         camera.lookAt(lookAt.current);
     });
 
@@ -188,6 +195,7 @@ const HomeNewPage = () => {
                     </Canvas>
                 </div>
             )}
+            <div className="home-new-gradient" aria-hidden="true" />
             <Header />
         </div>
     );
