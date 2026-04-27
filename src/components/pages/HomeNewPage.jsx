@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text, useTexture } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -21,8 +21,6 @@ const stripHtml = (html) =>
 
 const STOP_COUNT = 4;
 const RELEASE_SPACING = 14;
-const FALLBACK_COVER = '/uploads/1770869263167-matr_fin2_trans_2.webp';
-
 // Matches body font-family (Urbanist). Same family at multiple weights so
 // drei Text renders with the same look as DOM elements.
 const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
@@ -87,6 +85,44 @@ const hydrateCfg = (cfg) => {
         stack: { ...DEFAULT_STACK, ...(cfg.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(cfg.stack?.pos || {}) } },
         support: { ...DEFAULT_SUPPORT, ...(cfg.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(cfg.support?.pos || {}) } },
     };
+};
+
+const useSafeTexture = (url) => {
+    const [texture, setTexture] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        setTexture(null);
+        if (!url) return undefined;
+
+        const loader = new THREE.TextureLoader();
+        loader.load(
+            url,
+            (loaded) => {
+                if (cancelled) {
+                    loaded.dispose();
+                    return;
+                }
+                loaded.colorSpace = THREE.SRGBColorSpace;
+                loaded.needsUpdate = true;
+                setTexture(loaded);
+            },
+            undefined,
+            () => {
+                if (!cancelled) setTexture(null);
+            },
+        );
+
+        return () => {
+            cancelled = true;
+        };
+    }, [url]);
+
+    useEffect(() => () => {
+        texture?.dispose();
+    }, [texture]);
+
+    return texture;
 };
 
 // ================ snap scroll (vertical) ================
@@ -288,13 +324,7 @@ const useReleaseSwitcher = (count, onSwitch) => {
 // ================ scene parts ================
 
 const Billboard = ({ release, x, billboard }) => {
-    const tex = useTexture(release.coverImage || FALLBACK_COVER);
-    useEffect(() => {
-        if (tex) {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.needsUpdate = true;
-        }
-    }, [tex]);
+    const tex = useSafeTexture(release.coverImage);
 
     return (
         <group position={[x, 2.6, 0]}>
@@ -326,7 +356,13 @@ const Billboard = ({ release, x, billboard }) => {
 
             <mesh position={[0, billboard.coverY, 0]}>
                 <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
-                <meshBasicMaterial map={tex} transparent toneMapped={false} />
+                <meshBasicMaterial
+                    map={tex || null}
+                    color={tex ? '#ffffff' : '#111111'}
+                    transparent
+                    opacity={tex ? 1 : 0.92}
+                    toneMapped={false}
+                />
             </mesh>
         </group>
     );
