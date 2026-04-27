@@ -336,7 +336,7 @@ const Billboard = ({ release, x, billboard }) => {
             <Text
                 position={[0, billboard.titleY, billboard.titleZ]}
                 fontSize={billboard.titleSize}
-                color="#ffffff"
+                color="#1a1a1a"
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={9}
@@ -350,7 +350,7 @@ const Billboard = ({ release, x, billboard }) => {
             <Text
                 position={[0, billboard.artistY, billboard.artistZ]}
                 fontSize={billboard.artistSize}
-                color="#ffffff"
+                color="#1a1a1a"
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
@@ -362,7 +362,7 @@ const Billboard = ({ release, x, billboard }) => {
             <mesh position={[0, billboard.coverY, 0]}>
                 <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
                 {tex ? (
-                    <meshBasicMaterial map={tex} toneMapped={false} />
+                    <meshBasicMaterial map={tex} transparent toneMapped={false} />
                 ) : (
                     <meshBasicMaterial color="#111111" transparent opacity={0.92} />
                 )}
