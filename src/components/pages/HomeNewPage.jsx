@@ -22,6 +22,11 @@ const STOP_COUNT = 4;
 const RELEASE_SPACING = 14;
 const FALLBACK_COVER = '/uploads/1770869263167-matr_fin2_trans_2.webp';
 
+// Matches body font-family (Urbanist). Same family at multiple weights so
+// drei Text renders with the same look as DOM elements.
+const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
+const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
+
 const DEFAULT_STOPS = [
     { pos: { x: 0, y: 3.0, z: 7.0  }, look: { x: 0, y:  2.6, z: 0.0 }, fov: 40 },
     { pos: { x: 0, y: 5.0, z: 12.0 }, look: { x: 0, y:  0.5, z: 4.0 }, fov: 55 },
@@ -209,6 +214,7 @@ const Billboard = ({ release, x, billboard }) => {
                 maxWidth={9}
                 textAlign="center"
                 letterSpacing={-0.02}
+                font={FONT_BOLD}
             >
                 {(release.title || 'UNTITLED').toUpperCase()}
             </Text>
@@ -220,6 +226,7 @@ const Billboard = ({ release, x, billboard }) => {
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
+                font={FONT_REGULAR}
             >
                 {(release.artists || '').toUpperCase()}
             </Text>
@@ -245,6 +252,7 @@ const FloorText = ({ release, x, z }) => {
                 anchorX="center"
                 anchorY="top"
                 letterSpacing={0.18}
+                font={FONT_REGULAR}
             >
                 {meta}
             </Text>
@@ -258,6 +266,7 @@ const FloorText = ({ release, x, z }) => {
                 maxWidth={6.5}
                 textAlign="center"
                 lineHeight={1.55}
+                font={FONT_REGULAR}
             >
                 {description}
             </Text>
