@@ -13,6 +13,7 @@ import LectureTextPage from './components/pages/LectureTextPage';
 import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
 import ThreeDPage from './components/pages/ThreeDPage';
+import HomeNewPage from './components/pages/HomeNewPage';
 
 // Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
 const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
@@ -90,7 +91,8 @@ function AppRoot() {
     // Check if current route is lecture page
     const isLecturePage = location.pathname === ROUTES.LECTURE;
     const isThreeDPage = location.pathname === ROUTES.THREE_D;
-    const hideOverlays = isLecturePage || isThreeDPage;
+    const isHomeNewPage = location.pathname === ROUTES.HOME_NEW;
+    const hideOverlays = isLecturePage || isThreeDPage || isHomeNewPage;
 
     return (
         <>
@@ -108,6 +110,7 @@ function AppRoot() {
                 <Route path={ROUTES.CV} element={<CVPage />} />
                 <Route path={ROUTES.TEST} element={<TestPage />} />
                 <Route path={ROUTES.THREE_D} element={<ThreeDPage />} />
+                <Route path={ROUTES.HOME_NEW} element={<HomeNewPage />} />
                 <Route path="/login" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <LoginPage />
