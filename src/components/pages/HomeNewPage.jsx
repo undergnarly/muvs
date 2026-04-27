@@ -736,7 +736,9 @@ const useScWidget = (url, waveformBins = 36) => {
         const w = widgetRef.current;
         if (!w || !ready) return;
         w.getDuration((d) => {
-            if (typeof d === 'number' && d > 0) w.seekTo(rel * d);
+            if (typeof d !== 'number' || d <= 0) return;
+            w.seekTo(rel * d);
+            w.play();
         });
     }, [ready]);
 

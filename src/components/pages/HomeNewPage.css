@@ -236,12 +236,13 @@ body.home-new-active {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    justify-content: center;
     gap: 2px;
-    padding: 5px 16px 6px;
+    height: 56px;
+    padding: 0 16px;
     background: #0d0d0d;
     color: #ffffff;
-    border-radius: 14px;
+    border-radius: 999px;
     min-width: 320px;
     max-width: min(520px, 70vw);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
@@ -254,8 +255,8 @@ body.home-new-active {
 }
 
 .hn-player-play {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     border-radius: 50%;
     background: transparent;
