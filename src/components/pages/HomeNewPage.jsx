@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Text, useTexture } from '@react-three/drei';
@@ -75,6 +75,46 @@ const PLATFORMS = [
     { key: 'telegram',   label: 'TELEGRAM',   color: '#229ed9', urlField: 'telegramUrl' },
 ];
 
+// Simple Icons (CC0) paths, 24x24 viewBox.
+const LOGO_PATHS = {
+    spotify: 'M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.84-.179-.94-.6-.12-.421.18-.78.6-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.282 1.08zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141 4.32-1.32 9.84-.66 13.5 1.621.42.18.6.78.241 1.2zm.122-3.36C15 8.821 8.7 8.58 5.16 9.78c-.6.18-1.2-.18-1.38-.72-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z',
+    soundcloud: 'M0 16.5h1.5v-7.5H0V16.5zm3-7.5v7.5h1.5v-7.5H3zm3 0v7.5h1.5v-7.5H6zm3-3v10.5h1.5V6H9zm3 1.5v9h1.5v-9H12zm3-1.5v10.5h1.5V6H15zm3 1.5v9h1.5v-9H18zM21 9c-.51 0-1.005.083-1.469.236A8.24 8.24 0 0 0 12 5.25v11.25h9c1.658 0 3-1.343 3-3s-1.342-3-3-3z',
+    bandcamp: 'M0 18.75l7.437-13.5H24l-7.438 13.5H0z',
+    youtube: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z',
+    telegram: 'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z',
+};
+
+const logoTexCache = new Map();
+
+const buildLogoTexture = (key, color) => {
+    const cacheKey = `${key}|${color}`;
+    if (logoTexCache.has(cacheKey)) return logoTexCache.get(cacheKey);
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, size, size);
+    const path = LOGO_PATHS[key];
+    if (path) {
+        const pad = size * 0.18;
+        const inner = size - pad * 2;
+        const scale = inner / 24;
+        ctx.save();
+        ctx.translate(pad, pad);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill(new Path2D(path));
+        ctx.restore();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    logoTexCache.set(cacheKey, tex);
+    return tex;
+};
+
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 
 const hydrateCfg = (cfg) => {
@@ -86,48 +126,6 @@ const hydrateCfg = (cfg) => {
         stack: { ...DEFAULT_STACK, ...(cfg.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(cfg.stack?.pos || {}) } },
         support: { ...DEFAULT_SUPPORT, ...(cfg.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(cfg.support?.pos || {}) } },
     };
-};
-
-const texCache = new Map();
-
-const useSafeTexture = (url) => {
-    const [texture, setTexture] = useState(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        setTexture(null);
-        if (!url) return undefined;
-
-        if (texCache.has(url)) {
-            setTexture(texCache.get(url));
-            return undefined;
-        }
-
-        const loader = new THREE.TextureLoader();
-        loader.load(
-            url,
-            (loaded) => {
-                if (cancelled) {
-                    loaded.dispose();
-                    return;
-                }
-                loaded.colorSpace = THREE.SRGBColorSpace;
-                loaded.needsUpdate = true;
-                texCache.set(url, loaded);
-                setTexture(loaded);
-            },
-            undefined,
-            () => {
-                if (!cancelled) setTexture(null);
-            },
-        );
-
-        return () => {
-            cancelled = true;
-        };
-    }, [url]);
-
-    return texture;
 };
 
 // ================ snap scroll (vertical) ================
@@ -450,10 +448,11 @@ const Floor = () => (
     </mesh>
 );
 
-const PlatformBox = ({ pos, size, label, color, url }) => {
+const PlatformBox = ({ pos, size, platformKey, color, url }) => {
     const ref = useRef(null);
     const { camera } = useThree();
     const half = size / 2;
+    const tex = useMemo(() => buildLogoTexture(platformKey, color), [platformKey, color]);
 
     const onClick = (e) => {
         e.stopPropagation();
@@ -481,33 +480,8 @@ const PlatformBox = ({ pos, size, label, color, url }) => {
             <CuboidCollider args={[half, half, half]} />
             <mesh onClick={onClick}>
                 <boxGeometry args={[size, size, size]} />
-                <meshStandardMaterial color={color} roughness={0.45} metalness={0.05} />
+                <meshStandardMaterial map={tex} roughness={0.45} metalness={0.05} />
             </mesh>
-            <Text
-                position={[0, 0, half + 0.005]}
-                fontSize={size * 0.13}
-                color="#ffffff"
-                anchorX="center"
-                anchorY="middle"
-                font={FONT_BOLD}
-                letterSpacing={0.04}
-                raycast={() => null}
-            >
-                {label}
-            </Text>
-            <Text
-                position={[0, 0, -(half + 0.005)]}
-                rotation={[0, Math.PI, 0]}
-                fontSize={size * 0.13}
-                color="#ffffff"
-                anchorX="center"
-                anchorY="middle"
-                font={FONT_BOLD}
-                letterSpacing={0.04}
-                raycast={() => null}
-            >
-                {label}
-            </Text>
         </RigidBody>
     );
 };
@@ -537,7 +511,7 @@ const PlatformStack = ({ release, x, stackCfg }) => {
                 key={p.key}
                 pos={[px, py, pz]}
                 size={boxSize}
-                label={p.label}
+                platformKey={p.key}
                 color={p.color}
                 url={release?.[p.urlField]}
             />
