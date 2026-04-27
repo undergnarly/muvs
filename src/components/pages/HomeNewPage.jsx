@@ -1058,7 +1058,6 @@ export const Scene3DShell = ({
                 </div>
             )}
 
-            <div className="home-new-gradient" aria-hidden="true" />
             <Header />
             <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
 
