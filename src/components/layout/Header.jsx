@@ -2,9 +2,9 @@ import React from 'react';
 import StaggeredMenu from './StaggeredMenu';
 import './Header.css';
 
-const Header = () => {
+const Header = ({ theme = 'light' }) => {
     return (
-        <StaggeredMenu />
+        <StaggeredMenu theme={theme} />
     );
 };
 

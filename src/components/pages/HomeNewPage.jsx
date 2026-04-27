@@ -1030,7 +1030,7 @@ export const Scene3DShell = ({
             )}
 
             <div className="home-new-gradient" aria-hidden="true" />
-            <Header />
+            <Header theme={currentIndex === 0 ? 'light' : 'dark'} />
             <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
 
             {!simple && currentRelease && (

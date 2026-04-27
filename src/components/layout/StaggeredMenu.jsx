@@ -14,7 +14,7 @@ const menuItems = [
     { label: 'ABOUT', path: ROUTES.ABOUT },
 ];
 
-export const StaggeredMenu = () => {
+export const StaggeredMenu = ({ theme = 'light' }) => {
     const location = useLocation();
     const { siteSettings } = useData();
     const [open, setOpen] = useState(false);
@@ -22,7 +22,8 @@ export const StaggeredMenu = () => {
 
     const position = 'right';
     const colors = ['#1a1a1a', '#2a2a2a'];
-    const menuButtonColor = '#fff';
+    const isDark = theme === 'dark';
+    const menuButtonColor = isDark ? '#1a1a1a' : '#fff';
     const openMenuButtonColor = '#fff';
     const accentColor = '#ccff00';
 
@@ -67,7 +68,7 @@ export const StaggeredMenu = () => {
 
     return (
         <div
-            className="staggered-menu-wrapper"
+            className={`staggered-menu-wrapper${isDark && !open ? ' sm-dark' : ''}`}
             style={{ '--sm-accent': accentColor }}
             data-position={position}
             data-open={open || undefined}

@@ -133,6 +133,19 @@
     transform-origin: center center;
 }
 
+.sm-dark .sm-logo {
+    mix-blend-mode: normal;
+    color: #1a1a1a;
+}
+
+.sm-dark .sm-logo-img {
+    background-color: #1a1a1a;
+}
+
+.sm-dark .sm-toggle {
+    color: #1a1a1a;
+}
+
 .staggered-menu-panel {
     position: absolute;
     top: 0;
