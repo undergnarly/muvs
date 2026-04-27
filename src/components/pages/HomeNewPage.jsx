@@ -1,7 +1,8 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Text, useTexture } from '@react-three/drei';
+import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
 import './HomeNewPage.css';
@@ -45,13 +46,35 @@ const DEFAULT_BILLBOARD = {
     artistSize: 0.28,
 };
 
+const DEFAULT_STACK = {
+    pos: { x: 0, y: 0, z: 10 },
+    boxSize: 0.7,
+    gap: 0.04,
+};
+
+const DEFAULT_SUPPORT = {
+    pos: { x: 0, y: 0.01, z: 14 },
+    fontSize: 0.42,
+    metaSize: 0.22,
+};
+
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 4.0,
     fogNear: 14,
     fogFar: 32,
     billboard: DEFAULT_BILLBOARD,
+    stack: DEFAULT_STACK,
+    support: DEFAULT_SUPPORT,
 };
+
+const PLATFORMS = [
+    { key: 'spotify',    label: 'SPOTIFY',    color: '#1ed760', urlField: 'spotifyUrl' },
+    { key: 'soundcloud', label: 'SOUNDCLOUD', color: '#ff5500', urlField: 'soundcloudUrl' },
+    { key: 'bandcamp',   label: 'BANDCAMP',   color: '#629aa9', urlField: 'bandcampUrl' },
+    { key: 'youtube',    label: 'YOUTUBE',    color: '#ff0000', urlField: 'youtubeUrl' },
+    { key: 'telegram',   label: 'TELEGRAM',   color: '#229ed9', urlField: 'telegramUrl' },
+];
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 
@@ -66,6 +89,8 @@ const loadSavedCfg = () => {
             ...DEFAULT_CFG,
             ...parsed,
             billboard: { ...DEFAULT_BILLBOARD, ...(parsed.billboard || {}) },
+            stack: { ...DEFAULT_STACK, ...(parsed.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(parsed.stack?.pos || {}) } },
+            support: { ...DEFAULT_SUPPORT, ...(parsed.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(parsed.support?.pos || {}) } },
         };
     } catch (_) { /* ignore */ }
     return null;
@@ -90,6 +115,8 @@ const useSnapScroll = (numStops) => {
     useEffect(() => {
         let lastWheel = 0;
         const onWheel = (e) => {
+            // Only handle vertical-dominant scroll; horizontal goes to release switcher.
+            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
             e.preventDefault();
             const now = Date.now();
             if (now - lastWheel < 650) return;
@@ -103,11 +130,16 @@ const useSnapScroll = (numStops) => {
             }
         };
         let touchY = null;
-        const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
+        let touchX = null;
+        const onTouchStart = (e) => { touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; };
         const onTouchEnd = (e) => {
             if (touchY == null) return;
-            const dy = touchY - (e.changedTouches[0]?.clientY ?? touchY);
-            if (Math.abs(dy) > 40) {
+            const endY = e.changedTouches[0]?.clientY ?? touchY;
+            const endX = e.changedTouches[0]?.clientX ?? touchX;
+            const dy = touchY - endY;
+            const dx = touchX - endX;
+            // Only act on vertical-dominant swipes.
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
                 const dir = dy > 0 ? 1 : -1;
                 const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
                 if (next !== indexRef.current) {
@@ -115,7 +147,7 @@ const useSnapScroll = (numStops) => {
                     setCurrentIndex(next);
                 }
             }
-            touchY = null;
+            touchY = null; touchX = null;
         };
         const onKey = (e) => {
             if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
@@ -159,15 +191,83 @@ const useSnapScroll = (numStops) => {
 
 // ================ release switcher (horizontal) ================
 
-const useReleaseSwitcher = (count) => {
+const useReleaseSwitcher = (count, onSwitch) => {
     const indexRef = useRef(0);
     const offsetRef = useRef(0);
     const [current, setCurrent] = useState(0);
+    const onSwitchRef = useRef(onSwitch);
+    useEffect(() => { onSwitchRef.current = onSwitch; }, [onSwitch]);
 
     const setIndex = useCallback((next) => {
         const i = Math.max(0, Math.min(count - 1, next));
+        if (i === indexRef.current) return;
         indexRef.current = i;
         setCurrent(i);
+        onSwitchRef.current?.(i);
+    }, [count]);
+
+    // wheel/touch-driven horizontal switching
+    useEffect(() => {
+        let lastWheel = 0;
+        const onWheel = (e) => {
+            if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+            e.preventDefault();
+            const now = Date.now();
+            if (now - lastWheel < 700) return;
+            if (Math.abs(e.deltaX) < 6) return;
+            lastWheel = now;
+            const dir = e.deltaX > 0 ? 1 : -1;
+            const next = Math.max(0, Math.min(count - 1, indexRef.current + dir));
+            if (next !== indexRef.current) {
+                indexRef.current = next;
+                setCurrent(next);
+                onSwitchRef.current?.(next);
+            }
+        };
+        let touchY = null; let touchX = null;
+        const onTouchStart = (e) => { touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; };
+        const onTouchEnd = (e) => {
+            if (touchX == null) return;
+            const endY = e.changedTouches[0]?.clientY ?? touchY;
+            const endX = e.changedTouches[0]?.clientX ?? touchX;
+            const dx = touchX - endX;
+            const dy = touchY - endY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                const dir = dx > 0 ? 1 : -1;
+                const next = Math.max(0, Math.min(count - 1, indexRef.current + dir));
+                if (next !== indexRef.current) {
+                    indexRef.current = next;
+                    setCurrent(next);
+                    onSwitchRef.current?.(next);
+                }
+            }
+            touchY = null; touchX = null;
+        };
+        const onKey = (e) => {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                const next = Math.min(count - 1, indexRef.current + 1);
+                if (next !== indexRef.current) {
+                    indexRef.current = next; setCurrent(next); onSwitchRef.current?.(next);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const next = Math.max(0, indexRef.current - 1);
+                if (next !== indexRef.current) {
+                    indexRef.current = next; setCurrent(next); onSwitchRef.current?.(next);
+                }
+            }
+        };
+        window.addEventListener('wheel', onWheel, { passive: false });
+        window.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchend', onTouchEnd, { passive: true });
+        window.addEventListener('keydown', onKey);
+        return () => {
+            window.removeEventListener('wheel', onWheel);
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchend', onTouchEnd);
+            window.removeEventListener('keydown', onKey);
+        };
     }, [count]);
 
     useEffect(() => {
@@ -186,8 +286,8 @@ const useReleaseSwitcher = (count) => {
     return {
         offsetRef,
         current,
-        prev: () => setIndex(current - 1),
-        next: () => setIndex(current + 1),
+        prev: () => setIndex(indexRef.current - 1),
+        next: () => setIndex(indexRef.current + 1),
         goTo: setIndex,
     };
 };
@@ -281,6 +381,114 @@ const Floor = () => (
     </mesh>
 );
 
+const PlatformBox = ({ pos, size, label, color, url }) => {
+    const ref = useRef(null);
+    const { camera } = useThree();
+    const half = size / 2;
+
+    const onClick = (e) => {
+        e.stopPropagation();
+        if (!ref.current) return;
+        const hit = e.point.clone();
+        const dir = hit.clone().sub(camera.position).normalize();
+        ref.current.applyImpulse({ x: dir.x * 7, y: 3, z: dir.z * 7 }, true);
+        ref.current.applyTorqueImpulse({ x: (Math.random() - 0.5) * 1.5, y: (Math.random() - 0.5) * 1.5, z: (Math.random() - 0.5) * 1.5 }, true);
+        if (url) {
+            setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), 360);
+        }
+    };
+
+    return (
+        <RigidBody
+            ref={ref}
+            position={pos}
+            restitution={0.18}
+            friction={0.7}
+            mass={1}
+            linearDamping={0.4}
+            angularDamping={0.4}
+            colliders={false}
+        >
+            <CuboidCollider args={[half, half, half]} />
+            <mesh onClick={onClick}>
+                <boxGeometry args={[size, size, size]} />
+                <meshStandardMaterial color={color} roughness={0.45} metalness={0.05} />
+            </mesh>
+            <Text
+                position={[0, 0, half + 0.005]}
+                fontSize={size * 0.13}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                font={FONT_BOLD}
+                letterSpacing={0.04}
+                raycast={() => null}
+            >
+                {label}
+            </Text>
+            <Text
+                position={[0, 0, -(half + 0.005)]}
+                rotation={[0, Math.PI, 0]}
+                fontSize={size * 0.13}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                font={FONT_BOLD}
+                letterSpacing={0.04}
+                raycast={() => null}
+            >
+                {label}
+            </Text>
+        </RigidBody>
+    );
+};
+
+const PlatformStack = ({ release, x, stackCfg }) => {
+    const { pos, boxSize, gap } = stackCfg;
+    const baseX = x + pos.x;
+    return PLATFORMS.map((p, i) => {
+        const url = release?.[p.urlField];
+        const y = pos.y + boxSize / 2 + i * (boxSize + gap);
+        return (
+            <PlatformBox
+                key={p.key}
+                pos={[baseX, y, pos.z]}
+                size={boxSize}
+                label={p.label}
+                color={p.color}
+                url={url}
+            />
+        );
+    });
+};
+
+const SupportFloorText = ({ x, support }) => (
+    <group position={[x + support.pos.x, support.pos.y, support.pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <Text
+            position={[0, 0, 0]}
+            fontSize={support.metaSize}
+            color="#888888"
+            anchorX="center"
+            anchorY="top"
+            letterSpacing={0.18}
+            font={FONT_REGULAR}
+        >
+            SUPPORT THE RELEASE
+        </Text>
+        <Text
+            position={[0, -0.6, 0]}
+            fontSize={support.fontSize}
+            color="#1a1a1a"
+            anchorX="center"
+            anchorY="top"
+            letterSpacing={0.04}
+            font={FONT_BOLD}
+        >
+            LISTEN
+        </Text>
+    </group>
+);
+
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 
@@ -328,20 +536,31 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard, stack, support }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
         <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
-        <ambientLight intensity={1.0} />
+        <ambientLight intensity={0.75} />
+        <directionalLight position={[6, 12, 8]} intensity={0.55} />
         <Floor />
+        <Physics gravity={[0, -9.81, 0]}>
+            {/* Invisible fixed floor collider so platform boxes can rest on it */}
+            <RigidBody type="fixed" colliders={false}>
+                <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
+            </RigidBody>
+            {releases.map((r, i) => (
+                <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
+            ))}
+        </Physics>
         {releases.map((r, i) => (
             <React.Fragment key={r.id ?? i}>
                 <Suspense fallback={null}>
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
+                <SupportFloorText x={i * RELEASE_SPACING} support={support} />
             </React.Fragment>
         ))}
     </>
@@ -594,6 +813,24 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
             </div>
 
             <div className="dbg-block">
+                <div className="dbg-title">stack (links)</div>
+                <Row label="x"      value={cfg.stack.pos.x}  min={-15} max={15} step={0.1} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, x: v } } })} />
+                <Row label="y"      value={cfg.stack.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, y: v } } })} />
+                <Row label="z"      value={cfg.stack.pos.z}  min={-5}  max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, z: v } } })} />
+                <Row label="size"   value={cfg.stack.boxSize} min={0.2} max={2} step={0.02} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, boxSize: v } })} />
+                <Row label="gap"    value={cfg.stack.gap}     min={0}   max={0.5} step={0.01} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, gap: v } })} />
+            </div>
+
+            <div className="dbg-block">
+                <div className="dbg-title">support text</div>
+                <Row label="x"        value={cfg.support.pos.x}    min={-15} max={15} step={0.1} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, x: v } } })} />
+                <Row label="y"        value={cfg.support.pos.y}    min={-1}  max={3}  step={0.01} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, y: v } } })} />
+                <Row label="z"        value={cfg.support.pos.z}    min={-5}  max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, z: v } } })} />
+                <Row label="meta sz"  value={cfg.support.metaSize} min={0.1} max={1}  step={0.02} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, metaSize: v } })} />
+                <Row label="text sz"  value={cfg.support.fontSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, fontSize: v } })} />
+            </div>
+
+            <div className="dbg-block">
                 <div className="dbg-title">scene</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
@@ -638,7 +875,10 @@ const HomeNewPage = () => {
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
     const { progressRef, currentIndex, goTo } = useSnapScroll(STOP_COUNT);
-    const releaseSwitcher = useReleaseSwitcher(displayReleases.length);
+    const releaseSwitcher = useReleaseSwitcher(
+        displayReleases.length,
+        useCallback(() => goTo(0), [goTo]),
+    );
     const currentRelease = displayReleases[releaseSwitcher.current];
 
     useEffect(() => {
@@ -662,6 +902,8 @@ const HomeNewPage = () => {
                             releaseOffsetRef={releaseSwitcher.offsetRef}
                             floorTextZ={cfg.floorTextZ}
                             billboard={cfg.billboard}
+                            stack={cfg.stack}
+                            support={cfg.support}
                         />
                     </Canvas>
                 </div>
