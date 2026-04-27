@@ -311,7 +311,7 @@ const Billboard = ({ release, x, billboard }) => {
             <Text
                 position={[0, billboard.titleY, billboard.titleZ]}
                 fontSize={billboard.titleSize}
-                color="#0a0a0a"
+                color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={9}
@@ -325,7 +325,7 @@ const Billboard = ({ release, x, billboard }) => {
             <Text
                 position={[0, billboard.artistY, billboard.artistZ]}
                 fontSize={billboard.artistSize}
-                color="#666666"
+                color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
@@ -592,7 +592,6 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, bi
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
-        <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
         <ambientLight intensity={0.75} />
         <directionalLight position={[6, 12, 8]} intensity={0.55} />
@@ -979,7 +978,7 @@ const HomeNewPage = () => {
                 <div className="home-new-canvas">
                     <Canvas
                         camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
-                        gl={{ antialias: true }}
+                        gl={{ antialias: true, alpha: true }}
                         dpr={[1, 2]}
                     >
                         <Scene
