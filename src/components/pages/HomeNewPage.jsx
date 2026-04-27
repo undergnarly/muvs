@@ -29,11 +29,23 @@ const DEFAULT_STOPS = [
     { pos: { x: 0, y: 8.5, z: 21.0 }, look: { x: 0, y: -2.0, z: 9.0 }, fov: 80 },
 ];
 
+const DEFAULT_BILLBOARD = {
+    coverSize: 2.6,
+    coverY: -0.4,
+    titleY: 0.6,
+    titleZ: -0.4,
+    titleSize: 0.85,
+    artistY: 1.6,
+    artistZ: -0.4,
+    artistSize: 0.28,
+};
+
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 4.0,
     fogNear: 14,
     fogFar: 32,
+    billboard: DEFAULT_BILLBOARD,
 };
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
@@ -43,7 +55,13 @@ const loadSavedCfg = () => {
         const raw = localStorage.getItem(CFG_STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        if (parsed?.stops?.length === DEFAULT_STOPS.length) return parsed;
+        if (parsed?.stops?.length !== DEFAULT_STOPS.length) return null;
+        // Hydrate billboard if older saved cfg lacks it
+        return {
+            ...DEFAULT_CFG,
+            ...parsed,
+            billboard: { ...DEFAULT_BILLBOARD, ...(parsed.billboard || {}) },
+        };
     } catch (_) { /* ignore */ }
     return null;
 };
@@ -171,7 +189,7 @@ const useReleaseSwitcher = (count) => {
 
 // ================ scene parts ================
 
-const Billboard = ({ release, x }) => {
+const Billboard = ({ release, x, billboard }) => {
     const tex = useTexture(release.coverImage || FALLBACK_COVER);
     useEffect(() => {
         if (tex) {
@@ -183,8 +201,8 @@ const Billboard = ({ release, x }) => {
     return (
         <group position={[x, 2.6, 0]}>
             <Text
-                position={[0, 2.55, -0.05]}
-                fontSize={0.85}
+                position={[0, billboard.titleY, billboard.titleZ]}
+                fontSize={billboard.titleSize}
                 color="#0a0a0a"
                 anchorX="center"
                 anchorY="middle"
@@ -196,8 +214,8 @@ const Billboard = ({ release, x }) => {
             </Text>
 
             <Text
-                position={[0, 1.8, -0.05]}
-                fontSize={0.28}
+                position={[0, billboard.artistY, billboard.artistZ]}
+                fontSize={billboard.artistSize}
                 color="#666666"
                 anchorX="center"
                 anchorY="middle"
@@ -206,8 +224,8 @@ const Billboard = ({ release, x }) => {
                 {(release.artists || '').toUpperCase()}
             </Text>
 
-            <mesh position={[0, -0.4, 0]}>
-                <planeGeometry args={[2.6, 2.6]} />
+            <mesh position={[0, billboard.coverY, 0]}>
+                <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
                 <meshBasicMaterial map={tex} transparent toneMapped={false} />
             </mesh>
         </group>
@@ -301,7 +319,7 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, billboard }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -312,7 +330,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ }) 
         {releases.map((r, i) => (
             <React.Fragment key={r.id ?? i}>
                 <Suspense fallback={null}>
-                    <Billboard release={r} x={i * RELEASE_SPACING} />
+                    <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
             </React.Fragment>
@@ -555,6 +573,18 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef }) => {
             </div>
 
             <div className="dbg-block">
+                <div className="dbg-title">billboard</div>
+                <Row label="cov sz" value={cfg.billboard.coverSize}  min={0.5} max={6}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, coverSize: v } })} />
+                <Row label="cov y"  value={cfg.billboard.coverY}     min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, coverY: v } })} />
+                <Row label="ttl y"  value={cfg.billboard.titleY}     min={-3}  max={5}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleY: v } })} />
+                <Row label="ttl z"  value={cfg.billboard.titleZ}     min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleZ: v } })} />
+                <Row label="ttl sz" value={cfg.billboard.titleSize}  min={0.1} max={3}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleSize: v } })} />
+                <Row label="art y"  value={cfg.billboard.artistY}    min={-3}  max={5}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistY: v } })} />
+                <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
+                <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
+            </div>
+
+            <div className="dbg-block">
                 <div className="dbg-title">scene</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
@@ -622,6 +652,7 @@ const HomeNewPage = () => {
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
                             floorTextZ={cfg.floorTextZ}
+                            billboard={cfg.billboard}
                         />
                     </Canvas>
                 </div>
