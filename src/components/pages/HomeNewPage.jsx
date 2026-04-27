@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
@@ -606,6 +606,31 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     return null;
 };
 
+const SkyDome = () => {
+    const geometry = useMemo(() => {
+        const g = new THREE.SphereGeometry(60, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const horizon = new THREE.Color('#ffffff');
+        const zenith = new THREE.Color('#9c9c9c');
+        const positions = g.attributes.position;
+        const colors = new Float32Array(positions.count * 3);
+        for (let i = 0; i < positions.count; i++) {
+            const y = positions.getY(i);
+            const t = Math.pow(THREE.MathUtils.clamp(y / 60, 0, 1), 0.55);
+            const c = horizon.clone().lerp(zenith, t);
+            colors[i * 3] = c.r;
+            colors[i * 3 + 1] = c.g;
+            colors[i * 3 + 2] = c.b;
+        }
+        g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        return g;
+    }, []);
+    return (
+        <mesh geometry={geometry} renderOrder={-1}>
+            <meshBasicMaterial vertexColors side={THREE.BackSide} fog={false} depthWrite={false} />
+        </mesh>
+    );
+};
+
 const FogSync = ({ cfgRef }) => {
     useFrame(({ scene }) => {
         const c = cfgRef.current;
@@ -623,6 +648,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
         <FogSync cfgRef={cfgRef} />
         <color attach="background" args={['#ffffff']} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
+        <SkyDome />
         <ambientLight intensity={0.75} />
         <directionalLight position={[6, 12, 8]} intensity={0.55} />
         <Floor />
@@ -1054,6 +1080,7 @@ export const Scene3DShell = ({
                 </div>
             )}
 
+            <div className="home-new-gradient" aria-hidden="true" />
             <Header />
             <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
 
