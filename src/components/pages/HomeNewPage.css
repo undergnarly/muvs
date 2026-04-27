@@ -24,3 +24,109 @@
     z-index: 2;
     background: linear-gradient(to bottom, #767676 0%, rgba(255, 255, 255, 0) 100%);
 }
+
+/* ---- Debug panel ---- */
+.dbg-panel {
+    position: fixed;
+    top: 84px;
+    right: 16px;
+    width: 300px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    background: rgba(20, 20, 20, 0.92);
+    color: #f0f0f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    z-index: 1000;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.dbg-toggle {
+    position: fixed;
+    top: 84px;
+    right: 16px;
+    z-index: 1000;
+    background: rgba(20, 20, 20, 0.92);
+    color: #f0f0f0;
+    border: 0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.dbg-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.dbg-progress {
+    margin-left: auto;
+    color: #aaa;
+    font-size: 10px;
+}
+
+.dbg-btn {
+    background: #333;
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+.dbg-btn:hover { background: #444; }
+
+.dbg-block {
+    padding: 6px 0;
+    border-bottom: 1px dashed #2a2a2a;
+}
+.dbg-block:last-child { border-bottom: 0; }
+
+.dbg-title {
+    color: #ccff00;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.dbg-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 56px;
+    align-items: center;
+    gap: 6px;
+    margin: 3px 0;
+}
+
+.dbg-label {
+    color: #888;
+    font-size: 10px;
+}
+
+.dbg-row input[type="range"] {
+    width: 100%;
+    accent-color: #ccff00;
+}
+
+.dbg-num {
+    width: 100%;
+    background: #1a1a1a;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-family: inherit;
+    font-size: 10px;
+    text-align: right;
+}
