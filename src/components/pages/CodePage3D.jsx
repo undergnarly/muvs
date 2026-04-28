@@ -33,7 +33,7 @@ const PORTFOLIO_PLACEHOLDERS = [
     {
         id: 'bimx',
         label: 'BIMX Development',
-        url: 'https://bimx.dv',
+        url: 'https://bimxdv.com',
         image: '/images/portfolio/bimx.png',
         description: 'Лендинг строительной компании в Бали. Лид-генерация, кейсы проектов, вызов на связь и форма заявок.',
         x: -6, z: 22,
