@@ -335,6 +335,15 @@ const Billboard = ({ release, x, billboard }) => {
         }
     }, [tex]);
 
+    const { width, height } = useMemo(() => {
+        const img = tex?.image;
+        const w = img?.naturalWidth || img?.width || 1;
+        const h = img?.naturalHeight || img?.height || 1;
+        const aspect = w / h;
+        if (aspect >= 1) return { width: billboard.coverSize, height: billboard.coverSize / aspect };
+        return { width: billboard.coverSize * aspect, height: billboard.coverSize };
+    }, [tex, billboard.coverSize]);
+
     return (
         <group position={[x, 2.6, 0]}>
             <Text
@@ -364,7 +373,7 @@ const Billboard = ({ release, x, billboard }) => {
             </Text>
 
             <mesh position={[0, billboard.coverY, 0]}>
-                <planeGeometry args={[billboard.coverSize, billboard.coverSize]} />
+                <planeGeometry args={[width, height]} />
                 <meshBasicMaterial map={tex} transparent toneMapped={false} />
             </mesh>
         </group>
