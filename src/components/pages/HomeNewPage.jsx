@@ -699,10 +699,6 @@ const PortfolioItem = ({ pos, image, url, label, description, size = [4.5, 6] })
     };
     return (
         <group position={pos}>
-            <mesh position={[0, h / 2 + 0.1, -0.02]}>
-                <planeGeometry args={[w + 0.18, h + 0.18]} />
-                <meshBasicMaterial color="#1a1a1a" toneMapped={false} />
-            </mesh>
             <group position={[0, h / 2 + 0.1, 0]} onClick={onClick}>
                 {image ? (
                     <Suspense fallback={null}>
