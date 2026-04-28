@@ -22,9 +22,30 @@ const FALLBACK = [
 ];
 
 const PORTFOLIO_PLACEHOLDERS = [
-    { id: 'pacha-alpaca', label: 'Pacha Alpaca', url: 'https://www.pacha-alpaca.com/', x:  6, z: 14 },
-    { id: 'bimx',         label: 'BIMX',         url: 'https://bimx.dv',                x: -6, z: 22 },
-    { id: 'portfolio-3',  label: 'Project Three', url: '',                              x:  6, z: 30 },
+    {
+        id: 'pacha-alpaca',
+        label: 'Pacha Alpaca',
+        url: 'https://www.pacha-alpaca.com/',
+        image: '/images/portfolio/pacha-alpaca.png',
+        description: 'Сторителлинговый сайт альпака-фермы на Бали: бронирование лоджей, секции про опыт, фотогалерея. Mobile-first, плавная навигация.',
+        x:  6, z: 14,
+    },
+    {
+        id: 'bimx',
+        label: 'BIMX Development',
+        url: 'https://bimx.dv',
+        image: '/images/portfolio/bimx.png',
+        description: 'Лендинг строительной компании в Бали. Лид-генерация, кейсы проектов, вызов на связь и форма заявок.',
+        x: -6, z: 22,
+    },
+    {
+        id: 'portfolio-3',
+        label: 'Project Three',
+        url: '',
+        image: '',
+        description: '',
+        x:  6, z: 30,
+    },
 ];
 
 const CodePage3D = () => {

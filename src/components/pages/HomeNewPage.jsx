@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, Text, useTexture } from '@react-three/drei';
+import { Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -681,51 +681,67 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-// Iframe is rendered at IFRAME_PX_PER_UNIT * worldUnits CSS pixels and then
-// scaled by 1/IFRAME_PX_PER_UNIT so its visual size matches the world plane.
-// Higher value = sharper site rendering at the same on-screen footprint, at
-// the cost of layout cost inside the iframe. 256 ≈ desktop browser density.
-const IFRAME_PX_PER_UNIT = 256;
+const PortfolioImage = ({ image, w, h }) => {
+    const tex = useTexture(image);
+    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    return (
+        <mesh>
+            <planeGeometry args={[w, h]} />
+            <meshBasicMaterial map={tex} toneMapped={false} />
+        </mesh>
+    );
+};
 
-const PortfolioItem = ({ pos, url, label, size = [4.5, 6] }) => {
+const PortfolioItem = ({ pos, image, url, label, description, size = [4.5, 6] }) => {
     const [w, h] = size;
-    const cssW = Math.round(w * IFRAME_PX_PER_UNIT);
-    const cssH = Math.round(h * IFRAME_PX_PER_UNIT);
-
+    const onClick = () => {
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    };
     return (
         <group position={pos}>
             <mesh position={[0, h / 2 + 0.1, -0.02]}>
                 <planeGeometry args={[w + 0.18, h + 0.18]} />
                 <meshBasicMaterial color="#1a1a1a" toneMapped={false} />
             </mesh>
-            {url ? (
-                <Html
-                    transform
-                    position={[0, h / 2 + 0.1, 0]}
-                    scale={1 / IFRAME_PX_PER_UNIT}
-                    zIndexRange={[5, 0]}
-                    pointerEvents="auto"
+            <group position={[0, h / 2 + 0.1, 0]} onClick={onClick}>
+                {image ? (
+                    <Suspense fallback={null}>
+                        <PortfolioImage image={image} w={w} h={h} />
+                    </Suspense>
+                ) : (
+                    <mesh>
+                        <planeGeometry args={[w, h]} />
+                        <meshBasicMaterial color="#dcdcdc" toneMapped={false} />
+                    </mesh>
+                )}
+            </group>
+            {label && (
+                <Text
+                    position={[0, -0.05, 0]}
+                    fontSize={0.32}
+                    color="#1a1a1a"
+                    anchorX="center"
+                    anchorY="top"
+                    letterSpacing={0.08}
+                    font={FONT_BOLD}
                 >
-                    <iframe
-                        src={url}
-                        title={label || 'portfolio'}
-                        loading="lazy"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                        style={{
-                            width: `${cssW}px`,
-                            height: `${cssH}px`,
-                            border: 0,
-                            background: '#ffffff',
-                            display: 'block',
-                            borderRadius: '8px',
-                        }}
-                    />
-                </Html>
-            ) : (
-                <mesh position={[0, h / 2 + 0.1, 0]}>
-                    <planeGeometry args={[w, h]} />
-                    <meshBasicMaterial color="#dcdcdc" toneMapped={false} />
-                </mesh>
+                    {label.toUpperCase()}
+                </Text>
+            )}
+            {description && (
+                <Text
+                    position={[0, -0.55, 0]}
+                    fontSize={0.18}
+                    color="#444444"
+                    anchorX="center"
+                    anchorY="top"
+                    maxWidth={w + 1}
+                    textAlign="center"
+                    lineHeight={1.4}
+                    font={FONT_REGULAR}
+                >
+                    {description}
+                </Text>
             )}
         </group>
     );
@@ -743,8 +759,10 @@ const PortfolioItems = ({ items }) => (
             <PortfolioItem
                 key={it.id ?? i}
                 pos={[it.x ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.x ?? 0, 0, it.z ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.z ?? 0]}
+                image={it.image}
                 url={it.url}
                 label={it.label}
+                description={it.description}
             />
         ))}
     </>
