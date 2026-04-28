@@ -218,6 +218,7 @@ body.home-new-active {
 .hn-player-nav {
     width: 56px;
     height: 56px;
+    flex-shrink: 0;
     border-radius: 50%;
     background: #0d0d0d;
     color: #ffffff;
@@ -310,6 +311,7 @@ body.home-new-active {
 }
 
 .hn-action-pill {
+    flex-shrink: 0;
     height: 56px;
     padding: 0 28px;
     border: none;
@@ -321,6 +323,7 @@ body.home-new-active {
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
+    white-space: nowrap;
     cursor: pointer;
     transition: transform 0.18s ease, background 0.18s ease;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);

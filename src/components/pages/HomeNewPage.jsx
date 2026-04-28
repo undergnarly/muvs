@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text, useTexture } from '@react-three/drei';
+import { Html, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -619,23 +619,50 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const PortfolioItem = ({ pos, image, url, size = [4.5, 6] }) => {
-    const tex = useTexture(image || '/images/logo.png');
-    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
-    const onClick = (e) => {
-        e.stopPropagation();
-        if (url) window.open(url, '_blank', 'noopener,noreferrer');
-    };
+// 1 world unit = 100 CSS px when scale=0.01 → iframe content rendered at
+// useable resolution but visually fits the framed plane.
+const IFRAME_PX_PER_UNIT = 100;
+
+const PortfolioItem = ({ pos, url, label, size = [4.5, 6] }) => {
+    const [w, h] = size;
+    const cssW = Math.round(w * IFRAME_PX_PER_UNIT);
+    const cssH = Math.round(h * IFRAME_PX_PER_UNIT);
+
     return (
         <group position={pos}>
-            <mesh position={[0, size[1] / 2 + 0.1, 0]} onClick={onClick}>
-                <planeGeometry args={size} />
-                <meshBasicMaterial map={image ? tex : undefined} color={image ? undefined : '#dcdcdc'} toneMapped={false} />
-            </mesh>
-            <mesh position={[0, size[1] / 2 + 0.1, -0.02]}>
-                <planeGeometry args={[size[0] + 0.18, size[1] + 0.18]} />
+            <mesh position={[0, h / 2 + 0.1, -0.02]}>
+                <planeGeometry args={[w + 0.18, h + 0.18]} />
                 <meshBasicMaterial color="#1a1a1a" toneMapped={false} />
             </mesh>
+            {url ? (
+                <Html
+                    transform
+                    position={[0, h / 2 + 0.1, 0]}
+                    scale={1 / IFRAME_PX_PER_UNIT}
+                    zIndexRange={[5, 0]}
+                    pointerEvents="auto"
+                >
+                    <iframe
+                        src={url}
+                        title={label || 'portfolio'}
+                        loading="lazy"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        style={{
+                            width: `${cssW}px`,
+                            height: `${cssH}px`,
+                            border: 0,
+                            background: '#ffffff',
+                            display: 'block',
+                            borderRadius: '8px',
+                        }}
+                    />
+                </Html>
+            ) : (
+                <mesh position={[0, h / 2 + 0.1, 0]}>
+                    <planeGeometry args={[w, h]} />
+                    <meshBasicMaterial color="#dcdcdc" toneMapped={false} />
+                </mesh>
+            )}
         </group>
     );
 };
@@ -649,13 +676,12 @@ const DEFAULT_PORTFOLIO_LAYOUT = [
 const PortfolioItems = ({ items }) => (
     <>
         {items.map((it, i) => (
-            <Suspense key={it.id ?? i} fallback={null}>
-                <PortfolioItem
-                    pos={[it.x ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.x ?? 0, 0, it.z ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.z ?? 0]}
-                    image={it.image}
-                    url={it.url}
-                />
-            </Suspense>
+            <PortfolioItem
+                key={it.id ?? i}
+                pos={[it.x ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.x ?? 0, 0, it.z ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.z ?? 0]}
+                url={it.url}
+                label={it.label}
+            />
         ))}
     </>
 );

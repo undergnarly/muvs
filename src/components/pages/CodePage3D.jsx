@@ -22,9 +22,9 @@ const FALLBACK = [
 ];
 
 const PORTFOLIO_PLACEHOLDERS = [
-    { id: 'portfolio-1', image: '', url: '', x:  6, z: 14 },
-    { id: 'portfolio-2', image: '', url: '', x: -6, z: 22 },
-    { id: 'portfolio-3', image: '', url: '', x:  6, z: 30 },
+    { id: 'pacha-alpaca', label: 'Pacha Alpaca', url: 'https://www.pacha-alpaca.com/', x:  6, z: 14 },
+    { id: 'bimx',         label: 'BIMX',         url: 'https://bimx.dv',                x: -6, z: 22 },
+    { id: 'portfolio-3',  label: 'Project Three', url: '',                              x:  6, z: 30 },
 ];
 
 const CodePage3D = () => {
