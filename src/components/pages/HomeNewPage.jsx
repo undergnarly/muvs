@@ -343,8 +343,10 @@ const useReleaseSwitcher = (count, onSwitch) => {
 
 // ================ scene parts ================
 
+const FALLBACK_COVER = '/images/logo.png';
+
 const Billboard = ({ release, x, billboard }) => {
-    const tex = useTexture(release.coverImage);
+    const tex = useTexture(release.coverImage || FALLBACK_COVER);
     useEffect(() => {
         if (tex) {
             tex.colorSpace = THREE.SRGBColorSpace;
@@ -432,23 +434,24 @@ const FloorText = ({ release, x, z }) => {
     );
 };
 
-const FLOOR_PHOTO_PRESETS = [
-    { color: '#f7f4ec', image: '#d9dfe3' },
-    { color: '#fbfaf6', image: '#e2d7cb' },
-    { color: '#f3f0e8', image: '#cfd8d2' },
-    { color: '#f1ede2', image: '#d6dbe1' },
-    { color: '#fbf8f0', image: '#cdd6d2' },
-];
+// Polaroid card geometry (lying on the floor inside a parent group rotated -π/2 around X).
+// Card is portrait when rotated up: width 1.55, height 1.85 (slightly taller than wide for the caption strip).
+const POLAROID_W = 1.55;
+const POLAROID_H = 1.85;
+const POLAROID_PHOTO_W = 1.35;
+const POLAROID_PHOTO_H = 1.35;
+const POLAROID_PHOTO_OFFSET_Y = 0.18; // photo sits above center, leaving caption room below
+const POLAROID_CAPTION_Y = -0.7;
 
 const FLOOR_PHOTO_BASE = [
-    { x: -2.6, y: -0.35, r: -0.22 },
-    { x:  0.3, y:  0.55, r:  0.14 },
-    { x: -1.1, y:  0.9,  r:  0.25 },
+    { x: -2.4, y: -0.3, r: -0.22 },
+    { x:  0.5, y:  0.5, r:  0.14 },
+    { x: -1.0, y:  0.95, r:  0.25 },
 ];
 
 // Card footprint with rotation slack baked in.
-const FLOOR_CARD_W = 2.5;
-const FLOOR_CARD_H = 1.6;
+const FLOOR_CARD_W = POLAROID_W + 0.15;
+const FLOOR_CARD_H = POLAROID_H + 0.15;
 const FLOOR_CARD_AREA = FLOOR_CARD_W * FLOOR_CARD_H;
 const FLOOR_MAX_OVERLAP = 0.2 * FLOOR_CARD_AREA;
 
@@ -458,7 +461,7 @@ const aabbOverlap = (a, b) => {
     return dx * dy;
 };
 
-const generateFloorSheets = (seed) => {
+const generateFloorSheets = (gallery, seed) => {
     const rand = () => Math.random();
     const placed = [];
     return FLOOR_PHOTO_BASE.map((base, i) => {
@@ -472,17 +475,29 @@ const generateFloorSheets = (seed) => {
             if (worst <= FLOOR_MAX_OVERLAP) break;
         }
         placed.push(candidate);
+        const item = gallery?.[i];
         return {
             ...candidate,
             r: base.r + (rand() - 0.5) * 0.5,
-            ...FLOOR_PHOTO_PRESETS[(i + Math.floor(rand() * FLOOR_PHOTO_PRESETS.length)) % FLOOR_PHOTO_PRESETS.length],
+            image: item?.image || '',
+            caption: item?.text || item?.caption || '',
             seed: seed + i,
         };
     });
 };
 
 const tmpVec = new THREE.Vector3();
-const tmpQuat = new THREE.Quaternion();
+
+const PolaroidPhoto = ({ image }) => {
+    const tex = useTexture(image);
+    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    return (
+        <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
+            <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
+            <meshBasicMaterial map={tex} toneMapped={false} />
+        </mesh>
+    );
+};
 
 const FloorPhotoSheet = ({ sheet, index }) => {
     const groupRef = useRef(null);
@@ -498,13 +513,11 @@ const FloorPhotoSheet = ({ sheet, index }) => {
         const parent = obj.parent;
         if (!parent) return;
         if (active) {
-            // target world position: ~2.5 units in front of camera, slightly down
             tmpVec.set(0, -0.25, -2.6).applyQuaternion(camera.quaternion);
             const wp = camera.getWorldPosition(new THREE.Vector3()).add(tmpVec);
             parent.updateMatrixWorld();
             const local = parent.worldToLocal(wp.clone());
             obj.position.lerp(local, 0.14);
-            // target rotation: face camera (plane normal toward camera)
             const parentWQ = parent.getWorldQuaternion(new THREE.Quaternion());
             const target = parentWQ.clone().invert().multiply(camera.quaternion);
             obj.quaternion.slerp(target, 0.14);
@@ -521,28 +534,49 @@ const FloorPhotoSheet = ({ sheet, index }) => {
 
     return (
         <group ref={groupRef} position={restPos} quaternion={restQuat} onClick={onClick}>
+            {/* white polaroid card */}
             <mesh position={[0, 0, 0.004]}>
-                <planeGeometry args={[2.35, 1.45]} />
-                <meshStandardMaterial color={sheet.color} roughness={0.92} metalness={0} />
+                <planeGeometry args={[POLAROID_W, POLAROID_H]} />
+                <meshStandardMaterial color="#fafafa" roughness={0.94} metalness={0} />
             </mesh>
-            <mesh position={[0, 0.08, 0.008]}>
-                <planeGeometry args={[2.02, 1.14]} />
-                <meshStandardMaterial color={sheet.image} roughness={0.86} metalness={0} />
-            </mesh>
-            <mesh position={[-0.55, -0.62, 0.01]}>
-                <planeGeometry args={[0.74, 0.045]} />
-                <meshStandardMaterial color="#d6d1c8" roughness={0.9} metalness={0} />
-            </mesh>
-            <mesh position={[0.34, -0.62, 0.01]}>
-                <planeGeometry args={[0.48, 0.045]} />
-                <meshStandardMaterial color="#ded9d0" roughness={0.9} metalness={0} />
-            </mesh>
+            {/* photo (or placeholder) */}
+            {sheet.image ? (
+                <Suspense fallback={
+                    <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
+                        <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
+                        <meshStandardMaterial color="#d8dcde" roughness={0.86} metalness={0} />
+                    </mesh>
+                }>
+                    <PolaroidPhoto image={sheet.image} />
+                </Suspense>
+            ) : (
+                <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
+                    <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
+                    <meshStandardMaterial color="#d8dcde" roughness={0.86} metalness={0} />
+                </mesh>
+            )}
+            {/* caption */}
+            {sheet.caption && (
+                <Text
+                    position={[0, POLAROID_CAPTION_Y, 0.012]}
+                    fontSize={0.13}
+                    color="#1a1a1a"
+                    anchorX="center"
+                    anchorY="middle"
+                    maxWidth={POLAROID_W - 0.2}
+                    textAlign="center"
+                    lineHeight={1.2}
+                    font={FONT_REGULAR}
+                >
+                    {sheet.caption}
+                </Text>
+            )}
         </group>
     );
 };
 
-const FloorPhotoSheets = ({ x, z, seed }) => {
-    const sheets = useMemo(() => generateFloorSheets(seed), [seed]);
+const FloorPhotoSheets = ({ x, z, seed, gallery }) => {
+    const sheets = useMemo(() => generateFloorSheets(gallery, seed), [gallery, seed]);
     return (
         <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
             {sheets.map((sheet, index) => (
@@ -810,7 +844,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                 <Suspense fallback={null}>
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
-                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} />
+                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
                 {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
