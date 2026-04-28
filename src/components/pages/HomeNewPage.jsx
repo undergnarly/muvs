@@ -19,7 +19,6 @@ const stripHtml = (html) =>
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-const STOP_COUNT = 4;
 const RELEASE_SPACING = 14;
 // Matches body font-family (Urbanist). Same family at multiple weights so
 // drei Text renders with the same look as DOM elements.
@@ -117,11 +116,29 @@ const buildLogoTexture = (key, color) => {
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 
-const hydrateCfg = (cfg) => {
-    if (cfg?.stops?.length !== DEFAULT_STOPS.length) return null;
+const buildDefaultStops = (count) => {
+    const out = [];
+    for (let i = 0; i < count; i++) {
+        out.push({ ...DEFAULT_STOPS[Math.min(i, DEFAULT_STOPS.length - 1)] });
+    }
+    return out;
+};
+
+const fitStops = (stops, expected) => {
+    if (!expected || stops.length === expected) return stops;
+    if (stops.length > expected) return stops.slice(0, expected);
+    const last = stops[stops.length - 1] || DEFAULT_STOPS[0];
+    const out = stops.slice();
+    while (out.length < expected) out.push({ ...last });
+    return out;
+};
+
+const hydrateCfg = (cfg, expectedStops) => {
+    if (!cfg?.stops?.length) return null;
     return {
         ...DEFAULT_CFG,
         ...cfg,
+        stops: fitStops(cfg.stops, expectedStops),
         billboard: { ...DEFAULT_BILLBOARD, ...(cfg.billboard || {}) },
         stack: { ...DEFAULT_STACK, ...(cfg.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(cfg.stack?.pos || {}) } },
         support: { ...DEFAULT_SUPPORT, ...(cfg.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(cfg.support?.pos || {}) } },
@@ -602,7 +619,48 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple }) => (
+const PortfolioItem = ({ pos, image, url, size = [4.5, 6] }) => {
+    const tex = useTexture(image || '/images/logo.png');
+    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    const onClick = (e) => {
+        e.stopPropagation();
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    };
+    return (
+        <group position={pos}>
+            <mesh position={[0, size[1] / 2 + 0.1, 0]} onClick={onClick}>
+                <planeGeometry args={size} />
+                <meshBasicMaterial map={image ? tex : undefined} color={image ? undefined : '#dcdcdc'} toneMapped={false} />
+            </mesh>
+            <mesh position={[0, size[1] / 2 + 0.1, -0.02]}>
+                <planeGeometry args={[size[0] + 0.18, size[1] + 0.18]} />
+                <meshBasicMaterial color="#1a1a1a" toneMapped={false} />
+            </mesh>
+        </group>
+    );
+};
+
+const DEFAULT_PORTFOLIO_LAYOUT = [
+    { x:  6, z: 14 },
+    { x: -6, z: 22 },
+    { x:  6, z: 30 },
+];
+
+const PortfolioItems = ({ items }) => (
+    <>
+        {items.map((it, i) => (
+            <Suspense key={it.id ?? i} fallback={null}>
+                <PortfolioItem
+                    pos={[it.x ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.x ?? 0, 0, it.z ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.z ?? 0]}
+                    image={it.image}
+                    url={it.url}
+                />
+            </Suspense>
+        ))}
+    </>
+);
+
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -630,6 +688,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                 {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
         ))}
+        {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
     </>
 );
 
@@ -853,6 +912,31 @@ const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
     );
 };
 
+// ================ bottom action ================
+
+const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext }) => {
+    const onClick = () => {
+        if (href) window.open(href, '_blank', 'noopener,noreferrer');
+    };
+    return (
+        <div className="hn-player">
+            <button className="hn-player-nav" onClick={onPrev} disabled={!canPrev} aria-label="Previous">
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+            </button>
+
+            <button className="hn-action-pill" onClick={onClick}>{label}</button>
+
+            <button className="hn-player-nav" onClick={onNext} disabled={!canNext} aria-label="Next">
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 // ================ debug panel ================
 
 const Row = ({ label, value, onChange, min = -30, max = 30, step = 0.1 }) => (
@@ -1017,6 +1101,10 @@ export const Scene3DShell = ({
     simple = false,
     cfgStorageKey = CFG_STORAGE_KEY,
     serverCfgKey = null,
+    stopCount = 4,
+    showDebug = false,
+    bottomAction = null,
+    portfolio = null,
 }) => {
     const { releases, siteSettings, updateSiteSettings } = useData();
 
@@ -1026,27 +1114,29 @@ export const Scene3DShell = ({
         return sorted;
     }, [itemsProp, releases]);
 
+    const initialCfg = useMemo(() => ({ ...DEFAULT_CFG, stops: buildDefaultStops(stopCount) }), [stopCount]);
+
     const loadLocal = useCallback(() => {
         try {
             const raw = localStorage.getItem(cfgStorageKey);
             if (!raw) return null;
-            return hydrateCfg(JSON.parse(raw));
+            return hydrateCfg(JSON.parse(raw), stopCount);
         } catch { return null; }
-    }, [cfgStorageKey]);
+    }, [cfgStorageKey, stopCount]);
 
     const serverCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
 
-    const [cfg, setCfg] = useState(() => loadLocal() || hydrateCfg(serverCfg) || DEFAULT_CFG);
+    const [cfg, setCfg] = useState(() => loadLocal() || hydrateCfg(serverCfg, stopCount) || initialCfg);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
     const localCfgSyncedRef = useRef(false);
 
     const saveCfgToServer = useCallback((nextCfg) => {
         if (!serverCfgKey) return;
-        const hydrated = hydrateCfg(nextCfg);
+        const hydrated = hydrateCfg(nextCfg, stopCount);
         if (!hydrated) return;
         updateSiteSettings({ ...siteSettings, [serverCfgKey]: hydrated });
-    }, [serverCfgKey, siteSettings, updateSiteSettings]);
+    }, [serverCfgKey, siteSettings, updateSiteSettings, stopCount]);
 
     const resetServerCfg = useCallback(() => {
         if (!serverCfgKey) return;
@@ -1066,12 +1156,12 @@ export const Scene3DShell = ({
             return;
         }
         if (!localCfg) {
-            const hydrated = hydrateCfg(serverCfg);
+            const hydrated = hydrateCfg(serverCfg, stopCount);
             if (hydrated) setCfg(hydrated);
         }
-    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey]);
+    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount]);
 
-    const { progressRef, currentIndex, goTo } = useSnapScroll(STOP_COUNT);
+    const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length);
     const releaseSwitcher = useReleaseSwitcher(
         displayItems.length,
         useCallback(() => goTo(0), [goTo]),
@@ -1115,6 +1205,7 @@ export const Scene3DShell = ({
                             stack={cfg.stack}
                             support={cfg.support}
                             simple={simple}
+                            portfolio={portfolio}
                         />
                     </Canvas>
                 </div>
@@ -1122,9 +1213,18 @@ export const Scene3DShell = ({
 
             <div className="home-new-gradient" aria-hidden="true" />
             <Header theme={currentIndex === 0 ? 'light' : 'dark'} />
-            <StopIndicator count={STOP_COUNT} currentIndex={currentIndex} goTo={goTo} />
+            <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
 
-            {!simple && currentRelease && (
+            {bottomAction ? (
+                <BottomAction
+                    label={bottomAction.label}
+                    href={bottomAction.href}
+                    onPrev={releaseSwitcher.prev}
+                    onNext={releaseSwitcher.next}
+                    canPrev={releaseSwitcher.current > 0}
+                    canNext={releaseSwitcher.current < displayItems.length - 1}
+                />
+            ) : (!simple && currentRelease && (
                 <Player
                     release={currentRelease}
                     onPrev={releaseSwitcher.prev}
@@ -1132,8 +1232,19 @@ export const Scene3DShell = ({
                     canPrev={releaseSwitcher.current > 0}
                     canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
-            )}
+            ))}
 
+            {showDebug && (
+                <DebugPanel
+                    cfg={cfg}
+                    setCfg={setCfg}
+                    currentIndex={currentIndex}
+                    goTo={goTo}
+                    progressRef={progressRef}
+                    onSaveToServer={saveCfg}
+                    onResetServer={clearCfg}
+                />
+            )}
         </div>
     );
 };
