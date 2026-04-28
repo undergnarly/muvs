@@ -432,40 +432,102 @@ const FloorText = ({ release, x, z }) => {
     );
 };
 
-const FLOOR_PHOTO_SHEETS = [
-    { x: -2.6, y: -0.35, r: -0.22, color: '#f7f4ec', image: '#d9dfe3' },
-    { x:  0.3, y:  0.55, r:  0.14, color: '#fbfaf6', image: '#e2d7cb' },
-    { x: -1.1, y:  0.9,  r:  0.25, color: '#f3f0e8', image: '#cfd8d2' },
+const FLOOR_PHOTO_PRESETS = [
+    { color: '#f7f4ec', image: '#d9dfe3' },
+    { color: '#fbfaf6', image: '#e2d7cb' },
+    { color: '#f3f0e8', image: '#cfd8d2' },
+    { color: '#f1ede2', image: '#d6dbe1' },
+    { color: '#fbf8f0', image: '#cdd6d2' },
 ];
 
-const FloorPhotoSheet = ({ sheet }) => (
-    <group position={[sheet.x, sheet.y, 0]} rotation={[0, 0, sheet.r]}>
-        <mesh position={[0, 0, 0.004]}>
-            <planeGeometry args={[2.35, 1.45]} />
-            <meshStandardMaterial color={sheet.color} roughness={0.92} metalness={0} />
-        </mesh>
-        <mesh position={[0, 0.08, 0.008]}>
-            <planeGeometry args={[2.02, 1.14]} />
-            <meshStandardMaterial color={sheet.image} roughness={0.86} metalness={0} />
-        </mesh>
-        <mesh position={[-0.55, -0.62, 0.01]}>
-            <planeGeometry args={[0.74, 0.045]} />
-            <meshStandardMaterial color="#d6d1c8" roughness={0.9} metalness={0} />
-        </mesh>
-        <mesh position={[0.34, -0.62, 0.01]}>
-            <planeGeometry args={[0.48, 0.045]} />
-            <meshStandardMaterial color="#ded9d0" roughness={0.9} metalness={0} />
-        </mesh>
-    </group>
-);
+const FLOOR_PHOTO_BASE = [
+    { x: -2.6, y: -0.35, r: -0.22 },
+    { x:  0.3, y:  0.55, r:  0.14 },
+    { x: -1.1, y:  0.9,  r:  0.25 },
+];
 
-const FloorPhotoSheets = ({ x, z }) => (
-    <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
-        {FLOOR_PHOTO_SHEETS.map((sheet, index) => (
-            <FloorPhotoSheet key={index} sheet={sheet} />
-        ))}
-    </group>
-);
+const generateFloorSheets = (seed) => {
+    // Re-randomize on each mount so the photo scatter feels different per visit.
+    const rand = () => Math.random();
+    return FLOOR_PHOTO_BASE.map((base, i) => ({
+        x: base.x + (rand() - 0.5) * 1.6,
+        y: base.y + (rand() - 0.5) * 0.7,
+        r: base.r + (rand() - 0.5) * 0.5,
+        ...FLOOR_PHOTO_PRESETS[(i + Math.floor(rand() * FLOOR_PHOTO_PRESETS.length)) % FLOOR_PHOTO_PRESETS.length],
+        seed: seed + i,
+    }));
+};
+
+const tmpVec = new THREE.Vector3();
+const tmpQuat = new THREE.Quaternion();
+
+const FloorPhotoSheet = ({ sheet, index }) => {
+    const groupRef = useRef(null);
+    const [active, setActive] = useState(false);
+    const { camera } = useThree();
+
+    const restPos = useMemo(() => new THREE.Vector3(sheet.x, sheet.y, index * 0.01), [sheet.x, sheet.y, index]);
+    const restQuat = useMemo(() => new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, sheet.r)), [sheet.r]);
+
+    useFrame(() => {
+        const obj = groupRef.current;
+        if (!obj) return;
+        const parent = obj.parent;
+        if (!parent) return;
+        if (active) {
+            // target world position: ~2.5 units in front of camera, slightly down
+            tmpVec.set(0, -0.25, -2.6).applyQuaternion(camera.quaternion);
+            const wp = camera.getWorldPosition(new THREE.Vector3()).add(tmpVec);
+            parent.updateMatrixWorld();
+            const local = parent.worldToLocal(wp.clone());
+            obj.position.lerp(local, 0.14);
+            // target rotation: face camera (plane normal toward camera)
+            const parentWQ = parent.getWorldQuaternion(new THREE.Quaternion());
+            const target = parentWQ.clone().invert().multiply(camera.quaternion);
+            obj.quaternion.slerp(target, 0.14);
+        } else {
+            obj.position.lerp(restPos, 0.16);
+            obj.quaternion.slerp(restQuat, 0.16);
+        }
+    });
+
+    const onClick = (e) => {
+        e.stopPropagation();
+        setActive((v) => !v);
+    };
+
+    return (
+        <group ref={groupRef} position={restPos} quaternion={restQuat} onClick={onClick}>
+            <mesh position={[0, 0, 0.004]}>
+                <planeGeometry args={[2.35, 1.45]} />
+                <meshStandardMaterial color={sheet.color} roughness={0.92} metalness={0} />
+            </mesh>
+            <mesh position={[0, 0.08, 0.008]}>
+                <planeGeometry args={[2.02, 1.14]} />
+                <meshStandardMaterial color={sheet.image} roughness={0.86} metalness={0} />
+            </mesh>
+            <mesh position={[-0.55, -0.62, 0.01]}>
+                <planeGeometry args={[0.74, 0.045]} />
+                <meshStandardMaterial color="#d6d1c8" roughness={0.9} metalness={0} />
+            </mesh>
+            <mesh position={[0.34, -0.62, 0.01]}>
+                <planeGeometry args={[0.48, 0.045]} />
+                <meshStandardMaterial color="#ded9d0" roughness={0.9} metalness={0} />
+            </mesh>
+        </group>
+    );
+};
+
+const FloorPhotoSheets = ({ x, z, seed }) => {
+    const sheets = useMemo(() => generateFloorSheets(seed), [seed]);
+    return (
+        <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
+            {sheets.map((sheet, index) => (
+                <FloorPhotoSheet key={index} sheet={sheet} index={index} />
+            ))}
+        </group>
+    );
+};
 
 const Floor = () => (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
@@ -711,7 +773,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                 <Suspense fallback={null}>
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
-                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} />
+                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} />
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
                 {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
