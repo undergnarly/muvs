@@ -446,16 +446,39 @@ const FLOOR_PHOTO_BASE = [
     { x: -1.1, y:  0.9,  r:  0.25 },
 ];
 
+// Card footprint with rotation slack baked in.
+const FLOOR_CARD_W = 2.5;
+const FLOOR_CARD_H = 1.6;
+const FLOOR_CARD_AREA = FLOOR_CARD_W * FLOOR_CARD_H;
+const FLOOR_MAX_OVERLAP = 0.2 * FLOOR_CARD_AREA;
+
+const aabbOverlap = (a, b) => {
+    const dx = Math.max(0, Math.min(a.x + FLOOR_CARD_W / 2, b.x + FLOOR_CARD_W / 2) - Math.max(a.x - FLOOR_CARD_W / 2, b.x - FLOOR_CARD_W / 2));
+    const dy = Math.max(0, Math.min(a.y + FLOOR_CARD_H / 2, b.y + FLOOR_CARD_H / 2) - Math.max(a.y - FLOOR_CARD_H / 2, b.y - FLOOR_CARD_H / 2));
+    return dx * dy;
+};
+
 const generateFloorSheets = (seed) => {
-    // Re-randomize on each mount so the photo scatter feels different per visit.
     const rand = () => Math.random();
-    return FLOOR_PHOTO_BASE.map((base, i) => ({
-        x: base.x + (rand() - 0.5) * 1.6,
-        y: base.y + (rand() - 0.5) * 0.7,
-        r: base.r + (rand() - 0.5) * 0.5,
-        ...FLOOR_PHOTO_PRESETS[(i + Math.floor(rand() * FLOOR_PHOTO_PRESETS.length)) % FLOOR_PHOTO_PRESETS.length],
-        seed: seed + i,
-    }));
+    const placed = [];
+    return FLOOR_PHOTO_BASE.map((base, i) => {
+        let candidate;
+        for (let attempt = 0; attempt < 30; attempt++) {
+            candidate = {
+                x: base.x + (rand() - 0.5) * 1.6,
+                y: base.y + (rand() - 0.5) * 0.7,
+            };
+            const worst = placed.reduce((m, p) => Math.max(m, aabbOverlap(candidate, p)), 0);
+            if (worst <= FLOOR_MAX_OVERLAP) break;
+        }
+        placed.push(candidate);
+        return {
+            ...candidate,
+            r: base.r + (rand() - 0.5) * 0.5,
+            ...FLOOR_PHOTO_PRESETS[(i + Math.floor(rand() * FLOOR_PHOTO_PRESETS.length)) % FLOOR_PHOTO_PRESETS.length],
+            seed: seed + i,
+        };
+    });
 };
 
 const tmpVec = new THREE.Vector3();
