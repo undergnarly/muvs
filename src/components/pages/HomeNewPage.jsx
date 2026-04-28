@@ -619,9 +619,11 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
-// 1 world unit = 100 CSS px when scale=0.01 → iframe content rendered at
-// useable resolution but visually fits the framed plane.
-const IFRAME_PX_PER_UNIT = 100;
+// Iframe is rendered at IFRAME_PX_PER_UNIT * worldUnits CSS pixels and then
+// scaled by 1/IFRAME_PX_PER_UNIT so its visual size matches the world plane.
+// Higher value = sharper site rendering at the same on-screen footprint, at
+// the cost of layout cost inside the iframe. 256 ≈ desktop browser density.
+const IFRAME_PX_PER_UNIT = 256;
 
 const PortfolioItem = ({ pos, url, label, size = [4.5, 6] }) => {
     const [w, h] = size;
