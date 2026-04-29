@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text, useTexture } from '@react-three/drei';
+import { RoundedBox, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -513,7 +513,7 @@ const FloorPhotoSheet = ({ sheet, index }) => {
         const parent = obj.parent;
         if (!parent) return;
         if (active) {
-            tmpVec.set(0, -0.25, -2.6).applyQuaternion(camera.quaternion);
+            tmpVec.set(0, -0.1, -1.6).applyQuaternion(camera.quaternion);
             const wp = camera.getWorldPosition(new THREE.Vector3()).add(tmpVec);
             parent.updateMatrixWorld();
             const local = parent.worldToLocal(wp.clone());
@@ -623,10 +623,9 @@ const PlatformBox = ({ pos, size, platformKey, color, url }) => {
             colliders={false}
         >
             <CuboidCollider args={[half, half, half]} />
-            <mesh onClick={onClick}>
-                <boxGeometry args={[size, size, size]} />
+            <RoundedBox args={[size, size, size]} radius={size * 0.12} smoothness={4} onClick={onClick}>
                 <meshStandardMaterial map={tex} roughness={0.45} metalness={0.05} />
-            </mesh>
+            </RoundedBox>
         </RigidBody>
     );
 };
