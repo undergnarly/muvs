@@ -60,6 +60,7 @@ const CodePage3D = () => {
             serverCfgKey="codeConfig"
             stopCount={5}
             showDebug
+            richText
             portfolio={PORTFOLIO_PLACEHOLDERS}
             bottomAction={{ label: 'MAKE REQUEST', href: tg }}
         />

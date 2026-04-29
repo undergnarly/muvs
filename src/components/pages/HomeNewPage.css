@@ -310,6 +310,27 @@ body.home-new-active {
     opacity: 0.85;
 }
 
+.hn-floor-rich {
+    width: 320px;
+    color: #222222;
+    font-family: Urbanist, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.55;
+    text-align: center;
+    user-select: none;
+}
+.hn-floor-rich p { margin: 0 0 0.6em 0; }
+.hn-floor-rich p:last-child { margin-bottom: 0; }
+.hn-floor-rich strong, .hn-floor-rich b { font-weight: 700; color: #111; }
+.hn-floor-rich em, .hn-floor-rich i { font-style: italic; }
+.hn-floor-rich a { color: #0d0d0d; text-decoration: underline; }
+.hn-floor-rich ul, .hn-floor-rich ol { margin: 0.4em 0; padding-left: 1.4em; text-align: left; }
+.hn-floor-rich h1, .hn-floor-rich h2, .hn-floor-rich h3 { font-weight: 700; margin: 0.4em 0; line-height: 1.2; }
+.hn-floor-rich h1 { font-size: 1.5em; }
+.hn-floor-rich h2 { font-size: 1.25em; }
+.hn-floor-rich h3 { font-size: 1.1em; }
+
 .hn-action-pill {
     flex-shrink: 0;
     height: 56px;

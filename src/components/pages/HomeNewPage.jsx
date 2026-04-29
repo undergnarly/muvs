@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Text, useTexture } from '@react-three/drei';
+import { Html, RoundedBox, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -399,9 +399,10 @@ const Billboard = ({ release, x, billboard }) => {
     );
 };
 
-const FloorText = ({ release, x, z }) => {
-    const description = stripHtml(release.description);
+const FloorText = ({ release, x, z, richText = false }) => {
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
+    const html = richText ? (release.fullDescription || release.description || '') : '';
+    const plain = richText ? '' : stripHtml(release.description);
 
     return (
         <group position={[x, 0.01, z]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -417,19 +418,34 @@ const FloorText = ({ release, x, z }) => {
                 {meta}
             </Text>
 
-            <Text
-                position={[0, -0.7, 0]}
-                fontSize={0.32}
-                color="#222222"
-                anchorX="center"
-                anchorY="top"
-                maxWidth={6.5}
-                textAlign="center"
-                lineHeight={1.55}
-                font={FONT_REGULAR}
-            >
-                {description}
-            </Text>
+            {richText ? (
+                <Html
+                    transform
+                    position={[0, -0.85, 0]}
+                    scale={0.02}
+                    pointerEvents="none"
+                    zIndexRange={[5, 0]}
+                >
+                    <div
+                        className="hn-floor-rich"
+                        dangerouslySetInnerHTML={{ __html: html }}
+                    />
+                </Html>
+            ) : (
+                <Text
+                    position={[0, -0.7, 0]}
+                    fontSize={0.32}
+                    color="#222222"
+                    anchorX="center"
+                    anchorY="top"
+                    maxWidth={6.5}
+                    textAlign="center"
+                    lineHeight={1.55}
+                    font={FONT_REGULAR}
+                >
+                    {plain}
+                </Text>
+            )}
         </group>
     );
 };
@@ -820,7 +836,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -844,7 +860,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                     <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
                 </Suspense>
                 <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
-                <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} />
+                <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
                 {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
             </React.Fragment>
         ))}
@@ -1265,6 +1281,7 @@ export const Scene3DShell = ({
     showDebug = false,
     bottomAction = null,
     portfolio = null,
+    richText = false,
 }) => {
     const { releases, siteSettings, updateSiteSettings } = useData();
 
@@ -1366,6 +1383,7 @@ export const Scene3DShell = ({
                             support={cfg.support}
                             simple={simple}
                             portfolio={portfolio}
+                            richText={richText}
                         />
                     </Canvas>
                 </div>
