@@ -24,6 +24,7 @@ const RELEASE_SPACING = 14;
 // drei Text renders with the same look as DOM elements.
 const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
 const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
+const FONT_HANDWRITTEN = '/fonts/yuliana.ttf';
 
 const DEFAULT_STOPS = [
     { pos: { x: 0,    y: 3.0,  z: 7.0  }, look: { x: 0,    y:  2.6, z: 0.0  }, fov: 46  },
@@ -597,14 +598,14 @@ const FloorPhotoSheet = ({ sheet, index }) => {
             {sheet.caption && (
                 <Text
                     position={[0, POLAROID_CAPTION_Y, 0.012]}
-                    fontSize={0.13}
+                    fontSize={0.18}
                     color="#1a1a1a"
                     anchorX="center"
                     anchorY="middle"
                     maxWidth={POLAROID_W - 0.2}
                     textAlign="center"
-                    lineHeight={1.2}
-                    font={FONT_REGULAR}
+                    lineHeight={1.15}
+                    font={FONT_HANDWRITTEN}
                 >
                     {sheet.caption}
                 </Text>
