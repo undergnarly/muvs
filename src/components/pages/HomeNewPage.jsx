@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, RoundedBox, Text, useTexture } from '@react-three/drei';
+import { Html, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
@@ -639,9 +639,10 @@ const PlatformBox = ({ pos, size, platformKey, color, url }) => {
             colliders={false}
         >
             <CuboidCollider args={[half, half, half]} />
-            <RoundedBox args={[size, size, size]} radius={size * 0.12} smoothness={4} onClick={onClick}>
+            <mesh onClick={onClick}>
+                <boxGeometry args={[size, size, size]} />
                 <meshStandardMaterial map={tex} roughness={0.45} metalness={0.05} />
-            </RoundedBox>
+            </mesh>
         </RigidBody>
     );
 };
