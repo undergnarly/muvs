@@ -516,7 +516,7 @@ const PolaroidPhoto = ({ image }) => {
 };
 
 const PaperCard = () => {
-    const tex = useTexture('/images/textures/paper.png');
+    const tex = useTexture('/images/textures/paper.webp');
     useEffect(() => {
         if (!tex) return;
         tex.colorSpace = THREE.SRGBColorSpace;
