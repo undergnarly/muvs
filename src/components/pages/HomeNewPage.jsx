@@ -636,6 +636,7 @@ const PlatformBox = ({ pos, size, platformKey, color, url }) => {
     const { camera } = useThree();
     const half = size / 2;
     const tex = useMemo(() => buildLogoTexture(platformKey, color), [platformKey, color]);
+    const rotX = useMemo(() => (Math.random() - 0.5) * (Math.PI / 9), []);
 
     const onClick = (e) => {
         e.stopPropagation();
@@ -653,6 +654,7 @@ const PlatformBox = ({ pos, size, platformKey, color, url }) => {
         <RigidBody
             ref={ref}
             position={pos}
+            rotation={[rotX, 0, 0]}
             restitution={0.18}
             friction={0.7}
             mass={1}
@@ -716,7 +718,7 @@ const SupportFloorText = ({ x, support }) => (
             SUPPORT THE RELEASE
         </Text>
         <Text
-            position={[0, -0.6, 0]}
+            position={[0, -0.28, 0]}
             fontSize={support.fontSize}
             color="#1a1a1a"
             anchorX="center"
