@@ -28,7 +28,7 @@ const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/file
 const DEFAULT_STOPS = [
     { pos: { x: 0,    y: 3.0,  z: 7.0  }, look: { x: 0,    y:  2.6, z: 0.0  }, fov: 46  },
     { pos: { x: 0,    y: 5.2,  z: 10.3 }, look: { x: 0,    y: -0.2, z: 9.7  }, fov: 113 },
-    { pos: { x: -7.6, y: 8.8,  z: 30.0 }, look: { x: -0.7, y:  1.6, z: 17.0 }, fov: 21  },
+    { pos: { x: -7.6, y: 8.8,  z: 30.0 }, look: { x: -0.7, y:  1.6, z: 19.6 }, fov: 26  },
     { pos: { x: 2.7,  y: 15.4, z: 30.0 }, look: { x: -5.3, y:  0.1, z: 11.4 }, fov: 27  },
 ];
 
@@ -44,15 +44,15 @@ const DEFAULT_BILLBOARD = {
 };
 
 const DEFAULT_STACK = {
-    pos: { x: 0.4, y: -0.05, z: 14.8 },
+    pos: { x: 0.4, y: -0.05, z: 17.5 },
     boxSize: 0.7,
     gap: 0.04,
 };
 
 const DEFAULT_SUPPORT = {
-    pos: { x: -0.9, y: 0.98, z: 17.4 },
-    fontSize: 0.42,
-    metaSize: 0.22,
+    pos: { x: 0.2, y: 0.1, z: 18.6 },
+    fontSize: 0.7,
+    metaSize: 0.18,
 };
 
 const DEFAULT_CFG = {
