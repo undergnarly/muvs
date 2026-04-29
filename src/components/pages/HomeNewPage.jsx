@@ -515,6 +515,24 @@ const PolaroidPhoto = ({ image }) => {
     );
 };
 
+const PaperCard = () => {
+    const tex = useTexture('/images/textures/paper.png');
+    useEffect(() => {
+        if (!tex) return;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.anisotropy = 4;
+        tex.needsUpdate = true;
+    }, [tex]);
+    return (
+        <mesh position={[0, 0, 0.004]}>
+            <planeGeometry args={[POLAROID_W, POLAROID_H]} />
+            <meshStandardMaterial map={tex} roughness={0.95} metalness={0} />
+        </mesh>
+    );
+};
+
 const FloorPhotoSheet = ({ sheet, index }) => {
     const groupRef = useRef(null);
     const [active, setActive] = useState(false);
@@ -550,11 +568,15 @@ const FloorPhotoSheet = ({ sheet, index }) => {
 
     return (
         <group ref={groupRef} position={restPos} quaternion={restQuat} onClick={onClick}>
-            {/* white polaroid card */}
-            <mesh position={[0, 0, 0.004]}>
-                <planeGeometry args={[POLAROID_W, POLAROID_H]} />
-                <meshStandardMaterial color="#fafafa" roughness={0.94} metalness={0} />
-            </mesh>
+            {/* paper polaroid card */}
+            <Suspense fallback={
+                <mesh position={[0, 0, 0.004]}>
+                    <planeGeometry args={[POLAROID_W, POLAROID_H]} />
+                    <meshStandardMaterial color="#efe9d9" roughness={0.95} metalness={0} />
+                </mesh>
+            }>
+                <PaperCard />
+            </Suspense>
             {/* photo (or placeholder) */}
             {sheet.image ? (
                 <Suspense fallback={
