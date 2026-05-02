@@ -1453,6 +1453,6 @@ export const Scene3DShell = ({
     );
 };
 
-const HomeNewPage = () => <Scene3DShell serverCfgKey="homeNewConfig" showDebug />;
+const HomeNewPage = () => <Scene3DShell serverCfgKey="homeNewConfig" />;
 
 export default HomeNewPage;
