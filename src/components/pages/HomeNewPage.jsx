@@ -57,6 +57,16 @@ const DEFAULT_SUPPORT = {
     metaSize: 0.18,
 };
 
+const DEFAULT_TV = {
+    pos: { x: 0, y: 2.85, z: 0.05 },
+    scale: 4.5,
+    // Screen cutout in PNG (ratios). Override if image changes.
+    screen: { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 },
+    // Extra fine-tune of iframe in world-units relative to its computed pos/size.
+    iframeShift: { x: 0, y: 0 },
+    iframeScale: 1.0,
+};
+
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 7.3,
@@ -66,6 +76,7 @@ const DEFAULT_CFG = {
     billboard: DEFAULT_BILLBOARD,
     stack: DEFAULT_STACK,
     support: DEFAULT_SUPPORT,
+    tv: DEFAULT_TV,
 };
 
 const PLATFORMS = [
@@ -144,6 +155,13 @@ const hydrateCfg = (cfg, expectedStops) => {
         billboard: { ...DEFAULT_BILLBOARD, ...(cfg.billboard || {}) },
         stack: { ...DEFAULT_STACK, ...(cfg.stack || {}), pos: { ...DEFAULT_STACK.pos, ...(cfg.stack?.pos || {}) } },
         support: { ...DEFAULT_SUPPORT, ...(cfg.support || {}), pos: { ...DEFAULT_SUPPORT.pos, ...(cfg.support?.pos || {}) } },
+        tv: {
+            ...DEFAULT_TV,
+            ...(cfg.tv || {}),
+            pos: { ...DEFAULT_TV.pos, ...(cfg.tv?.pos || {}) },
+            screen: { ...DEFAULT_TV.screen, ...(cfg.tv?.screen || {}) },
+            iframeShift: { ...DEFAULT_TV.iframeShift, ...(cfg.tv?.iframeShift || {}) },
+        },
     };
 };
 
@@ -784,11 +802,8 @@ const FogSync = ({ cfgRef }) => {
 
 // TV-shaped element (mixes_pic.png — TV in jungle plants with transparent screen cutout).
 // Renders the YouTube iframe behind the PNG so the cutout reveals it as if on the screen.
-// Numbers below come from analyzing public/images/mixes-tv.webp:
-//   image native: 900 × 607 px
-//   transparent screen cutout: x=210..640, y=190..415 (ratios x=23.4..71.2%, y=31.4..68.6%)
+// Image native 900 × 607 px; transparent screen ratios at x=23.4..71.2%, y=31.4..68.6%.
 const TV_NATIVE = { w: 900, h: 607 };
-const TV_SCREEN = { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 };
 
 const extractYouTubeId = (raw) => {
     if (!raw) return null;
@@ -798,30 +813,27 @@ const extractYouTubeId = (raw) => {
     return m ? m[1] : null;
 };
 
-const TVScreen = ({ mix, pos = [0, 2.85, 0.05], scale = 4.5, playing = false }) => {
+const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
     const tex = useTexture('/images/mixes-tv.webp');
     useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
-    const W = scale;
+    const W = tv.scale;
     const H = W * (TV_NATIVE.h / TV_NATIVE.w);
-    // Screen rect in world units, relative to TV plane center:
-    const sw = W * (TV_SCREEN.x1 - TV_SCREEN.x0);
-    const sh = H * (TV_SCREEN.y1 - TV_SCREEN.y0);
-    const cx = (TV_SCREEN.x0 + TV_SCREEN.x1) / 2 - 0.5;
-    const cy = 0.5 - (TV_SCREEN.y0 + TV_SCREEN.y1) / 2;
-    const ox = cx * W;
-    const oy = cy * H;
+    const screenRange = { x: tv.screen.x1 - tv.screen.x0, y: tv.screen.y1 - tv.screen.y0 };
+    const sw = W * screenRange.x * tv.iframeScale;
+    const sh = H * screenRange.y * tv.iframeScale;
+    const cx = (tv.screen.x0 + tv.screen.x1) / 2 - 0.5;
+    const cy = 0.5 - (tv.screen.y0 + tv.screen.y1) / 2;
+    const ox = cx * W + tv.iframeShift.x;
+    const oy = cy * H + tv.iframeShift.y;
     const ytId = extractYouTubeId(mix?.youtubeUrl);
     const src = ytId
         ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
         : '';
-    // Render iframe at high CSS resolution then scale back so YouTube doesn't
-    // collapse to its tiny "video too small" UI. 256 CSS px = 1 world unit.
     const PX = 256;
     const cssW = Math.round(sw * PX);
     const cssH = Math.round(sh * PX);
     return (
-        <group position={pos}>
-            {/* Iframe sits behind the PNG, exactly inside the screen cutout */}
+        <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
             {src && (
                 <Html
                     transform
@@ -845,7 +857,6 @@ const TVScreen = ({ mix, pos = [0, 2.85, 0.05], scale = 4.5, playing = false }) 
                     />
                 </Html>
             )}
-            {/* Black backing layer so the screen never bleeds page bg through the cutout when iframe missing */}
             {!src && (
                 <mesh position={[ox, oy, -0.015]}>
                     <planeGeometry args={[sw, sh]} />
@@ -943,7 +954,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -972,7 +983,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
             </React.Fragment>
         ))}
         {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
-        {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} />}
+        {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} />}
     </>
 );
 
@@ -1493,6 +1504,21 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
             </div>
 
             <div className="dbg-block">
+                <div className="dbg-title">tv (mixes)</div>
+                <Row label="x"     value={cfg.tv.pos.x}  min={-15} max={15} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, x: v } } })} />
+                <Row label="y"     value={cfg.tv.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, y: v } } })} />
+                <Row label="z"     value={cfg.tv.pos.z}  min={-5}  max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, z: v } } })} />
+                <Row label="scale" value={cfg.tv.scale}  min={1}   max={20} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, scale: v } })} />
+                <Row label="iframe x" value={cfg.tv.iframeShift.x} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, x: v } } })} />
+                <Row label="iframe y" value={cfg.tv.iframeShift.y} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, y: v } } })} />
+                <Row label="iframe scale" value={cfg.tv.iframeScale} min={0.3} max={2} step={0.01} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeScale: v } })} />
+                <Row label="screen x0" value={cfg.tv.screen.x0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x0: v } } })} />
+                <Row label="screen x1" value={cfg.tv.screen.x1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x1: v } } })} />
+                <Row label="screen y0" value={cfg.tv.screen.y0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y0: v } } })} />
+                <Row label="screen y1" value={cfg.tv.screen.y1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y1: v } } })} />
+            </div>
+
+            <div className="dbg-block">
                 <div className="dbg-title">scene</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
                 <Row label="photo z"     value={cfg.photoZ}     min={-15} max={20} onChange={(v) => setCfg({ ...cfg, photoZ: v })} />
@@ -1645,6 +1671,7 @@ export const Scene3DShell = ({
                             richText={richText}
                             tvMix={currentMix}
                             tvPlaying={mixPlaying}
+                            tv={cfg.tv}
                         />
                     </Canvas>
                 </div>
