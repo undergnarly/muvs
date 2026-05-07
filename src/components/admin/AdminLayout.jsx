@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaSignOutAlt, FaHome, FaEnvelope, FaCog, FaUser } from 'react-icons/fa';
 import './AdminLayout.css';
 
@@ -7,12 +7,10 @@ const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    useEffect(() => {
-        const isAdmin = sessionStorage.getItem('isAdmin');
-        if (!isAdmin) {
-            navigate('/login');
-        }
-    }, [navigate]);
+    const isAdmin = typeof window !== 'undefined' && sessionStorage.getItem('isAdmin');
+    if (!isAdmin) {
+        return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    }
 
     const handleLogout = () => {
         sessionStorage.removeItem('isAdmin');
