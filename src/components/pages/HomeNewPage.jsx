@@ -1669,11 +1669,15 @@ export const Scene3DShell = ({
     const currentMix = tvMixes?.[mixIndex] || null;
     useEffect(() => { setMixPlaying(false); }, [mixIndex]);
 
-    // Camera dolly toward TV when playing — reads rest z from current cfg, target from cfg.tv.playStop0Z.
+    // Camera dolly toward TV when playing — reads rest z from current cfg.
+    // Only refresh the captured rest z when cfg changes via setCfg (full object
+    // reference change). useFrame mutation of stops[0].pos.z keeps the array
+    // ref stable so this effect never fires from animation, only from user
+    // edits in the debug panel or initial load.
     const dollyRestZRef = useRef(cfg.stops[0].pos.z);
     useEffect(() => {
-        if (!mixPlaying) dollyRestZRef.current = cfg.stops[0].pos.z;
-    }, [cfg.stops, mixPlaying]);
+        dollyRestZRef.current = cfg.stops[0].pos.z;
+    }, [cfg]);
 
     useEffect(() => {
         document.body.classList.add('home-new-active');
