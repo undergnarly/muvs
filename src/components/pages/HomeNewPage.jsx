@@ -62,7 +62,7 @@ const DEFAULT_TV = {
     scale: 4.5,
     screen: { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 },
     iframeShift: { x: 0, y: 0, z: 0 },
-    iframeScale: 60,
+    iframeScale: 40,
 };
 
 const DEFAULT_CFG = {
@@ -827,14 +827,16 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
     const src = ytId
         ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
         : '';
-    // drei <Html transform> applies a 1/40 multiplier to the matrix scale rows.
-    // To make the iframe visually fill the TV screen rect at the default camera,
-    // we need group.scale * iframe_DOM_px to net out around sw worldunits *
-    // pixels_per_worldunit. Empirically iframeScale ≈ 50–80 looks right;
-    // PX is kept moderate so the DOM doesn't bloat.
+    // drei <Html transform> bakes a 1/40 matrix multiplier (DREI_FACTOR).
+    // Combined with group.scale=1/PX, the wrapper renders at exactly sw×sh
+    // worldunits when its CSS box is sw*PX*DREI_FACTOR × sh*PX*DREI_FACTOR.
+    // The clip wrapper is overflow:hidden, so any iframe inside that exceeds
+    // those bounds is masked out — the PNG bezel naturally appears around it.
     const PX = 32;
-    const cssW = Math.max(64, Math.round(sw * PX * tv.iframeScale));
-    const cssH = Math.max(64, Math.round(sh * PX * tv.iframeScale));
+    const DREI_FACTOR = 40;
+    const clipW = Math.round(sw * PX * DREI_FACTOR);
+    const clipH = Math.round(sh * PX * DREI_FACTOR);
+    const innerScale = tv.iframeScale / DREI_FACTOR; // 1.0 = iframe fills the cutout exactly
     return (
         <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
             {src ? (
@@ -844,20 +846,34 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
                     scale={1 / PX}
                     pointerEvents="auto"
                 >
-                    <iframe
-                        key={src}
-                        src={src}
-                        title={mix?.title || 'mix'}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
+                    <div
                         style={{
-                            width: `${cssW}px`,
-                            height: `${cssH}px`,
-                            border: 0,
+                            width: `${clipW}px`,
+                            height: `${clipH}px`,
+                            overflow: 'hidden',
                             background: '#000',
-                            display: 'block',
+                            position: 'relative',
                         }}
-                    />
+                    >
+                        <iframe
+                            key={src}
+                            src={src}
+                            title={mix?.title || 'mix'}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            style={{
+                                width: `${100 * innerScale}%`,
+                                height: `${100 * innerScale}%`,
+                                border: 0,
+                                background: '#000',
+                                display: 'block',
+                                position: 'absolute',
+                                left: '50%',
+                                top: '50%',
+                                transform: 'translate(-50%, -50%)',
+                            }}
+                        />
+                    </div>
                 </Html>
             ) : (
                 <mesh position={[ox, oy, iz - 0.015]}>
