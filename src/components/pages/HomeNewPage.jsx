@@ -63,6 +63,7 @@ const DEFAULT_TV = {
     screen: { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 },
     iframeShift: { x: 0, y: 0, z: 0 },
     iframeScale: 40,
+    playStop0Z: 5.6,
 };
 
 const DEFAULT_CFG = {
@@ -787,6 +788,17 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     return null;
 };
 
+const CamDolly = ({ cfgRef, restZRef, playing, playZ }) => {
+    useFrame(() => {
+        const stops = cfgRef.current?.stops;
+        if (!stops || !stops[0]) return;
+        const target = playing ? playZ : restZRef.current;
+        if (target == null) return;
+        stops[0].pos.z = THREE.MathUtils.lerp(stops[0].pos.z, target, 0.06);
+    });
+    return null;
+};
+
 const FogSync = ({ cfgRef }) => {
     useFrame(({ scene }) => {
         const c = cfgRef.current;
@@ -978,9 +990,10 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, dollyRestZRef, dollyPlayZ, dollyEnabled }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
+        {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
         <FogSync cfgRef={cfgRef} />
         <fog attach="fog" args={['#ffffff', 14, 32]} />
         <ambientLight intensity={0.75} />
@@ -1537,6 +1550,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <Row label="iframe y" value={cfg.tv.iframeShift.y} min={-3} max={3} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, y: v } } })} />
                 <Row label="iframe z" value={cfg.tv.iframeShift.z || 0} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, z: v } } })} />
                 <Row label="iframe scale" value={cfg.tv.iframeScale} min={1} max={200} step={0.5} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeScale: v } })} />
+                <Row label="play stop0 z" value={cfg.tv.playStop0Z ?? 5.6} min={-5} max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, playStop0Z: v } })} />
                 <Row label="screen x0" value={cfg.tv.screen.x0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x0: v } } })} />
                 <Row label="screen x1" value={cfg.tv.screen.x1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x1: v } } })} />
                 <Row label="screen y0" value={cfg.tv.screen.y0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y0: v } } })} />
@@ -1655,6 +1669,12 @@ export const Scene3DShell = ({
     const currentMix = tvMixes?.[mixIndex] || null;
     useEffect(() => { setMixPlaying(false); }, [mixIndex]);
 
+    // Camera dolly toward TV when playing — reads rest z from current cfg, target from cfg.tv.playStop0Z.
+    const dollyRestZRef = useRef(cfg.stops[0].pos.z);
+    useEffect(() => {
+        if (!mixPlaying) dollyRestZRef.current = cfg.stops[0].pos.z;
+    }, [cfg.stops, mixPlaying]);
+
     useEffect(() => {
         document.body.classList.add('home-new-active');
         return () => document.body.classList.remove('home-new-active');
@@ -1697,6 +1717,9 @@ export const Scene3DShell = ({
                             tvMix={currentMix}
                             tvPlaying={mixPlaying}
                             tv={cfg.tv}
+                            dollyEnabled={!!tvMixes}
+                            dollyRestZRef={dollyRestZRef}
+                            dollyPlayZ={cfg.tv.playStop0Z ?? 5.6}
                         />
                     </Canvas>
                 </div>
