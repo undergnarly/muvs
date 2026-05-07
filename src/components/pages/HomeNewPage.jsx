@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
+import { AnimatePresence, motion } from 'framer-motion';
 import Header from '../layout/Header';
 import { useData } from '../../context/DataContext';
 import './HomeNewPage.css';
@@ -894,248 +895,323 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
     </>
 );
 
-// ================ SoundCloud Widget API ================
+// ================ playlist player ================
 
-let scScriptPromise = null;
-const loadScScript = () => {
-    if (window.SC) return Promise.resolve();
-    if (scScriptPromise) return scScriptPromise;
-    scScriptPromise = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://w.soundcloud.com/player/api.js';
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('SC API failed'));
-        document.head.appendChild(s);
-    });
-    return scScriptPromise;
-};
-
-const downsampleSamples = (samples, bins) => {
-    if (!samples?.length || bins <= 0) return [];
-    const max = Math.max(1, ...samples);
-    const step = samples.length / bins;
-    const out = [];
-    for (let i = 0; i < bins; i++) {
-        const start = Math.floor(i * step);
-        const end = Math.max(start + 1, Math.floor((i + 1) * step));
-        let peak = 0;
-        for (let j = start; j < end && j < samples.length; j++) {
-            if (samples[j] > peak) peak = samples[j];
-        }
-        out.push(Math.max(0.12, peak / max));
-    }
-    return out;
-};
-
-const fetchWaveformSamples = async (waveformUrl, bins) => {
-    if (!waveformUrl) return null;
-    const jsonUrl = waveformUrl.replace(/\.png(\?.*)?$/, '.json$1');
-    try {
-        const res = await fetch(jsonUrl);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!Array.isArray(data?.samples)) return null;
-        return downsampleSamples(data.samples, bins);
-    } catch { return null; }
-};
-
-const useScWidget = (url, waveformBins = 36) => {
-    const iframeRef = useRef(null);
-    const widgetRef = useRef(null);
-    const lastSoundIdRef = useRef(null);
-    const [playing, setPlaying] = useState(false);
-    const [ready, setReady] = useState(false);
-    const [samples, setSamples] = useState(null);
-    const [progress, setProgress] = useState(0);
-    const [currentTrack, setCurrentTrack] = useState(null);
-
-    useEffect(() => {
-        setPlaying(false);
-        setReady(false);
-        setSamples(null);
-        setProgress(0);
-        setCurrentTrack(null);
-        lastSoundIdRef.current = null;
-        if (!url || !iframeRef.current) return;
-        let cancelled = false;
-
-        const refreshCurrent = (w) => {
-            w.getCurrentSound((sound) => {
-                if (cancelled || !sound) return;
-                if (sound.id && sound.id === lastSoundIdRef.current) return;
-                lastSoundIdRef.current = sound.id || null;
-                setCurrentTrack({
-                    title: sound.title || '',
-                    user: sound.user?.username || sound.publisher?.artist || '',
-                });
-                if (sound.waveform_url) {
-                    fetchWaveformSamples(sound.waveform_url, waveformBins).then((arr) => {
-                        if (!cancelled && arr) setSamples(arr);
-                    });
-                }
-            });
-        };
-
-        loadScScript().then(() => {
-            if (cancelled || !iframeRef.current || !window.SC) return;
-            const w = window.SC.Widget(iframeRef.current);
-            widgetRef.current = w;
-            const onReady = () => { setReady(true); refreshCurrent(w); };
-            const onPlay = () => { setPlaying(true); refreshCurrent(w); };
-            const onPause = () => setPlaying(false);
-            const onFinish = () => { setPlaying(false); setProgress(0); };
-            const onProgress = (e) => {
-                if (typeof e?.relativePosition === 'number') setProgress(e.relativePosition);
-            };
-            w.bind(window.SC.Widget.Events.READY, onReady);
-            w.bind(window.SC.Widget.Events.PLAY, onPlay);
-            w.bind(window.SC.Widget.Events.PAUSE, onPause);
-            w.bind(window.SC.Widget.Events.FINISH, onFinish);
-            w.bind(window.SC.Widget.Events.PLAY_PROGRESS, onProgress);
-        }).catch(() => {});
-        return () => {
-            cancelled = true;
-            const w = widgetRef.current;
-            if (w) {
-                try {
-                    w.unbind(window.SC.Widget.Events.READY);
-                    w.unbind(window.SC.Widget.Events.PLAY);
-                    w.unbind(window.SC.Widget.Events.PAUSE);
-                    w.unbind(window.SC.Widget.Events.FINISH);
-                    w.unbind(window.SC.Widget.Events.PLAY_PROGRESS);
-                } catch { /* ignore */ }
-            }
-            widgetRef.current = null;
-        };
-    }, [url, waveformBins]);
-
-    const toggle = useCallback(() => {
-        const w = widgetRef.current;
-        if (!w || !ready) return;
-        w.toggle();
-    }, [ready]);
-
-    const seek = useCallback((rel) => {
-        const w = widgetRef.current;
-        if (!w || !ready) return;
-        w.getDuration((d) => {
-            if (typeof d !== 'number' || d <= 0) return;
-            w.seekTo(rel * d);
-            w.play();
-        });
-    }, [ready]);
-
-    const nextTrack = useCallback(() => {
-        const w = widgetRef.current;
-        if (!w || !ready) return;
-        w.next();
-    }, [ready]);
-
-    const prevTrack = useCallback(() => {
-        const w = widgetRef.current;
-        if (!w || !ready) return;
-        w.prev();
-    }, [ready]);
-
-    return { iframeRef, playing, ready, samples, progress, currentTrack, toggle, seek, nextTrack, prevTrack };
-};
-
-// ================ player UI ================
-
-const FAKE_BARS = Array.from({ length: 36 }).map((_, i) => {
-    // deterministic pseudo-waveform
+const FAKE_BARS = Array.from({ length: 48 }).map((_, i) => {
     const v = Math.sin(i * 0.55) * 0.5 + Math.sin(i * 1.3) * 0.3 + 0.5;
     return Math.max(0.18, Math.min(1, v));
 });
 
 const WAVE_BINS = 48;
 
+const waveformCache = new Map();
+
+const analyzeWaveform = async (url, bins = WAVE_BINS) => {
+    if (!url) return null;
+    if (waveformCache.has(url)) return waveformCache.get(url);
+    try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        const ctx = new Ctx();
+        const res = await fetch(url);
+        if (!res.ok) { ctx.close?.(); return null; }
+        const buf = await res.arrayBuffer();
+        const audio = await ctx.decodeAudioData(buf);
+        const data = audio.getChannelData(0);
+        const step = Math.max(1, Math.floor(data.length / bins));
+        const out = new Array(bins);
+        let max = 0;
+        for (let i = 0; i < bins; i++) {
+            let sum = 0;
+            const start = i * step;
+            const end = Math.min(data.length, start + step);
+            for (let j = start; j < end; j++) {
+                const v = data[j] || 0;
+                sum += v * v;
+            }
+            const rms = Math.sqrt(sum / Math.max(1, end - start));
+            out[i] = rms;
+            if (rms > max) max = rms;
+        }
+        const normalized = out.map((v) => Math.max(0.12, max > 0 ? v / max : 0.5));
+        waveformCache.set(url, normalized);
+        ctx.close?.();
+        return normalized;
+    } catch { return null; }
+};
+
+const getTrackUrl = (t) => t?.audioFile || t?.audioUrl || t?.audio || t?.url || '';
+const getTrackTitle = (t, i) => t?.title || `TRACK ${String(i + 1).padStart(2, '0')}`;
+const formatTime = (seconds) => {
+    if (!isFinite(seconds) || seconds < 0) return '';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const usePlaylistPlayer = (tracks) => {
+    const audioRef = useRef(null);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [playing, setPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [waveform, setWaveform] = useState(null);
+    const trackCount = tracks.length;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const a = new Audio();
+        a.preload = 'metadata';
+        audioRef.current = a;
+        return () => {
+            try { a.pause(); a.src = ''; } catch { /* ignore */ }
+        };
+    }, []);
+
+    const currentTrack = trackCount > 0 ? tracks[currentIndex % trackCount] : null;
+    const currentUrl = getTrackUrl(currentTrack);
+
+    useEffect(() => {
+        const a = audioRef.current;
+        if (!a) return;
+        const onTime = () => {
+            if (a.duration > 0) setProgress(a.currentTime / a.duration);
+        };
+        const onMeta = () => setDuration(a.duration || 0);
+        const onPlay = () => setPlaying(true);
+        const onPause = () => setPlaying(false);
+        const onEnd = () => {
+            setPlaying(false);
+            if (trackCount > 1) {
+                setCurrentIndex((i) => (i + 1) % trackCount);
+            }
+        };
+        a.addEventListener('timeupdate', onTime);
+        a.addEventListener('loadedmetadata', onMeta);
+        a.addEventListener('play', onPlay);
+        a.addEventListener('pause', onPause);
+        a.addEventListener('ended', onEnd);
+        return () => {
+            a.removeEventListener('timeupdate', onTime);
+            a.removeEventListener('loadedmetadata', onMeta);
+            a.removeEventListener('play', onPlay);
+            a.removeEventListener('pause', onPause);
+            a.removeEventListener('ended', onEnd);
+        };
+    }, [trackCount]);
+
+    // Track change: load new src + waveform
+    useEffect(() => {
+        const a = audioRef.current;
+        if (!a) return;
+        setProgress(0);
+        setWaveform(null);
+        setDuration(0);
+        if (!currentUrl) {
+            try { a.pause(); a.removeAttribute('src'); a.load(); } catch { /* ignore */ }
+            return;
+        }
+        try { a.src = currentUrl; a.load(); } catch { /* ignore */ }
+        let cancelled = false;
+        analyzeWaveform(currentUrl).then((w) => { if (!cancelled && w) setWaveform(w); });
+        return () => { cancelled = true; };
+    }, [currentUrl]);
+
+    const toggle = useCallback(() => {
+        const a = audioRef.current;
+        if (!a || !currentUrl) return;
+        if (a.paused) {
+            a.play().catch(() => setPlaying(false));
+        } else {
+            a.pause();
+        }
+    }, [currentUrl]);
+
+    const next = useCallback(() => {
+        if (trackCount < 2) return;
+        setCurrentIndex((i) => (i + 1) % trackCount);
+    }, [trackCount]);
+
+    const prev = useCallback(() => {
+        if (trackCount < 2) return;
+        setCurrentIndex((i) => (i - 1 + trackCount) % trackCount);
+    }, [trackCount]);
+
+    const seek = useCallback((rel) => {
+        const a = audioRef.current;
+        if (!a || !a.duration) return;
+        a.currentTime = rel * a.duration;
+        if (a.paused) a.play().catch(() => setPlaying(false));
+    }, []);
+
+    const playIndex = useCallback((idx) => {
+        if (idx < 0 || idx >= trackCount) return;
+        setCurrentIndex(idx);
+        // play after src change in next tick
+        const a = audioRef.current;
+        if (a) {
+            const onCanPlay = () => {
+                a.removeEventListener('canplay', onCanPlay);
+                a.play().catch(() => setPlaying(false));
+            };
+            a.addEventListener('canplay', onCanPlay);
+        }
+    }, [trackCount]);
+
+    return {
+        currentIndex,
+        currentTrack,
+        currentUrl,
+        playing,
+        progress,
+        duration,
+        waveform,
+        toggle, next, prev, seek, playIndex,
+    };
+};
+
+const PlayPauseIcon = ({ playing }) => (
+    playing ? (
+        <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" /><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" /></svg>
+    ) : (
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor" /></svg>
+    )
+);
+
+const PlayingPulse = () => (
+    <span className="hn-pulse" aria-hidden="true">
+        <span /><span /><span />
+    </span>
+);
+
 const Player = ({ release }) => {
-    const url = (release?.soundcloudTrackUrl || release?.soundcloudUrl || '').split('?')[0];
-    const { iframeRef, playing, ready, samples, progress, currentTrack, toggle, seek, nextTrack, prevTrack } = useScWidget(url, WAVE_BINS);
-    const fallbackTitle = release ? `${release.artists || ''} — ${release.title || ''}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
-    const liveTitle = currentTrack ? [currentTrack.user, currentTrack.title].filter(Boolean).join(' — ') : '';
-    const title = liveTitle || fallbackTitle;
-    const bars = samples?.length ? samples : FAKE_BARS;
+    const tracks = useMemo(() => (release?.tracks?.length ? release.tracks : []), [release]);
+    const releaseTitle = release ? `${release.artists || ''} — ${release.title || ''}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
+    const player = usePlaylistPlayer(tracks);
+    const [expanded, setExpanded] = useState(false);
+    const hasTracks = tracks.length > 0;
+    const bars = player.waveform || FAKE_BARS;
+    const liveTitle = player.currentTrack ? `${player.currentTrack.artist || release?.artists || ''} — ${getTrackTitle(player.currentTrack, player.currentIndex)}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
+    const title = liveTitle || releaseTitle;
 
     const onWaveClick = (e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const rel = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        seek(rel);
+        player.seek(rel);
     };
 
     return (
-        <div className="hn-player">
-            <div className="hn-player-pill">
-                <div className="hn-player-title">{title}</div>
-                <div className="hn-player-row">
-                    <button
-                        className="hn-player-track-nav"
-                        onClick={prevTrack}
-                        disabled={!ready}
-                        aria-label="Previous track"
+        <div className={`hn-player${expanded ? ' expanded' : ''}`}>
+            <AnimatePresence initial={false}>
+                {expanded && hasTracks && (
+                    <motion.div
+                        key="drawer"
+                        className="hn-player-drawer"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
                     >
-                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                            <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                        </svg>
-                    </button>
-                    <button
-                        className="hn-player-play"
-                        onClick={toggle}
-                        disabled={!url || !ready}
-                        aria-label={playing ? 'Pause' : 'Play'}
-                    >
-                        {playing ? (
-                            <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" /><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" /></svg>
-                        ) : (
-                            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor" /></svg>
-                        )}
-                    </button>
-                    <button
-                        className="hn-player-track-nav"
-                        onClick={nextTrack}
-                        disabled={!ready}
-                        aria-label="Next track"
-                    >
-                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                            <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                        </svg>
-                    </button>
+                        <div className="hn-player-drawer-inner">
+                            <div className="hn-player-drawer-head">
+                                <span>NOW PLAYING</span>
+                                <span>{tracks.length} {tracks.length === 1 ? 'TRACK' : 'TRACKS'}</span>
+                            </div>
+                            <ul className="hn-player-tracks">
+                                {tracks.map((t, i) => {
+                                    const active = i === player.currentIndex;
+                                    const url = getTrackUrl(t);
+                                    return (
+                                        <li
+                                            key={t.id || i}
+                                            className={`hn-player-track${active ? ' active' : ''}${!url ? ' disabled' : ''}`}
+                                            onClick={() => url && player.playIndex(i)}
+                                        >
+                                            <span className="hn-player-track-num">{String(i + 1).padStart(2, '0')}</span>
+                                            <span className="hn-player-track-title">{getTrackTitle(t, i)}</span>
+                                            <span className="hn-player-track-meta">
+                                                {active && player.playing ? <PlayingPulse /> : (t.duration || formatTime(active ? player.duration : 0) || '')}
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                    <div
-                        className="hn-player-wave"
-                        role="slider"
-                        aria-label="Track position"
-                        aria-valuemin={0}
-                        aria-valuemax={1}
-                        aria-valuenow={progress}
-                        onClick={ready ? onWaveClick : undefined}
-                    >
-                        {bars.map((h, i) => {
-                            const pos = (i + 0.5) / bars.length;
-                            const played = pos <= progress;
-                            return (
-                                <span
-                                    key={i}
-                                    className={`hn-player-bar${played ? ' played' : ''}`}
-                                    style={{ height: `${h * 100}%` }}
-                                />
-                            );
-                        })}
+            <div className="hn-player-bar-row">
+                <button
+                    className="hn-player-nav"
+                    onClick={player.prev}
+                    disabled={tracks.length < 2}
+                    aria-label="Previous track"
+                >
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+
+                <div className="hn-player-pill">
+                    <div className="hn-player-title">{title || 'NO TRACK'}</div>
+                    <div className="hn-player-row">
+                        <button
+                            className="hn-player-play"
+                            onClick={player.toggle}
+                            disabled={!player.currentUrl}
+                            aria-label={player.playing ? 'Pause' : 'Play'}
+                        >
+                            <PlayPauseIcon playing={player.playing} />
+                        </button>
+
+                        <div
+                            className="hn-player-wave"
+                            role="slider"
+                            aria-label="Track position"
+                            aria-valuemin={0}
+                            aria-valuemax={1}
+                            aria-valuenow={player.progress}
+                            onClick={player.currentUrl ? onWaveClick : undefined}
+                        >
+                            {bars.map((h, i) => {
+                                const pos = (i + 0.5) / bars.length;
+                                const played = pos <= player.progress;
+                                return (
+                                    <span
+                                        key={i}
+                                        className={`hn-player-bar${played ? ' played' : ''}`}
+                                        style={{ height: `${h * 100}%` }}
+                                    />
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            className="hn-player-expand"
+                            onClick={() => setExpanded((v) => !v)}
+                            disabled={!hasTracks}
+                            aria-label={expanded ? 'Collapse playlist' : 'Expand playlist'}
+                            aria-expanded={expanded}
+                        >
+                            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.25s ease' }}>
+                                <path d="M6 14 L12 8 L18 14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            {url && (
-                <iframe
-                    ref={iframeRef}
-                    title="sc-widget"
-                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`}
-                    allow="autoplay"
-                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, border: 0, pointerEvents: 'none' }}
-                />
-            )}
+                <button
+                    className="hn-player-nav"
+                    onClick={player.next}
+                    disabled={tracks.length < 2}
+                    aria-label="Next track"
+                >
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+            </div>
         </div>
     );
 };

@@ -685,48 +685,102 @@ const MusicManager = () => {
                                 </button>
                             </div>
                             {formData.tracks && formData.tracks.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                     {formData.tracks.map((track, index) => (
-                                        <div key={track.id || index} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', gap: '12px', alignItems: 'center' }}>
-                                            <input
-                                                type="text"
-                                                placeholder={`Track ${index + 1} title`}
-                                                value={track.title || ''}
-                                                onChange={e => {
-                                                    const updatedTracks = [...formData.tracks];
-                                                    updatedTracks[index] = { ...track, title: e.target.value };
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Duration (e.g. 3:45)"
-                                                value={track.duration || ''}
-                                                onChange={e => {
-                                                    const updatedTracks = [...formData.tracks];
-                                                    updatedTracks[index] = { ...track, duration: e.target.value };
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const updatedTracks = formData.tracks.filter((_, i) => i !== index);
-                                                    setFormData({ ...formData, tracks: updatedTracks });
-                                                }}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: '#ff5555',
-                                                    cursor: 'pointer',
-                                                    fontSize: '16px',
-                                                    padding: '8px'
-                                                }}
-                                            >
-                                                <FaTrash />
-                                            </button>
+                                        <div key={track.id || index} style={{ padding: '12px', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 40px', gap: '12px', alignItems: 'center', marginBottom: '10px' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder={`Track ${index + 1} title`}
+                                                    value={track.title || ''}
+                                                    onChange={e => {
+                                                        const updatedTracks = [...formData.tracks];
+                                                        updatedTracks[index] = { ...track, title: e.target.value };
+                                                        setFormData({ ...formData, tracks: updatedTracks });
+                                                    }}
+                                                    style={inputStyle}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Duration"
+                                                    value={track.duration || ''}
+                                                    onChange={e => {
+                                                        const updatedTracks = [...formData.tracks];
+                                                        updatedTracks[index] = { ...track, duration: e.target.value };
+                                                        setFormData({ ...formData, tracks: updatedTracks });
+                                                    }}
+                                                    style={inputStyle}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updatedTracks = formData.tracks.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, tracks: updatedTracks });
+                                                    }}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: '#ff5555',
+                                                        cursor: 'pointer',
+                                                        fontSize: '16px',
+                                                        padding: '8px'
+                                                    }}
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <input
+                                                    type="file"
+                                                    accept="audio/mp3,audio/mpeg,audio/wav,audio/ogg,audio/webm"
+                                                    style={{ display: 'none' }}
+                                                    id={`track-audio-${index}`}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files[0];
+                                                        if (!file) return;
+                                                        try {
+                                                            setUploading(true);
+                                                            setUploadStatus(`Uploading track ${index + 1}...`);
+                                                            const uploadForm = new FormData();
+                                                            uploadForm.append('audio', file);
+                                                            const uploadRes = await fetch('/api/upload-audio', { method: 'POST', body: uploadForm });
+                                                            if (!uploadRes.ok) throw new Error('Audio upload failed');
+                                                            const { url } = await uploadRes.json();
+                                                            const updatedTracks = [...formData.tracks];
+                                                            updatedTracks[index] = { ...track, audioFile: url };
+                                                            setFormData({ ...formData, tracks: updatedTracks });
+                                                            setUploadStatus('Audio uploaded!');
+                                                            setTimeout(() => setUploadStatus(''), 2000);
+                                                        } catch (error) {
+                                                            setUploadStatus('Error: ' + error.message);
+                                                            setTimeout(() => setUploadStatus(''), 3000);
+                                                        } finally {
+                                                            setUploading(false);
+                                                            e.target.value = '';
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={`track-audio-${index}`} style={{ ...uploadButtonStyle, fontSize: '12px', padding: '8px 14px' }}>
+                                                    <FaUpload style={{ marginRight: '6px' }} />
+                                                    {track.audioFile ? 'Replace audio' : 'Upload audio (30s)'}
+                                                </label>
+                                                {track.audioFile && (
+                                                    <>
+                                                        <audio controls src={track.audioFile} style={{ height: '32px', maxWidth: '260px' }} />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updatedTracks = [...formData.tracks];
+                                                                updatedTracks[index] = { ...track, audioFile: '' };
+                                                                setFormData({ ...formData, tracks: updatedTracks });
+                                                            }}
+                                                            style={{ background: 'transparent', border: 'none', color: '#ff5555', cursor: 'pointer', fontSize: '12px', padding: '6px 10px' }}
+                                                        >
+                                                            <FaTrash style={{ marginRight: '4px' }} /> Remove
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
