@@ -347,7 +347,7 @@ const useReleaseSwitcher = (count, onSwitch) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard }) => {
+const Billboard = ({ release, x, billboard, hideCover = false }) => {
     const tex = useTexture(release.coverImage || FALLBACK_COVER);
     useEffect(() => {
         if (tex) {
@@ -393,10 +393,12 @@ const Billboard = ({ release, x, billboard }) => {
                 {(release.artists || '').toUpperCase()}
             </Text>
 
-            <mesh position={[0, billboard.coverY, 0]}>
-                <planeGeometry args={[width, height]} />
-                <meshBasicMaterial map={tex} transparent toneMapped={false} />
-            </mesh>
+            {!hideCover && (
+                <mesh position={[0, billboard.coverY, 0]}>
+                    <planeGeometry args={[width, height]} />
+                    <meshBasicMaterial map={tex} transparent toneMapped={false} />
+                </mesh>
+            )}
         </group>
     );
 };
@@ -796,7 +798,7 @@ const extractYouTubeId = (raw) => {
     return m ? m[1] : null;
 };
 
-const TVScreen = ({ mix, pos = [0, 1.55, 11.5], scale = 6.5, playing = false }) => {
+const TVScreen = ({ mix, pos = [0, 2.85, 0.05], scale = 4.5, playing = false }) => {
     const tex = useTexture('/images/mixes-tv.webp');
     useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
     const W = scale;
@@ -960,7 +962,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
         {releases.map((r, i) => (
             <React.Fragment key={r.id ?? i}>
                 <Suspense fallback={null}>
-                    <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} />
+                    <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} />
                 </Suspense>
                 <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
                 <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
