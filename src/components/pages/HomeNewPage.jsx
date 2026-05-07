@@ -943,32 +943,46 @@ const fetchWaveformSamples = async (waveformUrl, bins) => {
 const useScWidget = (url, waveformBins = 36) => {
     const iframeRef = useRef(null);
     const widgetRef = useRef(null);
+    const lastSoundIdRef = useRef(null);
     const [playing, setPlaying] = useState(false);
     const [ready, setReady] = useState(false);
     const [samples, setSamples] = useState(null);
     const [progress, setProgress] = useState(0);
+    const [currentTrack, setCurrentTrack] = useState(null);
 
     useEffect(() => {
         setPlaying(false);
         setReady(false);
         setSamples(null);
         setProgress(0);
+        setCurrentTrack(null);
+        lastSoundIdRef.current = null;
         if (!url || !iframeRef.current) return;
         let cancelled = false;
+
+        const refreshCurrent = (w) => {
+            w.getCurrentSound((sound) => {
+                if (cancelled || !sound) return;
+                if (sound.id && sound.id === lastSoundIdRef.current) return;
+                lastSoundIdRef.current = sound.id || null;
+                setCurrentTrack({
+                    title: sound.title || '',
+                    user: sound.user?.username || sound.publisher?.artist || '',
+                });
+                if (sound.waveform_url) {
+                    fetchWaveformSamples(sound.waveform_url, waveformBins).then((arr) => {
+                        if (!cancelled && arr) setSamples(arr);
+                    });
+                }
+            });
+        };
+
         loadScScript().then(() => {
             if (cancelled || !iframeRef.current || !window.SC) return;
             const w = window.SC.Widget(iframeRef.current);
             widgetRef.current = w;
-            const onReady = () => {
-                setReady(true);
-                w.getCurrentSound((sound) => {
-                    if (cancelled || !sound?.waveform_url) return;
-                    fetchWaveformSamples(sound.waveform_url, waveformBins).then((arr) => {
-                        if (!cancelled && arr) setSamples(arr);
-                    });
-                });
-            };
-            const onPlay = () => setPlaying(true);
+            const onReady = () => { setReady(true); refreshCurrent(w); };
+            const onPlay = () => { setPlaying(true); refreshCurrent(w); };
             const onPause = () => setPlaying(false);
             const onFinish = () => { setPlaying(false); setProgress(0); };
             const onProgress = (e) => {
@@ -1012,7 +1026,19 @@ const useScWidget = (url, waveformBins = 36) => {
         });
     }, [ready]);
 
-    return { iframeRef, playing, ready, samples, progress, toggle, seek };
+    const nextTrack = useCallback(() => {
+        const w = widgetRef.current;
+        if (!w || !ready) return;
+        w.next();
+    }, [ready]);
+
+    const prevTrack = useCallback(() => {
+        const w = widgetRef.current;
+        if (!w || !ready) return;
+        w.prev();
+    }, [ready]);
+
+    return { iframeRef, playing, ready, samples, progress, currentTrack, toggle, seek, nextTrack, prevTrack };
 };
 
 // ================ player UI ================
@@ -1025,10 +1051,12 @@ const FAKE_BARS = Array.from({ length: 36 }).map((_, i) => {
 
 const WAVE_BINS = 48;
 
-const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
+const Player = ({ release }) => {
     const url = (release?.soundcloudTrackUrl || release?.soundcloudUrl || '').split('?')[0];
-    const { iframeRef, playing, ready, samples, progress, toggle, seek } = useScWidget(url, WAVE_BINS);
-    const title = release ? `${release.artists || ''} — ${release.title || ''}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
+    const { iframeRef, playing, ready, samples, progress, currentTrack, toggle, seek, nextTrack, prevTrack } = useScWidget(url, WAVE_BINS);
+    const fallbackTitle = release ? `${release.artists || ''} — ${release.title || ''}`.replace(/^—\s*|\s*—\s*$/g, '') : '';
+    const liveTitle = currentTrack ? [currentTrack.user, currentTrack.title].filter(Boolean).join(' — ') : '';
+    const title = liveTitle || fallbackTitle;
     const bars = samples?.length ? samples : FAKE_BARS;
 
     const onWaveClick = (e) => {
@@ -1039,20 +1067,19 @@ const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
 
     return (
         <div className="hn-player">
-            <button
-                className="hn-player-nav"
-                onClick={onPrev}
-                disabled={!canPrev}
-                aria-label="Previous release"
-            >
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                    <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-            </button>
-
             <div className="hn-player-pill">
                 <div className="hn-player-title">{title}</div>
                 <div className="hn-player-row">
+                    <button
+                        className="hn-player-track-nav"
+                        onClick={prevTrack}
+                        disabled={!ready}
+                        aria-label="Previous track"
+                    >
+                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                            <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
+                    </button>
                     <button
                         className="hn-player-play"
                         onClick={toggle}
@@ -1064,6 +1091,16 @@ const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
                         ) : (
                             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor" /></svg>
                         )}
+                    </button>
+                    <button
+                        className="hn-player-track-nav"
+                        onClick={nextTrack}
+                        disabled={!ready}
+                        aria-label="Next track"
+                    >
+                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                            <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
                     </button>
 
                     <div
@@ -1089,17 +1126,6 @@ const Player = ({ release, onPrev, onNext, canPrev, canNext }) => {
                     </div>
                 </div>
             </div>
-
-            <button
-                className="hn-player-nav"
-                onClick={onNext}
-                disabled={!canNext}
-                aria-label="Next release"
-            >
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                    <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-            </button>
 
             {url && (
                 <iframe
@@ -1429,13 +1455,7 @@ export const Scene3DShell = ({
                     canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
             ) : (!simple && currentRelease && (
-                <Player
-                    release={currentRelease}
-                    onPrev={releaseSwitcher.prev}
-                    onNext={releaseSwitcher.next}
-                    canPrev={releaseSwitcher.current > 0}
-                    canNext={releaseSwitcher.current < displayItems.length - 1}
-                />
+                <Player release={currentRelease} />
             ))}
 
             {showDebug && (
