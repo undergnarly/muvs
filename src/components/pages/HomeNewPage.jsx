@@ -828,15 +828,20 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
         ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
         : '';
     // drei <Html transform> bakes a 1/40 matrix multiplier (DREI_FACTOR).
-    // Combined with group.scale=1/PX, the wrapper renders at exactly sw×sh
+    // Combined with group.scale=1/PX, the clip wrapper renders at exactly sw×sh
     // worldunits when its CSS box is sw*PX*DREI_FACTOR × sh*PX*DREI_FACTOR.
-    // The clip wrapper is overflow:hidden, so any iframe inside that exceeds
-    // those bounds is masked out — the PNG bezel naturally appears around it.
+    // We then render the iframe at a *small* native size (so YouTube emits a
+    // readable, click-target-sized UI) and CSS-scale it up to fill the clip,
+    // so on screen the UI ends up large but still slotted into the cutout.
     const PX = 32;
     const DREI_FACTOR = 40;
     const clipW = Math.round(sw * PX * DREI_FACTOR);
     const clipH = Math.round(sh * PX * DREI_FACTOR);
-    const innerScale = tv.iframeScale / DREI_FACTOR; // 1.0 = iframe fills the cutout exactly
+    const ifNative = Math.max(280, Math.min(1280, Math.round(tv.iframeScale * 15))); // 40 → 600px native
+    const ifW = ifNative;
+    const ifH = Math.round(ifNative * sh / sw);
+    const sx = clipW / ifW;
+    const sy = clipH / ifH;
     return (
         <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
             {src ? (
@@ -862,15 +867,16 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             style={{
-                                width: `${100 * innerScale}%`,
-                                height: `${100 * innerScale}%`,
+                                width: `${ifW}px`,
+                                height: `${ifH}px`,
                                 border: 0,
                                 background: '#000',
                                 display: 'block',
                                 position: 'absolute',
-                                left: '50%',
-                                top: '50%',
-                                transform: 'translate(-50%, -50%)',
+                                left: 0,
+                                top: 0,
+                                transform: `scale(${sx}, ${sy})`,
+                                transformOrigin: 'top left',
                             }}
                         />
                     </div>
