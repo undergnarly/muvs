@@ -60,10 +60,8 @@ const DEFAULT_SUPPORT = {
 const DEFAULT_TV = {
     pos: { x: 0, y: 2.85, z: 0.05 },
     scale: 4.5,
-    // Screen cutout in PNG (ratios). Override if image changes.
     screen: { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 },
-    // Extra fine-tune of iframe in world-units relative to its computed pos/size.
-    iframeShift: { x: 0, y: 0 },
+    iframeShift: { x: 0, y: 0, z: 0 },
     iframeScale: 1.0,
 };
 
@@ -813,61 +811,96 @@ const extractYouTubeId = (raw) => {
     return m ? m[1] : null;
 };
 
-const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
-    const tex = useTexture('/images/mixes-tv.webp');
-    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+const TVScreenOverlay = ({ tv, src, mix }) => {
+    const { camera, size } = useThree();
+    const overlayRef = useRef(null);
     const W = tv.scale;
     const H = W * (TV_NATIVE.h / TV_NATIVE.w);
-    const screenRange = { x: tv.screen.x1 - tv.screen.x0, y: tv.screen.y1 - tv.screen.y0 };
-    const sw = W * screenRange.x * tv.iframeScale;
-    const sh = H * screenRange.y * tv.iframeScale;
+    const sw = W * (tv.screen.x1 - tv.screen.x0) * tv.iframeScale;
+    const sh = H * (tv.screen.y1 - tv.screen.y0) * tv.iframeScale;
     const cx = (tv.screen.x0 + tv.screen.x1) / 2 - 0.5;
     const cy = 0.5 - (tv.screen.y0 + tv.screen.y1) / 2;
     const ox = cx * W + tv.iframeShift.x;
     const oy = cy * H + tv.iframeShift.y;
-    const ytId = extractYouTubeId(mix?.youtubeUrl);
-    const src = ytId
-        ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
-        : '';
-    const PX = 256;
-    const cssW = Math.round(sw * PX);
-    const cssH = Math.round(sh * PX);
+
+    const iz = tv.iframeShift.z || 0;
+    useFrame(() => {
+        const el = overlayRef.current;
+        if (!el) return;
+        const tvPos = new THREE.Vector3(tv.pos.x, tv.pos.y, tv.pos.z);
+        const corners = [
+            new THREE.Vector3(ox - sw / 2, oy - sh / 2, iz),
+            new THREE.Vector3(ox + sw / 2, oy - sh / 2, iz),
+            new THREE.Vector3(ox + sw / 2, oy + sh / 2, iz),
+            new THREE.Vector3(ox - sw / 2, oy + sh / 2, iz),
+        ];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        let inFront = false;
+        for (const v of corners) {
+            v.add(tvPos);
+            v.project(camera);
+            if (v.z < 1) inFront = true;
+            const sx = (v.x * 0.5 + 0.5) * size.width;
+            const sy = (-v.y * 0.5 + 0.5) * size.height;
+            if (sx < minX) minX = sx;
+            if (sx > maxX) maxX = sx;
+            if (sy < minY) minY = sy;
+            if (sy > maxY) maxY = sy;
+        }
+        if (!inFront) {
+            el.style.display = 'none';
+            return;
+        }
+        el.style.display = 'block';
+        el.style.left = `${minX}px`;
+        el.style.top = `${minY}px`;
+        el.style.width = `${Math.max(0, maxX - minX)}px`;
+        el.style.height = `${Math.max(0, maxY - minY)}px`;
+    });
+
     return (
-        <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
-            {src && (
-                <Html
-                    transform
-                    position={[ox, oy, -0.02]}
-                    scale={1 / PX}
-                    pointerEvents="auto"
-                >
+        <Html
+            as="div"
+            wrapperClass="hn-tv-overlay"
+            fullscreen
+            zIndexRange={[1, 0]}
+            style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        >
+            <div ref={overlayRef} className="hn-tv-iframe" style={{ position: 'absolute', pointerEvents: 'auto', overflow: 'hidden', background: '#000' }}>
+                {src && (
                     <iframe
                         key={src}
                         src={src}
                         title={mix?.title || 'mix'}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
-                        style={{
-                            width: `${cssW}px`,
-                            height: `${cssH}px`,
-                            border: 0,
-                            background: '#000',
-                            display: 'block',
-                        }}
+                        style={{ width: '100%', height: '100%', border: 0, display: 'block', background: '#000' }}
                     />
-                </Html>
-            )}
-            {!src && (
-                <mesh position={[ox, oy, -0.015]}>
-                    <planeGeometry args={[sw, sh]} />
-                    <meshBasicMaterial color="#0a0a0a" toneMapped={false} />
+                )}
+            </div>
+        </Html>
+    );
+};
+
+const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
+    const tex = useTexture('/images/mixes-tv.webp');
+    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    const W = tv.scale;
+    const H = W * (TV_NATIVE.h / TV_NATIVE.w);
+    const ytId = extractYouTubeId(mix?.youtubeUrl);
+    const src = ytId
+        ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
+        : '';
+    return (
+        <>
+            <TVScreenOverlay tv={tv} src={src} mix={mix} />
+            <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
+                <mesh>
+                    <planeGeometry args={[W, H]} />
+                    <meshBasicMaterial map={tex} transparent toneMapped={false} />
                 </mesh>
-            )}
-            <mesh>
-                <planeGeometry args={[W, H]} />
-                <meshBasicMaterial map={tex} transparent toneMapped={false} />
-            </mesh>
-        </group>
+            </group>
+        </>
     );
 };
 
@@ -1509,9 +1542,10 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <Row label="y"     value={cfg.tv.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, y: v } } })} />
                 <Row label="z"     value={cfg.tv.pos.z}  min={-5}  max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, z: v } } })} />
                 <Row label="scale" value={cfg.tv.scale}  min={1}   max={20} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, scale: v } })} />
-                <Row label="iframe x" value={cfg.tv.iframeShift.x} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, x: v } } })} />
-                <Row label="iframe y" value={cfg.tv.iframeShift.y} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, y: v } } })} />
-                <Row label="iframe scale" value={cfg.tv.iframeScale} min={0.3} max={2} step={0.01} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeScale: v } })} />
+                <Row label="iframe x" value={cfg.tv.iframeShift.x} min={-3} max={3} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, x: v } } })} />
+                <Row label="iframe y" value={cfg.tv.iframeShift.y} min={-3} max={3} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, y: v } } })} />
+                <Row label="iframe z" value={cfg.tv.iframeShift.z || 0} min={-2} max={2} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, z: v } } })} />
+                <Row label="iframe scale" value={cfg.tv.iframeScale} min={0.3} max={3} step={0.01} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeScale: v } })} />
                 <Row label="screen x0" value={cfg.tv.screen.x0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x0: v } } })} />
                 <Row label="screen x1" value={cfg.tv.screen.x1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x1: v } } })} />
                 <Row label="screen y0" value={cfg.tv.screen.y0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y0: v } } })} />
