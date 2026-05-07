@@ -58,8 +58,7 @@ const DEFAULT_SUPPORT = {
 };
 
 const DEFAULT_TV = {
-    pos: { x: 0, y: 2.85, z: 10.6 },
-    playZ: 5.8,
+    pos: { x: 0, y: 2.85, z: 0.05 },
     scale: 4.5,
     screen: { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 },
     iframeShift: { x: 0, y: 0, z: 0 },
@@ -843,16 +842,8 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
     const ifH = Math.round(ifNative * sh / sw);
     const sx = clipW / ifW;
     const sy = clipH / ifH;
-
-    const groupRef = useRef(null);
-    useFrame(() => {
-        const obj = groupRef.current;
-        if (!obj) return;
-        const targetZ = playing ? (tv.playZ ?? 5.8) : tv.pos.z;
-        obj.position.z = THREE.MathUtils.lerp(obj.position.z, targetZ, 0.08);
-    });
     return (
-        <group ref={groupRef} position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
+        <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
             {src ? (
                 <Html
                     transform
@@ -1540,8 +1531,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <div className="dbg-title">tv (mixes)</div>
                 <Row label="x"     value={cfg.tv.pos.x}  min={-15} max={15} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, x: v } } })} />
                 <Row label="y"     value={cfg.tv.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, y: v } } })} />
-                <Row label="z (rest)" value={cfg.tv.pos.z}  min={-5}  max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, z: v } } })} />
-                <Row label="z (play)" value={cfg.tv.playZ ?? 5.8} min={-5} max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, playZ: v } })} />
+                <Row label="z"     value={cfg.tv.pos.z}  min={-5}  max={30} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, z: v } } })} />
                 <Row label="scale" value={cfg.tv.scale}  min={1}   max={20} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, scale: v } })} />
                 <Row label="iframe x" value={cfg.tv.iframeShift.x} min={-3} max={3} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, x: v } } })} />
                 <Row label="iframe y" value={cfg.tv.iframeShift.y} min={-3} max={3} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, iframeShift: { ...cfg.tv.iframeShift, y: v } } })} />
