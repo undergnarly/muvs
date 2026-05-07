@@ -780,6 +780,82 @@ const FogSync = ({ cfgRef }) => {
     return null;
 };
 
+// TV-shaped element (mixes_pic.png — TV in jungle plants with transparent screen cutout).
+// Renders the YouTube iframe behind the PNG so the cutout reveals it as if on the screen.
+// Numbers below come from analyzing public/images/mixes-tv.webp:
+//   image native: 900 × 607 px
+//   transparent screen cutout: x=210..640, y=190..415 (ratios x=23.4..71.2%, y=31.4..68.6%)
+const TV_NATIVE = { w: 900, h: 607 };
+const TV_SCREEN = { x0: 0.234, x1: 0.712, y0: 0.314, y1: 0.686 };
+
+const extractYouTubeId = (raw) => {
+    if (!raw) return null;
+    const s = String(raw).trim();
+    if (/^[\w-]{11}$/.test(s)) return s;
+    const m = s.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/);
+    return m ? m[1] : null;
+};
+
+const TVScreen = ({ mix, pos = [0, 1.55, 11.5], scale = 6.5, playing = false }) => {
+    const tex = useTexture('/images/mixes-tv.webp');
+    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    const W = scale;
+    const H = W * (TV_NATIVE.h / TV_NATIVE.w);
+    // Screen rect in world units, relative to TV plane center:
+    const sw = W * (TV_SCREEN.x1 - TV_SCREEN.x0);
+    const sh = H * (TV_SCREEN.y1 - TV_SCREEN.y0);
+    const cx = (TV_SCREEN.x0 + TV_SCREEN.x1) / 2 - 0.5;
+    const cy = 0.5 - (TV_SCREEN.y0 + TV_SCREEN.y1) / 2;
+    const ox = cx * W;
+    const oy = cy * H;
+    const ytId = extractYouTubeId(mix?.youtubeUrl);
+    const src = ytId
+        ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
+        : '';
+    const PX = 96; // CSS px per world unit on the iframe
+    const cssW = Math.round(sw * PX);
+    const cssH = Math.round(sh * PX);
+    return (
+        <group position={pos}>
+            {/* Iframe sits behind the PNG, exactly inside the screen cutout */}
+            {src && (
+                <Html
+                    transform
+                    position={[ox, oy, -0.02]}
+                    scale={1 / PX}
+                    pointerEvents="auto"
+                >
+                    <iframe
+                        key={src}
+                        src={src}
+                        title={mix?.title || 'mix'}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{
+                            width: `${cssW}px`,
+                            height: `${cssH}px`,
+                            border: 0,
+                            background: '#000',
+                            display: 'block',
+                        }}
+                    />
+                </Html>
+            )}
+            {/* Black backing layer so the screen never bleeds page bg through the cutout when iframe missing */}
+            {!src && (
+                <mesh position={[ox, oy, -0.015]}>
+                    <planeGeometry args={[sw, sh]} />
+                    <meshBasicMaterial color="#0a0a0a" toneMapped={false} />
+                </mesh>
+            )}
+            <mesh>
+                <planeGeometry args={[W, H]} />
+                <meshBasicMaterial map={tex} transparent toneMapped={false} />
+            </mesh>
+        </group>
+    );
+};
+
 const PortfolioImage = ({ image, w, h }) => {
     const tex = useTexture(image);
     useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
@@ -863,7 +939,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText }) => (
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying }) => (
     <>
         <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
         <FogSync cfgRef={cfgRef} />
@@ -892,6 +968,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
             </React.Fragment>
         ))}
         {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
+        {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} />}
     </>
 );
 
@@ -1216,6 +1293,50 @@ const Player = ({ release }) => {
     );
 };
 
+// ================ mix switcher ================
+
+const MixSwitcher = ({ mixes, currentIndex, onIndex, playing, onTogglePlay }) => {
+    const mix = mixes?.[currentIndex];
+    const title = mix ? `${mix.artists ? mix.artists + ' — ' : ''}${mix.title || ''}`.trim() : 'NO MIX';
+    const canPrev = mixes?.length > 1;
+    const canNext = mixes?.length > 1;
+    const prev = () => onIndex((currentIndex - 1 + mixes.length) % mixes.length);
+    const next = () => onIndex((currentIndex + 1) % mixes.length);
+    return (
+        <div className="hn-player">
+            <div className="hn-player-bar-row">
+                <button className="hn-player-nav" onClick={prev} disabled={!canPrev} aria-label="Previous mix">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+                <div className="hn-player-pill">
+                    <div className="hn-player-title">{title}</div>
+                    <div className="hn-player-row">
+                        <button
+                            className="hn-player-play"
+                            onClick={onTogglePlay}
+                            disabled={!mix?.youtubeUrl}
+                            aria-label={playing ? 'Pause mix' : 'Play mix'}
+                        >
+                            <PlayPauseIcon playing={playing} />
+                        </button>
+                        <div className="hn-mix-meta">
+                            <span>MIX {String(currentIndex + 1).padStart(2, '0')} / {String(mixes.length).padStart(2, '0')}</span>
+                            {mix?.recordDate && <span>{mix.recordDate}</span>}
+                        </div>
+                    </div>
+                </div>
+                <button className="hn-player-nav" onClick={next} disabled={!canNext} aria-label="Next mix">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 // ================ bottom action ================
 
 const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext }) => {
@@ -1410,6 +1531,7 @@ export const Scene3DShell = ({
     bottomAction = null,
     portfolio = null,
     richText = false,
+    tvMixes = null,
 }) => {
     const { releases, siteSettings, updateSiteSettings } = useData();
 
@@ -1473,6 +1595,11 @@ export const Scene3DShell = ({
     );
     const currentRelease = displayItems[releaseSwitcher.current];
 
+    const [mixIndex, setMixIndex] = useState(0);
+    const [mixPlaying, setMixPlaying] = useState(false);
+    const currentMix = tvMixes?.[mixIndex] || null;
+    useEffect(() => { setMixPlaying(false); }, [mixIndex]);
+
     useEffect(() => {
         document.body.classList.add('home-new-active');
         return () => document.body.classList.remove('home-new-active');
@@ -1512,6 +1639,8 @@ export const Scene3DShell = ({
                             simple={simple}
                             portfolio={portfolio}
                             richText={richText}
+                            tvMix={currentMix}
+                            tvPlaying={mixPlaying}
                         />
                     </Canvas>
                 </div>
@@ -1521,7 +1650,15 @@ export const Scene3DShell = ({
             <Header theme={currentIndex === 0 ? 'light' : 'dark'} />
             <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
 
-            {bottomAction ? (
+            {tvMixes && tvMixes.length > 0 ? (
+                <MixSwitcher
+                    mixes={tvMixes}
+                    currentIndex={mixIndex}
+                    onIndex={setMixIndex}
+                    playing={mixPlaying}
+                    onTogglePlay={() => setMixPlaying((p) => !p)}
+                />
+            ) : bottomAction ? (
                 <BottomAction
                     label={bottomAction.label}
                     href={bottomAction.href}

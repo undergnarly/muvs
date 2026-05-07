@@ -5,19 +5,12 @@ import { Scene3DShell } from './HomeNewPage';
 const FALLBACK = [
     {
         id: 'mix-placeholder-1',
-        title: 'MIX ONE',
+        title: 'GUNFINGERS DEMO',
         artists: 'MUVS',
-        description: 'Placeholder mix — replace with real data.',
+        description: 'Placeholder mix — replace with a real one in the admin.',
         releaseDate: '',
         coverImage: '',
-    },
-    {
-        id: 'mix-placeholder-2',
-        title: 'MIX TWO',
-        artists: 'MUVS',
-        description: 'Placeholder mix two.',
-        releaseDate: '',
-        coverImage: '',
+        youtubeUrl: '',
     },
 ];
 
@@ -29,6 +22,10 @@ const MixesPage3D = () => {
             items={items}
             simple
             cfgStorageKey="muvs:scene3d:mixes:v1"
+            serverCfgKey="mixesConfig"
+            stopCount={4}
+            showDebug
+            tvMixes={items}
         />
     );
 };

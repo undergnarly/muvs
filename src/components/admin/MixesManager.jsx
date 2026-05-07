@@ -27,6 +27,7 @@ const MixesManager = () => {
         recordDate: '',
         duration: '',
         soundcloudUrl: '',
+        youtubeUrl: '',
         description: '',
         backgroundImage: '',
         tracks: [] // Tracklist for the mix
@@ -240,6 +241,13 @@ const MixesManager = () => {
                             placeholder="SoundCloud URL"
                             value={formData.soundcloudUrl}
                             onChange={e => setFormData({ ...formData, soundcloudUrl: e.target.value })}
+                            style={inputStyle}
+                        />
+                        <input
+                            type="text"
+                            placeholder="YouTube URL or video ID (shown in TV on /mixes)"
+                            value={formData.youtubeUrl || ''}
+                            onChange={e => setFormData({ ...formData, youtubeUrl: e.target.value })}
                             style={inputStyle}
                         />
 
