@@ -814,7 +814,9 @@ const TVScreen = ({ mix, pos = [0, 2.85, 0.05], scale = 4.5, playing = false }) 
     const src = ytId
         ? `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1${playing ? '&autoplay=1' : ''}`
         : '';
-    const PX = 96; // CSS px per world unit on the iframe
+    // Render iframe at high CSS resolution then scale back so YouTube doesn't
+    // collapse to its tiny "video too small" UI. 256 CSS px = 1 world unit.
+    const PX = 256;
     const cssW = Math.round(sw * PX);
     const cssH = Math.round(sh * PX);
     return (

@@ -5,18 +5,21 @@ import { Scene3DShell } from './HomeNewPage';
 const FALLBACK = [
     {
         id: 'mix-placeholder-1',
-        title: 'GUNFINGERS DEMO',
+        title: 'GUNFINGERS TEST',
         artists: 'MUVS',
         description: 'Placeholder mix — replace with a real one in the admin.',
         releaseDate: '',
         coverImage: '',
-        youtubeUrl: '',
+        youtubeUrl: 'https://www.youtube.com/watch?v=gcqrg86VVeQ',
     },
 ];
 
+const ensureYoutube = (m) => (m?.youtubeUrl ? m : { ...m, youtubeUrl: 'https://www.youtube.com/watch?v=gcqrg86VVeQ' });
+
 const MixesPage3D = () => {
     const { mixes } = useData();
-    const items = (mixes && mixes.length > 0) ? mixes : FALLBACK;
+    const source = (mixes && mixes.length > 0) ? mixes : FALLBACK;
+    const items = source.map(ensureYoutube);
     return (
         <Scene3DShell
             items={items}
