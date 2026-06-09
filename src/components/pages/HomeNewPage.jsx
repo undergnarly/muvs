@@ -1770,6 +1770,12 @@ export const Scene3DShell = ({
     );
 };
 
-const HomeNewPage = () => <Scene3DShell serverCfgKey="homeNewConfig" />;
+const HomeNewPage = () => {
+    // Camera debug/config panel: opt-in via ?debug=1 (or ?cam=1) so it's
+    // available for tuning camera stops but hidden from normal visitors.
+    const showDebug = typeof window !== 'undefined'
+        && /[?&](?:debug|cam)=1\b/.test(window.location.search);
+    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} />;
+};
 
 export default HomeNewPage;
