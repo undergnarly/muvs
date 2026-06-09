@@ -31,15 +31,18 @@
 
 .ap-cover {
     flex: 0 0 auto;
-    width: 96px;
+    width: 110px;
     border-radius: 12px;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.3);
 }
 .ap-cover img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* release art is often a transparent, off-center cutout — contain shows it
+       whole instead of cropping into empty space */
+    object-fit: contain;
+    object-position: center;
     display: block;
 }
 
