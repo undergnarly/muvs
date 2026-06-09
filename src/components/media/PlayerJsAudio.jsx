@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './PlayerJsAudio.css';
 
 // ---- one-time global loader for /playerjs.js (public/) ----
@@ -28,10 +28,7 @@ const PlayerJsAudio = ({ release }) => {
     const mountRef = useRef(null);     // Player JS mounts here (cleared on re-init)
     const instanceRef = useRef(null);
     const idRef = useRef(`pjs-player-${++uid}`);
-    const [collapsed, setCollapsed] = useState(false);
 
-    const tracks = release?.tracks?.length ? release.tracks : [];
-    const hasTracks = tracks.some((t) => getTrackUrl(t));
     const releaseId = release?.id ?? release?.title ?? '';
 
     useEffect(() => {
@@ -98,24 +95,8 @@ const PlayerJsAudio = ({ release }) => {
     }, [releaseId]);
 
     return (
-        <div className={`hn-playerjs${collapsed ? ' collapsed' : ''}`} aria-label="Audio player">
+        <div className="hn-playerjs" aria-label="Audio player">
             <div className="hn-playerjs-mount" ref={mountRef} />
-            {hasTracks && (
-                <button
-                    type="button"
-                    className="hn-playerjs-collapse"
-                    onClick={() => setCollapsed((c) => !c)}
-                    aria-label={collapsed ? 'Развернуть плеер' : 'Свернуть плеер'}
-                    aria-expanded={!collapsed}
-                    title={collapsed ? 'Развернуть' : 'Свернуть'}
-                >
-                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
-                        style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform .25s ease' }}>
-                        <path d="M6 9 L12 15 L18 9" stroke="currentColor" strokeWidth="2.4"
-                            strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                    </svg>
-                </button>
-            )}
         </div>
     );
 };

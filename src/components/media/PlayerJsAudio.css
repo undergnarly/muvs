@@ -45,62 +45,12 @@
     fill: var(--pjs-accent) !important;
 }
 
-/* --- Collapse button (top-right corner of the player) --- */
-.hn-playerjs-collapse {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 10;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.42);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.18s ease, transform 0.18s ease;
-}
-.hn-playerjs-collapse:hover {
-    background: rgba(0, 0, 0, 0.62);
-    transform: scale(1.08);
-}
-
-/* --- Collapsed state: hide cover + the other tracks, keep current track --- */
-/* Cover/poster is a direct child of #oframeplayer with `background: url(...)`. */
-.hn-playerjs.collapsed #oframeplayer > pjsdiv[style*="background: url"] {
-    display: none !important;
-}
-/* Keep only the active playlist row (= current track). */
-.hn-playerjs.collapsed #player_playlist pjsdiv[fid]:not(.pjs-player-active-pl) {
-    display: none !important;
-}
-.hn-playerjs.collapsed #player_playlist {
-    max-height: 2.6em !important;
-    overflow: hidden !important;
-}
-/* Shrink the player to just the current track + control bar (drop the empty
-   cover region) and pull the track over to where the cover was. */
-.hn-playerjs.collapsed .hn-playerjs-mount > div,
-.hn-playerjs.collapsed #oframeplayer {
-    height: 104px !important;
-    min-height: 104px !important;
-    overflow: hidden !important;
-}
-.hn-playerjs.collapsed pjsdiv:has(> #player_playlist) {
-    left: 16px !important;
-    top: 14px !important;
-}
-
-/* --- Mobile: shrink the whole player ~30% and span the width --- */
+/* --- Mobile: slightly shrink the whole player and span the width --- */
 @media (max-width: 640px) {
     .hn-playerjs {
         width: calc(100vw - 24px);
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        transform: translateX(-50%) scale(0.7);
+        transform: translateX(-50%) scale(0.9);
         transform-origin: bottom center;
     }
 }
