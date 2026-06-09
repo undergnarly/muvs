@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
@@ -1755,7 +1756,7 @@ export const Scene3DShell = ({
                 <AlbumPlayer release={currentRelease} />
             ))}
 
-            {showDebug && (
+            {showDebug && createPortal(
                 <DebugPanel
                     cfg={cfg}
                     setCfg={setCfg}
@@ -1764,7 +1765,8 @@ export const Scene3DShell = ({
                     progressRef={progressRef}
                     onSaveToServer={saveCfg}
                     onResetServer={clearCfg}
-                />
+                />,
+                document.body,
             )}
         </div>
     );
