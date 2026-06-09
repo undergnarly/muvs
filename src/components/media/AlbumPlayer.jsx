@@ -30,13 +30,26 @@ const VolIcon = ({ muted }) => (
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9 H7 L11 5 V19 L7 15 H4 Z" fill="currentColor" /><path d="M14.5 8.5 A5 5 0 0 1 14.5 15.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /><path d="M17 6 A8.5 8.5 0 0 1 17 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
     )
 );
+const CollapseIcon = () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <path d="M7 10 L12 15 L17 10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+);
+const ExpandIcon = () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <path d="M7 14 L12 9 L17 14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+);
+const BurgerIcon = () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <path d="M4 7 H20 M4 12 H20 M4 17 H20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+);
 
-const AlbumPlayer = ({ release }) => {
+const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleaseSelect }) => {
     const audioRef = useRef(null);
     const playOnLoadRef = useRef(false);
 
-    // render every track (incl. ones without audio yet) so the player shows
-    // up on every release for preview; playback is guarded on the url.
     const tracks = release?.tracks || [];
     const cover = release?.coverImage || release?.cover || '';
     const releaseId = release?.id ?? release?.title ?? '';
@@ -47,12 +60,13 @@ const AlbumPlayer = ({ release }) => {
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(0);
     const [muted, setMuted] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
+    const [showReleases, setShowReleases] = useState(false);
 
     const count = tracks.length;
     const track = count ? tracks[Math.min(index, count - 1)] : null;
     const url = getTrackUrl(track);
 
-    // create the audio element once
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         const a = new Audio();
@@ -61,7 +75,6 @@ const AlbumPlayer = ({ release }) => {
         return () => { try { a.pause(); a.src = ''; } catch { /* ignore */ } };
     }, []);
 
-    // reset to first track when the release changes
     useEffect(() => {
         playOnLoadRef.current = false;
         setIndex(0);
@@ -69,9 +82,9 @@ const AlbumPlayer = ({ release }) => {
         setProgress(0);
         setCurrent(0);
         setDuration(0);
+        setShowReleases(false);
     }, [releaseId]);
 
-    // wire audio events
     useEffect(() => {
         const a = audioRef.current;
         if (!a) return undefined;
@@ -100,7 +113,6 @@ const AlbumPlayer = ({ release }) => {
         };
     }, [count]);
 
-    // load src on track change; autoplay if requested (next/prev/click while playing)
     useEffect(() => {
         const a = audioRef.current;
         if (!a) return;
@@ -159,66 +171,127 @@ const AlbumPlayer = ({ release }) => {
         setMuted(a.muted);
     }, []);
 
+    const toggleCollapsed = useCallback(() => {
+        setCollapsed(c => {
+            if (!c) setShowReleases(false);
+            return !c;
+        });
+    }, []);
+
+    const toggleBurger = useCallback(() => {
+        setShowReleases(r => !r);
+    }, []);
+
     if (!count) return null;
 
     const liveTitle = `${track?.artist || release?.artists || ''} — ${getTrackTitle(track, index)}`
         .replace(/^—\s*/, '').trim();
 
+    const hasBurger = releases.length > 1;
+
+    const seekBar = (
+        <div
+            className="ap-seek"
+            role="slider"
+            aria-label="Track position"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
+            onClick={seek}
+        >
+            <div className="ap-seek-track">
+                <div className="ap-seek-fill" style={{ width: `${progress * 100}%` }} />
+                <div className="ap-seek-handle" style={{ left: `${progress * 100}%` }} />
+            </div>
+        </div>
+    );
+
+    const controls = (
+        <div className="ap-controls">
+            <button className="ap-btn ap-play" onClick={toggle} disabled={!url} aria-label={playing ? 'Pause' : 'Play'}>
+                {playing ? <PauseIcon /> : <PlayIcon />}
+            </button>
+            <button className="ap-btn" onClick={prev} disabled={count < 2} aria-label="Previous track"><PrevIcon /></button>
+            <button className="ap-btn" onClick={next} disabled={count < 2} aria-label="Next track"><NextIcon /></button>
+            <button className="ap-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}><VolIcon muted={muted} /></button>
+            <span className="ap-time">{fmt(current)} / {fmt(duration)}</span>
+            {hasBurger && (
+                <button
+                    className={`ap-btn ap-btn--sm${showReleases ? ' ap-btn--active' : ''}`}
+                    onClick={toggleBurger}
+                    aria-label="Browse releases"
+                >
+                    <BurgerIcon />
+                </button>
+            )}
+            <button className="ap-btn ap-btn--sm" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand player' : 'Collapse player'}>
+                {collapsed ? <ExpandIcon /> : <CollapseIcon />}
+            </button>
+        </div>
+    );
+
+    if (collapsed) {
+        return (
+            <div className="ap ap--collapsed">
+                <div className="ap-mini-row">
+                    <span className="ap-mini-title">{liveTitle}</span>
+                </div>
+                {seekBar}
+                {controls}
+            </div>
+        );
+    }
+
     return (
         <div className="ap">
             <div className="ap-top">
-                {cover && (
+                {cover && !showReleases && (
                     <div className="ap-cover">
                         <img src={cover} alt="" loading="lazy" decoding="async" />
                     </div>
                 )}
-                <ul className="ap-list" role="listbox" aria-label={liveTitle}>
-                    {tracks.map((t, i) => {
-                        const active = i === index;
-                        return (
+                {showReleases ? (
+                    <ul className="ap-list" role="listbox" aria-label="Releases">
+                        {releases.map((r, i) => (
                             <li
-                                key={t.id || i}
-                                className={`ap-row${active ? ' active' : ''}`}
-                                onClick={() => playIndex(i)}
+                                key={r.id || i}
+                                className={`ap-row${i === currentReleaseIndex ? ' active' : ''}`}
+                                onClick={() => { onReleaseSelect?.(i); setShowReleases(false); }}
                                 role="option"
-                                aria-selected={active}
+                                aria-selected={i === currentReleaseIndex}
                             >
                                 <span className="ap-row-title">
-                                    {`${t.artist || release?.artists || ''} — ${getTrackTitle(t, i)}`.replace(/^—\s*/, '').trim()}
+                                    {[r.artists, r.title].filter(Boolean).join(' — ')}
                                 </span>
-                                {active && playing && (
-                                    <span className="ap-eq" aria-hidden="true"><i /><i /><i /></span>
-                                )}
                             </li>
-                        );
-                    })}
-                </ul>
+                        ))}
+                    </ul>
+                ) : (
+                    <ul className="ap-list" role="listbox" aria-label={liveTitle}>
+                        {tracks.map((t, i) => {
+                            const active = i === index;
+                            return (
+                                <li
+                                    key={t.id || i}
+                                    className={`ap-row${active ? ' active' : ''}`}
+                                    onClick={() => playIndex(i)}
+                                    role="option"
+                                    aria-selected={active}
+                                >
+                                    <span className="ap-row-title">
+                                        {`${t.artist || release?.artists || ''} — ${getTrackTitle(t, i)}`.replace(/^—\s*/, '').trim()}
+                                    </span>
+                                    {active && playing && (
+                                        <span className="ap-eq" aria-hidden="true"><i /><i /><i /></span>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
             </div>
-
-            <div
-                className="ap-seek"
-                role="slider"
-                aria-label="Track position"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progress * 100)}
-                onClick={seek}
-            >
-                <div className="ap-seek-track">
-                    <div className="ap-seek-fill" style={{ width: `${progress * 100}%` }} />
-                    <div className="ap-seek-handle" style={{ left: `${progress * 100}%` }} />
-                </div>
-            </div>
-
-            <div className="ap-controls">
-                <button className="ap-btn ap-play" onClick={toggle} disabled={!url} aria-label={playing ? 'Pause' : 'Play'}>
-                    {playing ? <PauseIcon /> : <PlayIcon />}
-                </button>
-                <button className="ap-btn" onClick={prev} disabled={count < 2} aria-label="Previous track"><PrevIcon /></button>
-                <button className="ap-btn" onClick={next} disabled={count < 2} aria-label="Next track"><NextIcon /></button>
-                <button className="ap-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}><VolIcon muted={muted} /></button>
-                <span className="ap-time">{fmt(current)} / {fmt(duration)}</span>
-            </div>
+            {seekBar}
+            {controls}
         </div>
     );
 };

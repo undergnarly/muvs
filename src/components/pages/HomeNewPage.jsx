@@ -130,6 +130,9 @@ const buildLogoTexture = (key, color) => {
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 
+const toSlug = (r) => (r?.slug || r?.title || '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 const buildDefaultStops = (count) => {
     const out = [];
     for (let i = 0; i < count; i++) {
@@ -1666,6 +1669,25 @@ export const Scene3DShell = ({
     );
     const currentRelease = displayItems[releaseSwitcher.current];
 
+    // Deep link: read hash on first data load, navigate to matching release
+    const hashNavigatedRef = useRef(false);
+    useEffect(() => {
+        if (hashNavigatedRef.current || !displayItems.length) return;
+        hashNavigatedRef.current = true;
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+        const idx = displayItems.findIndex((r) => toSlug(r) === hash);
+        if (idx >= 0) releaseSwitcher.goTo(idx);
+    }, [displayItems, releaseSwitcher]);
+
+    // Deep link: update hash when current release changes
+    useEffect(() => {
+        const slug = toSlug(displayItems[releaseSwitcher.current]);
+        if (!slug) return;
+        const next = '#' + slug;
+        if (window.location.hash !== next) window.history.replaceState(null, '', next);
+    }, [releaseSwitcher.current, displayItems]);
+
     const [mixIndex, setMixIndex] = useState(0);
     const [mixPlaying, setMixPlaying] = useState(false);
     const currentMix = tvMixes?.[mixIndex] || null;
@@ -1753,7 +1775,12 @@ export const Scene3DShell = ({
                     canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
             ) : (!simple && currentRelease && (
-                <AlbumPlayer release={currentRelease} />
+                <AlbumPlayer
+                    release={currentRelease}
+                    releases={displayItems}
+                    currentReleaseIndex={releaseSwitcher.current}
+                    onReleaseSelect={releaseSwitcher.goTo}
+                />
             ))}
 
             {showDebug && createPortal(

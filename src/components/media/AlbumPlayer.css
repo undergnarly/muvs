@@ -1,5 +1,4 @@
-/* Native React album player — replaces the Player JS embed.
-   Frosted light panel, cover left, full-width playlist, control bar. */
+/* Native React album player — frosted light panel, cover left, full-width playlist, control bar. */
 
 .ap {
     position: fixed;
@@ -22,7 +21,7 @@
     font-family: inherit;
 }
 
-/* ---- top: cover + playlist (equal height, no gap) ---- */
+/* ---- top: cover + playlist ---- */
 .ap-top {
     display: flex;
     align-items: stretch;
@@ -39,8 +38,6 @@
 .ap-cover img {
     width: 100%;
     height: 100%;
-    /* release art is often a transparent, off-center cutout — contain shows it
-       whole instead of cropping into empty space */
     object-fit: contain;
     object-position: center;
     display: block;
@@ -53,9 +50,16 @@
     margin: 0;
     padding: 0;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 160px;
     background: rgba(255, 255, 255, 0.32);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
 }
+.ap-list::-webkit-scrollbar { width: 3px; }
+.ap-list::-webkit-scrollbar-track { background: transparent; }
+.ap-list::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.18); border-radius: 2px; }
 
 .ap-row {
     display: flex;
@@ -151,6 +155,21 @@
 .ap-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ap-play { width: 46px; height: 46px; }
 
+/* smaller icon buttons (burger + collapse) */
+.ap-btn--sm {
+    width: 34px;
+    height: 34px;
+    background: rgba(0, 0, 0, 0.18);
+}
+.ap-btn--sm:hover:not(:disabled) { background: rgba(0, 0, 0, 0.3); }
+
+/* active state for burger when release list is open */
+.ap-btn--active {
+    background: var(--ap-accent) !important;
+    color: #0a0a0a !important;
+}
+.ap-btn--active:hover:not(:disabled) { background: var(--ap-accent) !important; }
+
 .ap-time {
     margin-left: auto;
     font-size: 12px;
@@ -159,7 +178,25 @@
     white-space: nowrap;
 }
 
-/* ---- mobile: full width, native size (scale 1) ---- */
+/* ---- collapsed state ---- */
+.ap--collapsed .ap-mini-row {
+    display: flex;
+    align-items: center;
+    padding: 2px 4px 0;
+}
+.ap--collapsed .ap-mini-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    color: #3a3a3a;
+    padding-left: 4px;
+}
+
+/* ---- mobile ---- */
 @media (max-width: 640px) {
     .ap {
         width: calc(100vw - 20px);
