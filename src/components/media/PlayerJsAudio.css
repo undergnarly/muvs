@@ -46,23 +46,26 @@
 }
 
 /* --- Active playlist track: salad-green highlight instead of a checkmark --- */
-/* The active row's highlight overlay is a white pjsdiv at low opacity. */
-.hn-playerjs .pjs-player-active-pl pjsdiv[style*="background: rgb(255, 255, 255)"] {
+/* Player JS prefixes the active class with the container id
+   (e.g. pjs-<id>-active-pl), so match it id-agnostically. */
+.hn-playerjs [class*="active-pl"] pjsdiv[style*="background: rgb(255, 255, 255)"] {
     background: var(--pjs-accent) !important;
     opacity: 1 !important;
 }
 /* Hide the checkmark (the only <svg> in the active row). */
-.hn-playerjs .pjs-player-active-pl svg {
+.hn-playerjs [class*="active-pl"] svg {
     display: none !important;
 }
 
 /* --- Smaller cover (~30%) + pull the playlist over to close the gap --- */
-/* Cover is a direct child of #oframeplayer with `background: url(...)` (150x150). */
-.hn-playerjs #oframeplayer > pjsdiv[style*="background: url"] {
+/* Cover is a direct child of the frame (id is `oframe<id>`, so id-agnostic)
+   and carries `background: url(...)` (150x150 by default). */
+.hn-playerjs [id^="oframe"] > pjsdiv[style*="background: url"] {
     width: 105px !important;
     height: 105px !important;
 }
-.hn-playerjs pjsdiv:has(> #player_playlist) {
+/* Playlist id is also id-prefixed (e.g. <id>_playlist). */
+.hn-playerjs pjsdiv:has(> [id$="_playlist"]) {
     left: 125px !important;
 }
 
