@@ -47,7 +47,11 @@
 
 /* --- Active playlist track: salad-green highlight instead of a checkmark --- */
 /* Player JS prefixes the active class with the container id
-   (e.g. pjs-<id>-active-pl), so match it id-agnostically. */
+   (e.g. pjs-<id>-active-pl), so match it id-agnostically. Color the row
+   itself so it's solid green in every state (at rest, playing, hover). */
+.hn-playerjs [class*="active-pl"] {
+    background: var(--pjs-accent) !important;
+}
 .hn-playerjs [class*="active-pl"] pjsdiv[style*="background: rgb(255, 255, 255)"] {
     background: var(--pjs-accent) !important;
     opacity: 1 !important;
