@@ -1773,10 +1773,7 @@ export const Scene3DShell = ({
 };
 
 const HomeNewPage = () => {
-    // Camera tuner: currently shown directly on the home page for camera
-    // fixing. To hide from visitors later, gate on a flag, e.g.:
-    //   const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
-    const showDebug = true;
+    const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
     return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} />;
 };
 
