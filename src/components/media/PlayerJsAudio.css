@@ -45,6 +45,27 @@
     fill: var(--pjs-accent) !important;
 }
 
+/* --- Active playlist track: salad-green highlight instead of a checkmark --- */
+/* The active row's highlight overlay is a white pjsdiv at low opacity. */
+.hn-playerjs .pjs-player-active-pl pjsdiv[style*="background: rgb(255, 255, 255)"] {
+    background: var(--pjs-accent) !important;
+    opacity: 1 !important;
+}
+/* Hide the checkmark (the only <svg> in the active row). */
+.hn-playerjs .pjs-player-active-pl svg {
+    display: none !important;
+}
+
+/* --- Smaller cover (~30%) + pull the playlist over to close the gap --- */
+/* Cover is a direct child of #oframeplayer with `background: url(...)` (150x150). */
+.hn-playerjs #oframeplayer > pjsdiv[style*="background: url"] {
+    width: 105px !important;
+    height: 105px !important;
+}
+.hn-playerjs pjsdiv:has(> #player_playlist) {
+    left: 125px !important;
+}
+
 /* --- Mobile: slightly shrink the whole player and span the width --- */
 @media (max-width: 640px) {
     .hn-playerjs {
