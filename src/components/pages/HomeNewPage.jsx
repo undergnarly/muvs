@@ -1771,10 +1771,10 @@ export const Scene3DShell = ({
 };
 
 const HomeNewPage = () => {
-    // Camera debug/config panel: opt-in via ?debug=1 (or ?cam=1) so it's
-    // available for tuning camera stops but hidden from normal visitors.
-    const showDebug = typeof window !== 'undefined'
-        && /[?&](?:debug|cam)=1\b/.test(window.location.search);
+    // Camera tuner: currently shown directly on the home page for camera
+    // fixing. To hide from visitors later, gate on a flag, e.g.:
+    //   const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
+    const showDebug = true;
     return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} />;
 };
 

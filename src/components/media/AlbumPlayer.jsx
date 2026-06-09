@@ -35,7 +35,9 @@ const AlbumPlayer = ({ release }) => {
     const audioRef = useRef(null);
     const playOnLoadRef = useRef(false);
 
-    const tracks = (release?.tracks || []).filter((t) => getTrackUrl(t));
+    // render every track (incl. ones without audio yet) so the player shows
+    // up on every release for preview; playback is guarded on the url.
+    const tracks = release?.tracks || [];
     const cover = release?.coverImage || release?.cover || '';
     const releaseId = release?.id ?? release?.title ?? '';
 
@@ -209,7 +211,7 @@ const AlbumPlayer = ({ release }) => {
             </div>
 
             <div className="ap-controls">
-                <button className="ap-btn ap-play" onClick={toggle} aria-label={playing ? 'Pause' : 'Play'}>
+                <button className="ap-btn ap-play" onClick={toggle} disabled={!url} aria-label={playing ? 'Pause' : 'Play'}>
                     {playing ? <PauseIcon /> : <PlayIcon />}
                 </button>
                 <button className="ap-btn" onClick={prev} disabled={count < 2} aria-label="Previous track"><PrevIcon /></button>
