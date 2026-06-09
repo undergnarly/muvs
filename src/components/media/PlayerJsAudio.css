@@ -1,5 +1,6 @@
 /* Player JS audio wrapper — sits in the same slot as the old .hn-player,
-   fixed bottom-center, dark frame to match the site, fully responsive. */
+   fixed bottom-center, transparent frame (Player JS brings its own skin),
+   fully responsive. */
 
 .hn-playerjs {
     position: fixed;
@@ -11,40 +12,95 @@
     /* Player JS ships its own rounded skin; a wrapper background/border-radius
        would peek through at the corners as black slivers. Keep it transparent. */
     background: transparent;
+    /* subtle shadow that follows the player's rounded shape (drop-shadow traces
+       the actual skin pixels, so no black corner box like box-shadow would give) */
+    filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.28));
     /* accent used by the CSS tints below */
     --pjs-accent: #ccff00;
 }
 
 /* Player JS injects its own DOM; make it fill the frame and stay responsive. */
-.hn-playerjs > div,
-.hn-playerjs .oplayer,
+.hn-playerjs-mount,
+.hn-playerjs-mount > div,
 .hn-playerjs video,
 .hn-playerjs audio {
     width: 100% !important;
     max-width: 100% !important;
     display: block;
 }
-
-/* Audio mode renders a poster area; keep it from getting too tall on desktop. */
 .hn-playerjs [id^="pjs-player-"] {
     width: 100% !important;
 }
 
-/* Player JS renders custom <pjsdiv> elements with inline styles and a baked
-   red accent. Override the accent (seek-bar played fill, volume fill, dots)
-   to the site's salad-green by matching the inline color signature. */
+/* --- Accent: recolor Player JS's baked red to the site's salad-green --- */
+/* Seek-bar played fill / volume fill are <pjsdiv> with inline background. */
 .hn-playerjs pjsdiv[style*="rgb(255, 0, 0)"],
 .hn-playerjs pjsdiv[style*="rgb(234, 51, 62)"] {
     background: var(--pjs-accent) !important;
     background-color: var(--pjs-accent) !important;
 }
+/* The seek handle (кружочек) is an SVG <ellipse> colored via `fill`. */
+.hn-playerjs ellipse[style*="234, 51, 62"],
+.hn-playerjs ellipse[style*="255, 0, 0"] {
+    fill: var(--pjs-accent) !important;
+}
 
-/* Mobile: span the width with small side gutters, sit a touch higher
-   above the browser chrome / safe-area. */
+/* --- Collapse button (top-right corner of the player) --- */
+.hn-playerjs-collapse {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.42);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+.hn-playerjs-collapse:hover {
+    background: rgba(0, 0, 0, 0.62);
+    transform: scale(1.08);
+}
+
+/* --- Collapsed state: hide cover + the other tracks, keep current track --- */
+/* Cover/poster is a direct child of #oframeplayer with `background: url(...)`. */
+.hn-playerjs.collapsed #oframeplayer > pjsdiv[style*="background: url"] {
+    display: none !important;
+}
+/* Keep only the active playlist row (= current track). */
+.hn-playerjs.collapsed #player_playlist pjsdiv[fid]:not(.pjs-player-active-pl) {
+    display: none !important;
+}
+.hn-playerjs.collapsed #player_playlist {
+    max-height: 2.6em !important;
+    overflow: hidden !important;
+}
+/* Shrink the player to just the current track + control bar (drop the empty
+   cover region) and pull the track over to where the cover was. */
+.hn-playerjs.collapsed .hn-playerjs-mount > div,
+.hn-playerjs.collapsed #oframeplayer {
+    height: 104px !important;
+    min-height: 104px !important;
+    overflow: hidden !important;
+}
+.hn-playerjs.collapsed pjsdiv:has(> #player_playlist) {
+    left: 16px !important;
+    top: 14px !important;
+}
+
+/* --- Mobile: shrink the whole player ~30% and span the width --- */
 @media (max-width: 640px) {
     .hn-playerjs {
         width: calc(100vw - 24px);
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-        border-radius: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%) scale(0.7);
+        transform-origin: bottom center;
     }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './PlayerJsAudio.css';
 
 // ---- one-time global loader for /playerjs.js (public/) ----
@@ -25,18 +25,21 @@ const getTrackUrl = (t) => t?.audioFile || t?.audioUrl || t?.audio || t?.url || 
 const getTrackTitle = (t, i) => t?.title || `TRACK ${String(i + 1).padStart(2, '0')}`;
 
 const PlayerJsAudio = ({ release }) => {
-    const holderRef = useRef(null);
+    const mountRef = useRef(null);     // Player JS mounts here (cleared on re-init)
     const instanceRef = useRef(null);
     const idRef = useRef(`pjs-player-${++uid}`);
+    const [collapsed, setCollapsed] = useState(false);
 
+    const tracks = release?.tracks?.length ? release.tracks : [];
+    const hasTracks = tracks.some((t) => getTrackUrl(t));
     const releaseId = release?.id ?? release?.title ?? '';
 
     useEffect(() => {
         let cancelled = false;
-        const tracks = release?.tracks?.length ? release.tracks : [];
+        const list = release?.tracks?.length ? release.tracks : [];
         const cover = release?.coverImage || release?.cover || '';
 
-        const playlist = tracks
+        const playlist = list
             .map((t, i) => ({ t, i, url: getTrackUrl(t) }))
             .filter((x) => x.url)
             .map((x) => ({
@@ -53,7 +56,7 @@ const PlayerJsAudio = ({ release }) => {
                 try { inst.api('destroy'); } catch { /* ignore */ }
             }
             instanceRef.current = null;
-            if (holderRef.current) holderRef.current.innerHTML = '';
+            if (mountRef.current) mountRef.current.innerHTML = '';
         };
 
         if (!playlist.length) {
@@ -63,12 +66,12 @@ const PlayerJsAudio = ({ release }) => {
 
         loadPlayerjs()
             .then(() => {
-                if (cancelled || !holderRef.current || !window.Playerjs) return;
+                if (cancelled || !mountRef.current || !window.Playerjs) return;
                 destroy();
                 // Player JS replaces the target element, so give it a fresh child div.
                 const inner = document.createElement('div');
                 inner.id = idRef.current;
-                holderRef.current.appendChild(inner);
+                mountRef.current.appendChild(inner);
 
                 instanceRef.current = new window.Playerjs({
                     id: idRef.current,
@@ -94,7 +97,27 @@ const PlayerJsAudio = ({ release }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [releaseId]);
 
-    return <div className="hn-playerjs" ref={holderRef} aria-label="Audio player" />;
+    return (
+        <div className={`hn-playerjs${collapsed ? ' collapsed' : ''}`} aria-label="Audio player">
+            <div className="hn-playerjs-mount" ref={mountRef} />
+            {hasTracks && (
+                <button
+                    type="button"
+                    className="hn-playerjs-collapse"
+                    onClick={() => setCollapsed((c) => !c)}
+                    aria-label={collapsed ? 'Развернуть плеер' : 'Свернуть плеер'}
+                    aria-expanded={!collapsed}
+                    title={collapsed ? 'Развернуть' : 'Свернуть'}
+                >
+                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
+                        style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform .25s ease' }}>
+                        <path d="M6 9 L12 15 L18 9" stroke="currentColor" strokeWidth="2.4"
+                            strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+            )}
+        </div>
+    );
 };
 
 export default PlayerJsAudio;

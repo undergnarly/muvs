@@ -9,28 +9,46 @@
     /* mirror of PlayerJsAudio.css */
     .hn-playerjs {
       position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
-      z-index: 6; width: min(560px, 92vw); background: transparent; --pjs-accent: #ccff00;
+      z-index: 6; width: min(560px, 92vw); background: transparent;
+      filter: drop-shadow(0 10px 26px rgba(0,0,0,.28)); --pjs-accent: #ccff00;
     }
-    .hn-playerjs > div, .hn-playerjs video, .hn-playerjs audio { width:100% !important; max-width:100% !important; display:block; }
+    .hn-playerjs-mount, .hn-playerjs-mount > div, .hn-playerjs video, .hn-playerjs audio { width:100% !important; max-width:100% !important; display:block; }
     .hn-playerjs pjsdiv[style*="rgb(255, 0, 0)"], .hn-playerjs pjsdiv[style*="rgb(234, 51, 62)"] { background: var(--pjs-accent) !important; background-color: var(--pjs-accent) !important; }
-    @media (max-width:640px){ .hn-playerjs{ width:calc(100vw - 24px); bottom:16px; border-radius:14px; } }
+    .hn-playerjs ellipse[style*="234, 51, 62"], .hn-playerjs ellipse[style*="255, 0, 0"] { fill: var(--pjs-accent) !important; }
+    .hn-playerjs-collapse { position:absolute; top:8px; right:8px; z-index:10; width:26px; height:26px; border:none; border-radius:50%; background:rgba(0,0,0,.42); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:background .18s ease, transform .18s ease; }
+    .hn-playerjs-collapse:hover { background:rgba(0,0,0,.62); transform:scale(1.08); }
+    .hn-playerjs.collapsed #oframeplayer > pjsdiv[style*="background: url"] { display:none !important; }
+    .hn-playerjs.collapsed #player_playlist pjsdiv[fid]:not(.pjs-player-active-pl) { display:none !important; }
+    .hn-playerjs.collapsed #player_playlist { max-height:2.6em !important; overflow:hidden !important; }
+    .hn-playerjs.collapsed .hn-playerjs-mount > div, .hn-playerjs.collapsed #oframeplayer { height:104px !important; min-height:104px !important; overflow:hidden !important; }
+    .hn-playerjs.collapsed pjsdiv:has(> #player_playlist) { left:16px !important; top:14px !important; }
+    @media (max-width:640px){ .hn-playerjs{ width:calc(100vw - 24px); bottom:14px; transform:translateX(-50%) scale(.7); transform-origin:bottom center; } }
   </style>
 </head>
 <body>
-  <div class="hn-playerjs"><div id="player"></div></div>
+  <div class="hn-playerjs" id="wrap">
+    <div class="hn-playerjs-mount"><div id="player"></div></div>
+    <button class="hn-playerjs-collapse" id="collapseBtn" aria-label="collapse">
+      <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 9 L12 15 L18 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+    </button>
+  </div>
   <script src="/playerjs.js"></script>
   <script>
     var poster = "/images/mixes-tv.webp";
     var playlist = [
-      { title: "Muvs — Track 01", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", poster: poster },
-      { title: "Muvs — Track 02", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", poster: poster }
+      { title: "Muvs — Mantras", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", poster: poster },
+      { title: "Muvs — Veiled", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", poster: poster },
+      { title: "Muvs — Serpent's Embrace", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", poster: poster }
     ];
     var demo = location.search.indexOf('demo') !== -1;
+    var collapsed = location.search.indexOf('collapsed') !== -1;
+    if (collapsed) document.getElementById('wrap').classList.add('collapsed');
+    document.getElementById('collapseBtn').addEventListener('click', function () {
+      document.getElementById('wrap').classList.toggle('collapsed');
+    });
     window.addEventListener('load', function () {
       window.__pjs = new Playerjs({ id: "player", file: JSON.stringify(playlist), poster: poster, autoplay: demo ? 1 : 0, preload: "metadata", color: "#ccff00", handlecolor: "#ccff00", colorover: "#ccff00", pointcolor: "#ccff00" });
-      if (demo) {
-        setTimeout(function(){ try { window.__pjs.api('seek', 90); window.__pjs.api('play'); } catch(e){} }, 1500);
-      }
+      if (demo) { setTimeout(function(){ try { window.__pjs.api('seek', 90); window.__pjs.api('play'); } catch(e){} }, 1500); }
     });
   </script>
 </body>
