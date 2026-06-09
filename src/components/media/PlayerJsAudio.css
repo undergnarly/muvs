@@ -1,0 +1,50 @@
+/* Player JS audio wrapper — sits in the same slot as the old .hn-player,
+   fixed bottom-center, dark frame to match the site, fully responsive. */
+
+.hn-playerjs {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: min(560px, 92vw);
+    /* Player JS ships its own rounded skin; a wrapper background/border-radius
+       would peek through at the corners as black slivers. Keep it transparent. */
+    background: transparent;
+    /* accent used by the CSS tints below */
+    --pjs-accent: #ccff00;
+}
+
+/* Player JS injects its own DOM; make it fill the frame and stay responsive. */
+.hn-playerjs > div,
+.hn-playerjs .oplayer,
+.hn-playerjs video,
+.hn-playerjs audio {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block;
+}
+
+/* Audio mode renders a poster area; keep it from getting too tall on desktop. */
+.hn-playerjs [id^="pjs-player-"] {
+    width: 100% !important;
+}
+
+/* Player JS renders custom <pjsdiv> elements with inline styles and a baked
+   red accent. Override the accent (seek-bar played fill, volume fill, dots)
+   to the site's salad-green by matching the inline color signature. */
+.hn-playerjs pjsdiv[style*="rgb(255, 0, 0)"],
+.hn-playerjs pjsdiv[style*="rgb(234, 51, 62)"] {
+    background: var(--pjs-accent) !important;
+    background-color: var(--pjs-accent) !important;
+}
+
+/* Mobile: span the width with small side gutters, sit a touch higher
+   above the browser chrome / safe-area. */
+@media (max-width: 640px) {
+    .hn-playerjs {
+        width: calc(100vw - 24px);
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        border-radius: 14px;
+    }
+}

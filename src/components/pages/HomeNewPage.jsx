@@ -5,6 +5,7 @@ import { Html, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import { AnimatePresence, motion } from 'framer-motion';
 import Header from '../layout/Header';
+import PlayerJsAudio from '../media/PlayerJsAudio';
 import { useData } from '../../context/DataContext';
 import './HomeNewPage.css';
 
@@ -1751,7 +1752,7 @@ export const Scene3DShell = ({
                     canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
             ) : (!simple && currentRelease && (
-                <Player release={currentRelease} />
+                <PlayerJsAudio release={currentRelease} />
             ))}
 
             {showDebug && (

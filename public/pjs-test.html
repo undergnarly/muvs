@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player JS audio test</title>
+  <style>
+    body { margin: 0; min-height: 100vh; background: linear-gradient(#777, #fff); font-family: sans-serif; }
+    /* mirror of PlayerJsAudio.css */
+    .hn-playerjs {
+      position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+      z-index: 6; width: min(560px, 92vw); background: transparent; --pjs-accent: #ccff00;
+    }
+    .hn-playerjs > div, .hn-playerjs video, .hn-playerjs audio { width:100% !important; max-width:100% !important; display:block; }
+    .hn-playerjs pjsdiv[style*="rgb(255, 0, 0)"], .hn-playerjs pjsdiv[style*="rgb(234, 51, 62)"] { background: var(--pjs-accent) !important; background-color: var(--pjs-accent) !important; }
+    @media (max-width:640px){ .hn-playerjs{ width:calc(100vw - 24px); bottom:16px; border-radius:14px; } }
+  </style>
+</head>
+<body>
+  <div class="hn-playerjs"><div id="player"></div></div>
+  <script src="/playerjs.js"></script>
+  <script>
+    var poster = "/images/mixes-tv.webp";
+    var playlist = [
+      { title: "Muvs — Track 01", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", poster: poster },
+      { title: "Muvs — Track 02", file: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", poster: poster }
+    ];
+    var demo = location.search.indexOf('demo') !== -1;
+    window.addEventListener('load', function () {
+      window.__pjs = new Playerjs({ id: "player", file: JSON.stringify(playlist), poster: poster, autoplay: demo ? 1 : 0, preload: "metadata", color: "#ccff00", handlecolor: "#ccff00", colorover: "#ccff00", pointcolor: "#ccff00" });
+      if (demo) {
+        setTimeout(function(){ try { window.__pjs.api('seek', 90); window.__pjs.api('play'); } catch(e){} }, 1500);
+      }
+    });
+  </script>
+</body>
+</html>
