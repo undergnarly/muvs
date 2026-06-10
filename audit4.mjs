@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ headless: true });
+const ctxD = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const pageD = await ctxD.newPage();
+await pageD.goto('http://localhost:3000', { waitUntil: 'networkidle', timeout: 60000 });
+await pageD.waitForTimeout(1500);
+await pageD.screenshot({ path: '/tmp/landing-d-fixed.png', fullPage: true });
+const h = await pageD.evaluate(() => document.documentElement.scrollHeight);
+console.log('desktop docHeight:', h);
+await browser.close();

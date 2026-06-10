@@ -5,9 +5,14 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
+import {
+    RingMenu, HUB_ITEMS, HUB_STEP, HUB_RETURN_KEY, DEFAULT_HUB,
+    hubMod, hubSmoothstep, hubMenuPose, lerpPose,
+} from './RingMenu';
 import './HomeNewPage.css';
 
 const stripHtml = (html) =>
@@ -78,6 +83,7 @@ const DEFAULT_CFG = {
     stack: DEFAULT_STACK,
     support: DEFAULT_SUPPORT,
     tv: DEFAULT_TV,
+    hub: DEFAULT_HUB,
 };
 
 const PLATFORMS = [
@@ -166,15 +172,18 @@ const hydrateCfg = (cfg, expectedStops) => {
             screen: { ...DEFAULT_TV.screen, ...(cfg.tv?.screen || {}) },
             iframeShift: { ...DEFAULT_TV.iframeShift, ...(cfg.tv?.iframeShift || {}) },
         },
+        hub: { ...DEFAULT_HUB, ...(cfg.hub || {}) },
     };
 };
 
 // ================ snap scroll (vertical) ================
 
-const useSnapScroll = (numStops) => {
+const useSnapScroll = (numStops, { enabled = true, onOverscrollUp } = {}) => {
     const indexRef = useRef(0);
     const progressRef = useRef(0);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const overscrollUpRef = useRef(onOverscrollUp);
+    useEffect(() => { overscrollUpRef.current = onOverscrollUp; }, [onOverscrollUp]);
 
     const goTo = useCallback(
         (idx) => {
@@ -186,7 +195,19 @@ const useSnapScroll = (numStops) => {
     );
 
     useEffect(() => {
+        if (!enabled) return undefined;
         let lastWheel = 0;
+        const step = (dir) => {
+            if (dir === -1 && indexRef.current === 0) {
+                overscrollUpRef.current?.();
+                return;
+            }
+            const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
+            if (next !== indexRef.current) {
+                indexRef.current = next;
+                setCurrentIndex(next);
+            }
+        };
         const onWheel = (e) => {
             // Only handle vertical-dominant scroll; horizontal goes to release switcher.
             if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
@@ -195,12 +216,7 @@ const useSnapScroll = (numStops) => {
             if (now - lastWheel < 650) return;
             if (Math.abs(e.deltaY) < 4) return;
             lastWheel = now;
-            const dir = e.deltaY > 0 ? 1 : -1;
-            const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
-            if (next !== indexRef.current) {
-                indexRef.current = next;
-                setCurrentIndex(next);
-            }
+            step(e.deltaY > 0 ? 1 : -1);
         };
         let touchY = null;
         let touchX = null;
@@ -213,24 +229,18 @@ const useSnapScroll = (numStops) => {
             const dx = touchX - endX;
             // Only act on vertical-dominant swipes.
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
-                const dir = dy > 0 ? 1 : -1;
-                const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
-                if (next !== indexRef.current) {
-                    indexRef.current = next;
-                    setCurrentIndex(next);
-                }
+                step(dy > 0 ? 1 : -1);
             }
             touchY = null; touchX = null;
         };
         const onKey = (e) => {
+            if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
                 e.preventDefault();
-                const next = Math.min(numStops - 1, indexRef.current + 1);
-                indexRef.current = next; setCurrentIndex(next);
+                step(1);
             } else if (['ArrowUp', 'PageUp'].includes(e.key)) {
                 e.preventDefault();
-                const next = Math.max(0, indexRef.current - 1);
-                indexRef.current = next; setCurrentIndex(next);
+                step(-1);
             }
         };
         window.addEventListener('wheel', onWheel, { passive: false });
@@ -243,7 +253,7 @@ const useSnapScroll = (numStops) => {
             window.removeEventListener('touchend', onTouchEnd);
             window.removeEventListener('keydown', onKey);
         };
-    }, [numStops]);
+    }, [numStops, enabled]);
 
     useEffect(() => {
         let raf;
@@ -264,7 +274,7 @@ const useSnapScroll = (numStops) => {
 
 // ================ release switcher (horizontal) ================
 
-const useReleaseSwitcher = (count, onSwitch) => {
+const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
     const indexRef = useRef(0);
     const offsetRef = useRef(0);
     const [current, setCurrent] = useState(0);
@@ -281,6 +291,7 @@ const useReleaseSwitcher = (count, onSwitch) => {
 
     // wheel/touch-driven horizontal switching
     useEffect(() => {
+        if (!enabled) return undefined;
         let lastWheel = 0;
         const onWheel = (e) => {
             if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
@@ -317,6 +328,7 @@ const useReleaseSwitcher = (count, onSwitch) => {
             touchY = null; touchX = null;
         };
         const onKey = (e) => {
+            if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 const next = Math.min(count - 1, indexRef.current + 1);
@@ -341,7 +353,7 @@ const useReleaseSwitcher = (count, onSwitch) => {
             window.removeEventListener('touchend', onTouchEnd);
             window.removeEventListener('keydown', onKey);
         };
-    }, [count]);
+    }, [count, enabled]);
 
     useEffect(() => {
         let raf;
@@ -650,9 +662,10 @@ const FloorPhotoSheets = ({ x, z, seed, gallery }) => {
     );
 };
 
-const Floor = () => (
+const Floor = ({ big = false }) => (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[160, 80]} />
+        {/* hub mode hosts section worlds ~90 units out — the floor must reach them */}
+        <planeGeometry args={big ? [260, 260] : [160, 80]} />
         <meshBasicMaterial color="#ffffff" />
     </mesh>
 );
@@ -760,24 +773,29 @@ const SupportFloorText = ({ x, support }) => (
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 
+// Interpolated camera pose along the section stops at progress p (0..1).
+const sampleStops = (stops, p) => {
+    const segCount = stops.length - 1;
+    const pc = THREE.MathUtils.clamp(p, 0, 1);
+    const segFloat = pc * segCount;
+    const segIdx = Math.min(Math.floor(segFloat), segCount - 1);
+    const lt = segFloat - segIdx;
+    const e = lt * lt * (3 - 2 * lt);
+    const a = stops[segIdx];
+    const b = stops[segIdx + 1];
+    return {
+        pos: lerpVec(a.pos, b.pos, e),
+        look: lerpVec(a.look, b.look, e),
+        fov: lerp(a.fov, b.fov, e),
+    };
+};
+
 const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
     useFrame(({ camera }) => {
         const c = cfgRef.current;
-        const stops = c.stops;
-        const segCount = stops.length - 1;
-        const p = THREE.MathUtils.clamp(progressRef.current, 0, 1);
-        const segFloat = p * segCount;
-        const segIdx = Math.min(Math.floor(segFloat), segCount - 1);
-        const lt = segFloat - segIdx;
-        const e = lt * lt * (3 - 2 * lt);
-
-        const a = stops[segIdx];
-        const b = stops[segIdx + 1];
-        const pos = lerpVec(a.pos, b.pos, e);
-        const look = lerpVec(a.look, b.look, e);
-        const fov = lerp(a.fov, b.fov, e);
+        const { pos, look, fov } = sampleStops(c.stops, progressRef.current);
         const offX = releaseOffsetRef.current;
 
         camera.position.set(pos.x + offX, pos.y, pos.z);
@@ -786,6 +804,87 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
 
         if (Math.abs(camera.fov - fov) > 0.01) {
             camera.fov = fov;
+            camera.updateProjectionMatrix();
+        }
+    });
+
+    return null;
+};
+
+// Camera master for hub mode: ring orbit ('menu'), ring↔section travel
+// ('travel'), stop-scroll inside the section ('section'), and fog-out toward
+// a section that still lives on its own route ('foreign'). The section world
+// sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
+const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
+    const lookAt = useRef(new THREE.Vector3());
+
+    useFrame(({ camera }, delta) => {
+        const cfg = cfgRef.current;
+        const hub = cfg.hub || DEFAULT_HUB;
+        const st = stRef.current;
+
+        // troika Text ignores scene fog, so distant worlds would shine through
+        // it — toggle whole-world visibility around the travel midpoint instead.
+        if (ringRef?.current) {
+            ringRef.current.visible = st.phase !== 'section' && !(st.phase === 'travel' && st.tt > 0.55);
+        }
+        if (sectionRef?.current) {
+            sectionRef.current.visible = st.phase === 'section' || (st.phase === 'travel' && st.tt > 0.45);
+        }
+
+        const targetA = st.menuIndex * HUB_STEP;
+        st.angle += (targetA - st.angle) * Math.min(1, delta * 5);
+
+        const D = hub.sectionDist;
+        const s2w = (p, ox = 0) => ({ x: -(p.x + ox), y: p.y, z: -p.z - D });
+
+        let pose;
+        if (st.phase === 'section') {
+            const lp = sampleStops(cfg.stops, progressRef.current);
+            const ox = releaseOffsetRef.current;
+            pose = { pos: s2w(lp.pos, ox), look: s2w(lp.look, ox), fov: lp.fov };
+        } else if (st.phase === 'travel') {
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / (hub.travelDur || 1.8)) * st.dir));
+            const a = hubMenuPose(hub, st.angle);
+            const lp = sampleStops(cfg.stops, 0);
+            const ox = releaseOffsetRef.current;
+            const b = { pos: s2w(lp.pos, ox), look: s2w(lp.look, ox), fov: lp.fov };
+            pose = lerpPose(a, b, hubSmoothstep(st.tt));
+            if (st.dir > 0 && st.tt >= 1) {
+                st.phase = 'section';
+                onPhase('section');
+            } else if (st.dir < 0 && st.tt <= 0) {
+                st.phase = 'menu';
+                onPhase('menu');
+            }
+        } else if (st.phase === 'foreign') {
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 1.1) * st.dir));
+            const e = hubSmoothstep(st.tt);
+            const dx = Math.sin(st.angle);
+            const dz = -Math.cos(st.angle);
+            const dist = hub.ringRadius + hub.camDist + 26 * e;
+            pose = {
+                pos: { x: dx * dist, y: hub.camY + 0.8 * e, z: dz * dist },
+                look: { x: dx * hub.ringRadius, y: hub.lookY, z: dz * hub.ringRadius },
+                fov: hub.fov,
+            };
+            if (st.dir > 0 && st.tt >= 1 && !st.done) {
+                st.done = true;
+                onForeignLeft();
+            } else if (st.dir < 0 && st.tt <= 0) {
+                st.phase = 'menu';
+                st.dir = 0;
+                onPhase('menu');
+            }
+        } else {
+            pose = hubMenuPose(hub, st.angle);
+        }
+
+        camera.position.set(pose.pos.x, pose.pos.y, pose.pos.z);
+        lookAt.current.set(pose.look.x, pose.look.y, pose.look.z);
+        camera.lookAt(lookAt.current);
+        if (Math.abs(camera.fov - pose.fov) > 0.01) {
+            camera.fov = pose.fov;
             camera.updateProjectionMatrix();
         }
     });
@@ -995,39 +1094,77 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, dollyRestZRef, dollyPlayZ, dollyEnabled }) => (
-    <>
-        <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
-        {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
-        <FogSync cfgRef={cfgRef} />
-        <fog attach="fog" args={['#ffffff', 14, 32]} />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[6, 12, 8]} intensity={0.55} />
-        <Floor />
-        {!simple && (
-            <Physics gravity={[0, -9.81, 0]}>
-                <RigidBody type="fixed" colliders={false}>
-                    <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
-                </RigidBody>
-                {releases.map((r, i) => (
-                    <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
-                ))}
-            </Physics>
-        )}
-        {releases.map((r, i) => (
-            <React.Fragment key={r.id ?? i}>
-                <Suspense fallback={null}>
-                    <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} />
-                </Suspense>
-                <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
-                <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
-                {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
-            </React.Fragment>
-        ))}
-        {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
-        {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} />}
-    </>
-);
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, dollyRestZRef, dollyPlayZ, dollyEnabled, hub = null }) => {
+    const sectionContent = (
+        <>
+            {!simple && (
+                <Physics gravity={[0, -9.81, 0]}>
+                    <RigidBody type="fixed" colliders={false}>
+                        <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
+                    </RigidBody>
+                    {releases.map((r, i) => (
+                        <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
+                    ))}
+                </Physics>
+            )}
+            {releases.map((r, i) => (
+                <React.Fragment key={r.id ?? i}>
+                    <Suspense fallback={null}>
+                        <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} />
+                    </Suspense>
+                    <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
+                    <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
+                    {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
+                </React.Fragment>
+            ))}
+            {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
+            {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} />}
+        </>
+    );
+
+    const ringRef = useRef(null);
+    const sectionRef = useRef(null);
+
+    return (
+        <>
+            {hub ? (
+                <HubCamera
+                    cfgRef={cfgRef}
+                    stRef={hub.stateRef}
+                    progressRef={progressRef}
+                    releaseOffsetRef={releaseOffsetRef}
+                    onPhase={hub.onPhase}
+                    onForeignLeft={hub.onForeignLeft}
+                    ringRef={ringRef}
+                    sectionRef={sectionRef}
+                />
+            ) : (
+                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
+            )}
+            {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
+            <FogSync cfgRef={cfgRef} />
+            <fog attach="fog" args={['#ffffff', 14, 32]} />
+            <ambientLight intensity={0.75} />
+            <directionalLight position={[6, 12, 8]} intensity={0.55} />
+            <Floor big={!!hub} />
+            {hub && (
+                <group ref={ringRef}>
+                    <RingMenu hub={hub.cfg} covers={hub.covers} onSelect={hub.onSelect} />
+                </group>
+            )}
+            {hub ? (
+                // One unified world: the ring sits at the origin, the music
+                // section lives along the MUSIC ray (θ=0), rotated to face the
+                // approaching camera. local → world: rotY(π), then -sectionDist.
+                <group ref={sectionRef} rotation={[0, Math.PI, 0]} position={[0, 0, -hub.cfg.sectionDist]}>
+                    {sectionContent}
+                </group>
+            ) : (
+                sectionContent
+            )}
+        </>
+    );
+};
 
 // ================ playlist player ================
 
@@ -1438,7 +1575,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
     </div>
 );
 
-const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer }) => {
+const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer, hubMode = false }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
     const [progress, setProgress] = useState(0);
@@ -1506,6 +1643,21 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
             </div>
 
             <div className="dbg-edit-hint">editing stop {editIdx} ({Math.round((editIdx / (cfg.stops.length - 1)) * 100)}%)</div>
+
+            {hubMode && (
+                <div className="dbg-block">
+                    <div className="dbg-title">hub menu (ring)</div>
+                    <Row label="ring r"   value={cfg.hub?.ringRadius ?? 9}  min={4}   max={24}  step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, ringRadius: v } })} />
+                    <Row label="cam dist" value={cfg.hub?.camDist ?? 11}    min={3}   max={30}  step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camDist: v } })} />
+                    <Row label="cam y"    value={cfg.hub?.camY ?? 2.6}      min={0.2} max={10}  step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camY: v } })} />
+                    <Row label="look y"   value={cfg.hub?.lookY ?? 2.5}     min={0}   max={8}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, lookY: v } })} />
+                    <Row label="fov"      value={cfg.hub?.fov ?? 50}        min={25}  max={100} step={1}    onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, fov: v } })} />
+                    <Row label="sect dist" value={cfg.hub?.sectionDist ?? 56} min={24} max={140} step={1}   onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, sectionDist: v } })} />
+                    <Row label="item sz"  value={cfg.hub?.itemSize ?? 3.4}  min={1}   max={7}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemSize: v } })} />
+                    <Row label="item y"   value={cfg.hub?.itemY ?? 2.45}    min={0}   max={6}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemY: v } })} />
+                    <Row label="travel s" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5}   step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
+                </div>
+            )}
 
             <Vec3Block title="position" vec={stop.pos} setVec={(v) => updateStop(editIdx, { pos: v })} />
             <Vec3Block title="look at"  vec={stop.look} setVec={(v) => updateStop(editIdx, { look: v })} />
@@ -1606,8 +1758,10 @@ export const Scene3DShell = ({
     portfolio = null,
     richText = false,
     tvMixes = null,
+    hub = false,
 }) => {
     const { releases, siteSettings, updateSiteSettings } = useData();
+    const navigate = useNavigate();
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
@@ -1662,12 +1816,215 @@ export const Scene3DShell = ({
         }
     }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount]);
 
-    const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length);
+    // ---- hub (3D ring menu) state ----
+    // Returning from a foreign section: read-and-clear atomically in the
+    // initializer (clearing in an effect loses the value on StrictMode's
+    // dev double-mount).
+    const [hubInit] = useState(() => {
+        if (!hub) return null;
+        let info = null;
+        try {
+            const raw = sessionStorage.getItem(HUB_RETURN_KEY);
+            if (raw) {
+                const v = JSON.parse(raw);
+                if (v?.key && Date.now() - (v.ts || 0) < 3600000) info = v;
+                sessionStorage.removeItem(HUB_RETURN_KEY);
+            }
+        } catch { /* ignore */ }
+        const idx = info ? Math.max(0, HUB_ITEMS.findIndex((m) => m.key === info.key)) : 0;
+        return { idx, returning: !!info };
+    });
+    const hubStateRef = useRef(hub ? {
+        phase: hubInit.returning ? 'foreign' : 'menu',
+        tt: hubInit.returning ? 1 : 0,
+        dir: hubInit.returning ? -1 : 0,
+        menuIndex: hubInit.idx,
+        angle: hubInit.idx * HUB_STEP,
+        foreignKey: null,
+        done: false,
+    } : null);
+    const [hubPhase, setHubPhase] = useState(() => (hub ? hubStateRef.current.phase : 'section'));
+    const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
+    const sectionControls = !hub || hubPhase === 'section';
+
+    const startTravelBack = useCallback(() => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'section') return;
+        st.phase = 'travel';
+        st.dir = -1;
+        setHubPhase('travel');
+    }, []);
+
+    const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length, {
+        enabled: sectionControls,
+        onOverscrollUp: hub ? startTravelBack : undefined,
+    });
     const releaseSwitcher = useReleaseSwitcher(
         displayItems.length,
         useCallback(() => goTo(0), [goTo]),
+        { enabled: sectionControls },
     );
     const currentRelease = displayItems[releaseSwitcher.current];
+
+    const startTravelIn = useCallback(() => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'menu') return;
+        goTo(0);
+        st.phase = 'travel';
+        st.dir = 1;
+        st.tt = Math.max(0, st.tt);
+        setHubPhase('travel');
+    }, [goTo]);
+
+    const startForeign = useCallback((item) => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'menu') return;
+        st.phase = 'foreign';
+        st.dir = 1;
+        st.tt = 0;
+        st.done = false;
+        st.foreignKey = item.key;
+        setHubPhase('foreign');
+    }, []);
+
+    const hubEnter = useCallback(() => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'menu') return;
+        const item = HUB_ITEMS[hubMod(st.menuIndex)];
+        if (item.key === 'music') startTravelIn();
+        else startForeign(item);
+    }, [startTravelIn, startForeign]);
+
+    const hubRotateBy = useCallback((d) => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'menu') return;
+        st.menuIndex += d;
+        setRingIndex(hubMod(st.menuIndex));
+    }, []);
+
+    const hubSelect = useCallback((index) => {
+        const st = hubStateRef.current;
+        if (!st || st.phase !== 'menu') return;
+        let d = hubMod(index - st.menuIndex);
+        if (d > HUB_ITEMS.length / 2) d -= HUB_ITEMS.length;
+        if (d === 0) hubEnter();
+        else hubRotateBy(d);
+    }, [hubEnter, hubRotateBy]);
+
+    const hubForeignLeft = useCallback(() => {
+        const st = hubStateRef.current;
+        const item = HUB_ITEMS.find((m) => m.key === st?.foreignKey) || HUB_ITEMS[hubMod(st?.menuIndex ?? 0)];
+        try {
+            sessionStorage.setItem(HUB_RETURN_KEY, JSON.stringify({ key: item.key, ts: Date.now() }));
+        } catch { /* ignore */ }
+        navigate(item.route);
+    }, [navigate]);
+
+    const hubOnPhase = useCallback((p) => setHubPhase(p), []);
+
+    // menu-phase input: horizontal wheel/swipe/arrows rotate the ring; a
+    // deliberate downward scroll / upward swipe / Enter dives into the section.
+    useEffect(() => {
+        if (!hub || hubPhase !== 'menu') return undefined;
+        const mountT = Date.now();
+        let lastWheel = 0;
+        let vAcc = 0;
+        let vAccT = 0;
+
+        const tryEnter = () => {
+            if (Date.now() - mountT < 700) return;
+            hubEnter();
+        };
+
+        const onWheel = (e) => {
+            e.preventDefault();
+            const ax = Math.abs(e.deltaX);
+            const ay = Math.abs(e.deltaY);
+            const now = Date.now();
+            if (ax > ay) {
+                if (now - lastWheel < 650 || ax < 6) return;
+                lastWheel = now;
+                hubRotateBy(e.deltaX > 0 ? 1 : -1);
+            } else if (e.deltaY > 0) {
+                if (now - vAccT > 500) vAcc = 0;
+                vAccT = now;
+                vAcc += e.deltaY;
+                if (vAcc > 180) {
+                    vAcc = 0;
+                    tryEnter();
+                }
+            }
+        };
+
+        let touchY = null;
+        let touchX = null;
+        const onTouchStart = (e) => {
+            if (e.touches.length > 1) { touchY = null; touchX = null; return; }
+            touchY = e.touches[0].clientY;
+            touchX = e.touches[0].clientX;
+        };
+        const onTouchMove = (e) => {
+            if (e.touches.length > 1) { touchY = null; touchX = null; }
+        };
+        const onTouchEnd = (e) => {
+            if (touchY == null) return;
+            const endY = e.changedTouches[0]?.clientY ?? touchY;
+            const endX = e.changedTouches[0]?.clientX ?? touchX;
+            const dy = touchY - endY;
+            const dx = touchX - endX;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                hubRotateBy(dx > 0 ? 1 : -1);
+            } else if (dy > Math.abs(dx) && dy > 70) {
+                tryEnter();
+            }
+            touchY = null;
+            touchX = null;
+        };
+
+        const onKey = (e) => {
+            if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                hubRotateBy(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                hubRotateBy(-1);
+            } else if (['ArrowDown', 'Enter', ' '].includes(e.key)) {
+                e.preventDefault();
+                tryEnter();
+            }
+        };
+
+        window.addEventListener('wheel', onWheel, { passive: false });
+        window.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onTouchEnd, { passive: true });
+        window.addEventListener('keydown', onKey);
+        return () => {
+            window.removeEventListener('wheel', onWheel);
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onTouchEnd);
+            window.removeEventListener('keydown', onKey);
+        };
+    }, [hub, hubPhase, hubEnter, hubRotateBy]);
+
+    const hubCovers = useMemo(() => {
+        if (!hub) return null;
+        return HUB_ITEMS.map((_, i) => {
+            const r = displayItems.length ? displayItems[i % displayItems.length] : null;
+            return r?.coverImage || '/images/logo.png';
+        });
+    }, [hub, displayItems]);
+
+    const hubProps = hub ? {
+        cfg: cfg.hub || DEFAULT_HUB,
+        covers: hubCovers,
+        stateRef: hubStateRef,
+        onSelect: hubSelect,
+        onPhase: hubOnPhase,
+        onForeignLeft: hubForeignLeft,
+    } : null;
 
     // Deep link: read hash on first data load, navigate to matching release
     const hashNavigatedRef = useRef(false);
@@ -1722,15 +2079,18 @@ export const Scene3DShell = ({
 
     return (
         <div className="home-new-page">
-            {displayItems.length > 0 && (
+            {(hub || displayItems.length > 0) && (
                 <div className="home-new-canvas">
                     <Canvas
-                        camera={{ position: [0, 3, 7], fov: cfg.stops[0].fov }}
+                        camera={hub
+                            ? { position: [0, (cfg.hub || DEFAULT_HUB).camY, -((cfg.hub || DEFAULT_HUB).ringRadius + (cfg.hub || DEFAULT_HUB).camDist)], fov: (cfg.hub || DEFAULT_HUB).fov }
+                            : { position: [0, 3, 7], fov: cfg.stops[0].fov }}
                         gl={{ antialias: true, alpha: true }}
                         dpr={[1, 2]}
                     >
                         <Scene
                             releases={displayItems}
+                            hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
@@ -1754,8 +2114,35 @@ export const Scene3DShell = ({
             )}
 
             <div className="home-new-gradient" aria-hidden="true" />
-            <Header theme={currentIndex === 0 ? 'light' : 'dark'} />
-            <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
+            <Header theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'} />
+            {sectionControls && (
+                <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
+            )}
+
+            {hub && hubPhase === 'menu' && (
+                <>
+                    <div className="mp3d-counter" aria-hidden="true">
+                        {String(ringIndex + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
+                    </div>
+                    <div className="mp3d-ui">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
+                            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </button>
+                        <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
+                            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="mp3d-hint" aria-hidden="true">scroll down to enter · swipe to rotate</div>
+                </>
+            )}
+            {hub && hubPhase === 'section' && (
+                <button className="mp3d-back" onClick={startTravelBack}>↑ menu</button>
+            )}
 
             {tvMixes && tvMixes.length > 0 ? (
                 <MixSwitcher
@@ -1774,7 +2161,7 @@ export const Scene3DShell = ({
                     canPrev={releaseSwitcher.current > 0}
                     canNext={releaseSwitcher.current < displayItems.length - 1}
                 />
-            ) : (!simple && currentRelease && (
+            ) : (!simple && currentRelease && sectionControls && (
                 <AlbumPlayer
                     release={currentRelease}
                     releases={displayItems}
@@ -1792,6 +2179,7 @@ export const Scene3DShell = ({
                     progressRef={progressRef}
                     onSaveToServer={saveCfg}
                     onResetServer={clearCfg}
+                    hubMode={hub}
                 />,
                 document.body,
             )}
@@ -1799,7 +2187,15 @@ export const Scene3DShell = ({
     );
 };
 
-const HomeNewPage = () => {
+// '/' — the hub: one unified 3D world (ring menu at the center, the music
+// section out along the MUSIC ray). Camera tuner is on while it's being dialed
+// in (user request); re-gate on ?debug=1 when done.
+const HomeNewPage = () => (
+    <Scene3DShell serverCfgKey="homeNewConfig" showDebug hub />
+);
+
+// '/music' — the standalone music page (direct links, burger menu).
+export const MusicNewPage = () => {
     const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
     return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} />;
 };
