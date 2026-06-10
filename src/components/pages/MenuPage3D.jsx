@@ -25,17 +25,19 @@ const MENU_ITEMS = [
 const COUNT = MENU_ITEMS.length;
 const STEP = (Math.PI * 2) / COUNT;
 const RING_RADIUS = 9;
-// Camera idles slightly behind the ring center (opposite the active item) so
-// neighbor edges can peek into wide viewports and the active billboard has air.
-const CAM_BACK = 2.2;
+// Camera orbits OUTSIDE the ring at R + CAM_DIST, facing inward at the active
+// item; moving between items sweeps along the outer orbit. Neighbors sit
+// deeper in the fog for a natural depth cue.
+const CAM_DIST = 11;
 const CAM_Y = 2.6;
 const LOOK_Y = 2.5;
-// Dive target when entering a section: forward toward the item and down.
-const DIVE_FRAC = 0.7;
-const DIVE_Y = 1.0;
-const DIVE_LOOK_Y = 0.7;
+// Entering a section the camera does NOT approach the item — it pulls further
+// AWAY until the whole ring sinks into the white fog (fog far = 32; max item
+// distance = CAM_DIST + PULL_BACK = 33), then the route swap hides behind the
+// white fade. The return animation plays the same path backwards.
+const PULL_BACK = 22;
+const PULL_Y = 3.4;
 const FOV_IDLE = 50;
-const FOV_DIVE = 64;
 const LEAVE_DUR = 0.95; // seconds
 const ENTER_DUR = 0.9;
 
@@ -95,10 +97,10 @@ const RingItem = ({ item, index, cover, onSelect }) => {
         onSelect(index);
     };
     return (
-        // Rotating the wrapper by -theta puts the item at (R·sinθ, ·, -R·cosθ)
-        // with its face toward the ring center.
+        // Rotating the wrapper by -theta puts the item at (R·sinθ, ·, -R·cosθ);
+        // the inner π flip makes it face OUTWARD, toward the orbiting camera.
         <group rotation={[0, -theta, 0]}>
-            <group position={[0, 2.45, -RING_RADIUS]}>
+            <group position={[0, 2.45, -RING_RADIUS]} rotation={[0, Math.PI, 0]}>
                 <Text
                     position={[0, 2.25, -1.2]}
                     fontSize={0.92}
@@ -107,6 +109,7 @@ const RingItem = ({ item, index, cover, onSelect }) => {
                     anchorY="middle"
                     letterSpacing={-0.02}
                     font={FONT_BOLD}
+                    material-side={THREE.FrontSide}
                 >
                     {item.label}
                 </Text>
@@ -118,6 +121,7 @@ const RingItem = ({ item, index, cover, onSelect }) => {
                     anchorY="middle"
                     letterSpacing={0.3}
                     font={FONT_REGULAR}
+                    material-side={THREE.FrontSide}
                 >
                     {`0${index + 1}`}
                 </Text>
@@ -125,17 +129,22 @@ const RingItem = ({ item, index, cover, onSelect }) => {
                     <RingCover url={cover} onClick={onClick} />
                 </Suspense>
             </group>
-            <group position={[0, 0.01, -RING_RADIUS * 0.6]} rotation={[-Math.PI / 2, 0, 0]}>
-                <Text
-                    fontSize={0.2}
-                    color="#888888"
-                    anchorX="center"
-                    anchorY="top"
-                    letterSpacing={0.18}
-                    font={FONT_REGULAR}
-                >
-                    {`SECTION 0${index + 1} — ${item.label}`}
-                </Text>
+            {/* floor caption between the outside camera and the item; the π
+                flip keeps the flat text upright from the camera's side */}
+            <group position={[0, 0.01, -(RING_RADIUS + 3.5)]} rotation={[0, Math.PI, 0]}>
+                <group rotation={[-Math.PI / 2, 0, 0]}>
+                    <Text
+                        fontSize={0.2}
+                        color="#888888"
+                        anchorX="center"
+                        anchorY="top"
+                        letterSpacing={0.18}
+                        font={FONT_REGULAR}
+                        material-side={THREE.FrontSide}
+                    >
+                        {`SECTION 0${index + 1} — ${item.label}`}
+                    </Text>
+                </group>
             </group>
         </group>
     );
@@ -172,17 +181,14 @@ const MenuCamera = ({ idxRef, transRef, fadeRef, onLeft }) => {
         const dx = Math.sin(angleRef.current);
         const dz = -Math.cos(angleRef.current);
 
-        const px = lerp(-dx * CAM_BACK, dx * RING_RADIUS * DIVE_FRAC, e);
-        const pz = lerp(-dz * CAM_BACK, dz * RING_RADIUS * DIVE_FRAC, e);
-        const py = lerp(CAM_Y, DIVE_Y, e);
-        camera.position.set(px, py, pz);
+        const dist = RING_RADIUS + CAM_DIST + PULL_BACK * e;
+        camera.position.set(dx * dist, lerp(CAM_Y, PULL_Y, e), dz * dist);
 
-        look.current.set(dx * RING_RADIUS, lerp(LOOK_Y, DIVE_LOOK_Y, e), dz * RING_RADIUS);
+        look.current.set(dx * RING_RADIUS, LOOK_Y, dz * RING_RADIUS);
         camera.lookAt(look.current);
 
-        const fov = lerp(FOV_IDLE, FOV_DIVE, e);
-        if (Math.abs(camera.fov - fov) > 0.01) {
-            camera.fov = fov;
+        if (Math.abs(camera.fov - FOV_IDLE) > 0.01) {
+            camera.fov = FOV_IDLE;
             camera.updateProjectionMatrix();
         }
 
@@ -367,7 +373,7 @@ const MenuPage3D = () => {
         <div className="home-new-page mp3d">
             <div className="home-new-canvas">
                 <Canvas
-                    camera={{ position: [0, CAM_Y, CAM_BACK], fov: FOV_IDLE }}
+                    camera={{ position: [0, CAM_Y, -(RING_RADIUS + CAM_DIST)], fov: FOV_IDLE }}
                     gl={{ antialias: true, alpha: true }}
                     dpr={[1, 2]}
                 >
