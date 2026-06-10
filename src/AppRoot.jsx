@@ -13,6 +13,7 @@ import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
 import ThreeDPage from './components/pages/ThreeDPage';
 import HomeNewPage from './components/pages/HomeNewPage';
+import MenuPage3D from './components/pages/MenuPage3D';
 import AboutPage3D from './components/pages/AboutPage3D';
 import NewsPage3D from './components/pages/NewsPage3D';
 import MixesPage3D from './components/pages/MixesPage3D';
@@ -46,7 +47,6 @@ function AppRoot() {
     const { trackVisit, siteSettings } = useData();
     const location = useLocation();
 
-    console.log("DEBUG: AppRoot loaded - routes configured");
 
     React.useEffect(() => {
         // Track visit with current path and referrer
@@ -113,7 +113,7 @@ function AppRoot() {
             {!hideOverlays && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <Routes>
-                <Route path={ROUTES.HOME} element={<HomeNewPage />} />
+                <Route path={ROUTES.HOME} element={<MenuPage3D />} />
                 <Route path={ROUTES.MUSIC} element={<HomeNewPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutPage3D />} />
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />

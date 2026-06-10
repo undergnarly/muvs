@@ -1,0 +1,96 @@
+/* 3D ring menu (home). Base page/canvas layout reuses .home-new-page /
+   .home-new-canvas / .home-new-gradient from HomeNewPage.css. */
+
+.mp3d-counter {
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: #1a1a1a;
+    writing-mode: vertical-rl;
+    user-select: none;
+}
+
+.mp3d-ui {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 6;
+}
+
+.mp3d-nav {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #0d0d0d;
+    color: #ffffff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.18s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.mp3d-nav:hover { transform: scale(1.06); }
+
+.mp3d-pill {
+    flex-shrink: 0;
+    height: 56px;
+    min-width: 190px;
+    padding: 0 28px;
+    border: none;
+    border-radius: 999px;
+    background: #0d0d0d;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.mp3d-pill:hover { transform: scale(1.03); background: #1a1a1a; }
+
+.mp3d-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    z-index: 6;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.35);
+    user-select: none;
+    pointer-events: none;
+}
+
+.mp3d-fade {
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0;
+}
+
+@media (max-width: 600px) {
+    .mp3d-ui { bottom: 24px; gap: 10px; }
+    .mp3d-nav { width: 48px; height: 48px; }
+    .mp3d-pill { height: 48px; min-width: 0; padding: 0 20px; font-size: 12px; }
+    .mp3d-counter { right: 14px; font-size: 11px; }
+    .mp3d-hint { display: none; }
+}
