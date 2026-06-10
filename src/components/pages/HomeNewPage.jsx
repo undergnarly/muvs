@@ -1812,14 +1812,16 @@ export const Scene3DShell = ({
         }
         if (!localCfg) {
             const hydrated = hydrateCfg(serverCfg, stopCount);
-            if (hydrated) setCfg(hydrated);
+            // equality guard: sibling siteSettings writes (e.g. visit stats)
+            // change serverCfg identity without changing content
+            if (hydrated && JSON.stringify(hydrated) !== JSON.stringify(cfgRef.current)) setCfg(hydrated);
         }
     }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount]);
 
     // ---- hub (3D ring menu) state ----
-    // Returning from a foreign section: read-and-clear atomically in the
-    // initializer (clearing in an effect loses the value on StrictMode's
-    // dev double-mount).
+    // Returning from a foreign section: the initializer only READS (StrictMode
+    // double-invokes initializers, so a destructive read here would eat the
+    // token on the first invocation); the idempotent delete happens in an effect.
     const [hubInit] = useState(() => {
         if (!hub) return null;
         let info = null;
@@ -1828,12 +1830,15 @@ export const Scene3DShell = ({
             if (raw) {
                 const v = JSON.parse(raw);
                 if (v?.key && Date.now() - (v.ts || 0) < 3600000) info = v;
-                sessionStorage.removeItem(HUB_RETURN_KEY);
             }
         } catch { /* ignore */ }
         const idx = info ? Math.max(0, HUB_ITEMS.findIndex((m) => m.key === info.key)) : 0;
         return { idx, returning: !!info };
     });
+    useEffect(() => {
+        if (!hub) return;
+        try { sessionStorage.removeItem(HUB_RETURN_KEY); } catch { /* ignore */ }
+    }, [hub]);
     const hubStateRef = useRef(hub ? {
         phase: hubInit.returning ? 'foreign' : 'menu',
         tt: hubInit.returning ? 1 : 0,
