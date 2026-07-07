@@ -2149,7 +2149,7 @@ export const Scene3DShell = ({
                 <button className="mp3d-back" onClick={startTravelBack}>↑ menu</button>
             )}
 
-            {tvMixes && tvMixes.length > 0 ? (
+            {sectionControls && tvMixes && tvMixes.length > 0 ? (
                 <MixSwitcher
                     mixes={tvMixes}
                     currentIndex={mixIndex}
@@ -2157,7 +2157,7 @@ export const Scene3DShell = ({
                     playing={mixPlaying}
                     onTogglePlay={() => setMixPlaying((p) => !p)}
                 />
-            ) : bottomAction ? (
+            ) : sectionControls && bottomAction ? (
                 <BottomAction
                     label={bottomAction.label}
                     href={bottomAction.href}
