@@ -108,10 +108,11 @@ function AppRoot() {
         ROUTES.THREE_D,
     ];
     const hideOverlays = scene3DPaths.includes(location.pathname);
+    const hideTopBlur = hideOverlays || location.pathname.startsWith('/projects');
 
     return (
         <>
-            {!hideOverlays && <TopBlur />}
+            {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <Routes>
                 <Route path={ROUTES.HOME} element={<HomeNewPage />} />
