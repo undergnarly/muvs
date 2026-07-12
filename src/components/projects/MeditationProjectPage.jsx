@@ -47,8 +47,10 @@ const phases = [
     ]},
 ];
 
-const totalHours = phases.reduce((sum, phase) => sum + phase.hours, 0);
-const mvpHours = phases.slice(0, 5).reduce((sum, phase) => sum + phase.hours, 0);
+const AGENT_SPEED_FACTOR = 0.25;
+const estimate = (hours) => hours * AGENT_SPEED_FACTOR;
+const totalHours = estimate(phases.reduce((sum, phase) => sum + phase.hours, 0));
+const mvpHours = estimate(phases.slice(0, 5).reduce((sum, phase) => sum + phase.hours, 0));
 
 function Login({ onSuccess }) {
     const [password, setPassword] = useState('');
@@ -86,8 +88,8 @@ function Roadmap() {
             <div className="med-progress-card"><div className="med-progress-top"><span>Текущий прогресс</span><strong>2%</strong></div><div className="med-bar"><i style={{ width: '2%' }} /></div><p><b>Сейчас:</b> исследование и проектирование</p><small>Обновлено 12 июля 2026</small></div>
         </header>
         <section className="med-stats">
-            <article><span>Полный проект</span><strong>{totalHours.toLocaleString('ru-RU')} ч</strong><small>≈ 38 рабочих недель</small></article>
-            <article><span>Web MVP</span><strong>{mvpHours} ч</strong><small>≈ 15 рабочих недель</small></article>
+            <article><span>Полный проект</span><strong>{totalHours.toLocaleString('ru-RU')} ч</strong><small>≈ 10 рабочих недель</small></article>
+            <article><span>Web MVP</span><strong>{mvpHours} ч</strong><small>≈ 5 рабочих недель</small></article>
             <article><span>Фаз</span><strong>8</strong><small>поэтапный запуск</small></article>
         </section>
         <section className="med-intro"><div><p className="med-kicker">ПЛАН РАБОТ</p><h2>От идеи до платформы</h2></div><p>Оценка рассчитана для одного разработчика с AI-агентами, при 32 продуктивных часах в неделю. Включает разработку, интеграции, тестирование и исправления.</p></section>
@@ -96,9 +98,9 @@ function Roadmap() {
                 <button className="med-phase-head" onClick={() => setOpen(open === phase.id ? '' : phase.id)}>
                     <span className="med-phase-number">{phase.status === 'active' ? <Check size={16} /> : phase.id}</span>
                     <span className="med-phase-title"><small>Фаза {phase.id}</small><strong>{phase.title}</strong><em>{phase.subtitle}</em></span>
-                    <span className="med-hours"><Clock3 size={15} /> {phase.hours} ч</span><ChevronDown className={open === phase.id ? 'rotated' : ''} size={20} />
+                    <span className="med-hours"><Clock3 size={15} /> {estimate(phase.hours)} ч</span><ChevronDown className={open === phase.id ? 'rotated' : ''} size={20} />
                 </button>
-                {open === phase.id && <div className="med-tasks">{phase.tasks.map(([task, hours]) => <div key={task}><span>{task}</span><strong>{hours} ч</strong></div>)}</div>}
+                {open === phase.id && <div className="med-tasks">{phase.tasks.map(([task, hours]) => <div key={task}><span>{task}</span><strong>{estimate(hours).toLocaleString('ru-RU')} ч</strong></div>)}</div>}
             </article>)}
         </section>
         <footer><span>Оценка предварительная и уточняется после завершения фазы 01.</span><b>muvs.dev · 2026</b></footer>
