@@ -2020,10 +2020,15 @@ export const Scene3DShell = ({
             music: '/images/menu/music-trans.png',
             code: '/images/menu/code-trans.png',
         };
-        return HUB_ITEMS.map((item, i) => {
-            if (menuCovers[item.key]) return menuCovers[item.key];
+        const releaseCovers = HUB_ITEMS.map((_, i) => {
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
             return r?.coverImage || '/images/logo.png';
+        });
+        const mixesCover = releaseCovers[HUB_ITEMS.findIndex((item) => item.key === 'mixes')];
+        return HUB_ITEMS.map((item, i) => {
+            if (menuCovers[item.key]) return menuCovers[item.key];
+            if (item.key === 'about') return mixesCover;
+            return releaseCovers[i];
         });
     }, [hub, displayItems]);
 
