@@ -32,6 +32,7 @@ const ProjectsManager = React.lazy(() => import('./components/admin/ProjectsMana
 const AboutManager = React.lazy(() => import('./components/admin/AboutManager'));
 const MessagesManager = React.lazy(() => import('./components/admin/MessagesManager'));
 const AdminSettings = React.lazy(() => import('./components/admin/AdminSettings'));
+const MeditationProjectPage = React.lazy(() => import('./components/projects/MeditationProjectPage'));
 
 import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
@@ -132,6 +133,11 @@ function AppRoot() {
                 <Route path={ROUTES.CV_OLD} element={<CVPage />} />
                 <Route path={ROUTES.TEST} element={<TestPage />} />
                 <Route path={ROUTES.THREE_D} element={<ThreeDPage />} />
+                <Route path="/projects/meditation" element={
+                    <Suspense fallback={<LoadingFallback />}>
+                        <MeditationProjectPage />
+                    </Suspense>
+                } />
                 <Route path="/login" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <LoginPage />

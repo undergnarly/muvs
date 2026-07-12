@@ -6,9 +6,21 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = 3001;
+const MEDITATION_PASSWORD = process.env.MEDITATION_PROJECT_PASSWORD;
+const MEDITATION_AUTH_SECRET = process.env.MEDITATION_AUTH_SECRET || MEDITATION_PASSWORD;
+
+const parseCookies = (header = '') => Object.fromEntries(
+    header.split(';').map(part => part.trim().split('=')).filter(([key, value]) => key && value)
+);
+
+const meditationToken = () => crypto
+    .createHmac('sha256', MEDITATION_AUTH_SECRET || 'not-configured')
+    .update('meditation-project-client')
+    .digest('hex');
 
 // Paths to persistent data
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
@@ -119,6 +131,32 @@ const saveDb = (data) => {
 };
 
 // --- Routes ---
+
+app.get('/api/projects/meditation/auth', (req, res) => {
+    if (!MEDITATION_PASSWORD || !MEDITATION_AUTH_SECRET) {
+        return res.status(503).json({ authenticated: false, error: 'Project access is not configured' });
+    }
+    const cookies = parseCookies(req.headers.cookie);
+    res.json({ authenticated: cookies.meditation_access === meditationToken() });
+});
+
+app.post('/api/projects/meditation/auth', (req, res) => {
+    if (!MEDITATION_PASSWORD || !MEDITATION_AUTH_SECRET) {
+        return res.status(503).json({ success: false, error: 'Project access is not configured' });
+    }
+    const supplied = Buffer.from(String(req.body.password || ''));
+    const expected = Buffer.from(MEDITATION_PASSWORD);
+    if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+        return res.status(401).json({ success: false, error: 'Неверный пароль' });
+    }
+    res.setHeader('Set-Cookie', `meditation_access=${meditationToken()}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`);
+    res.json({ success: true });
+});
+
+app.delete('/api/projects/meditation/auth', (req, res) => {
+    res.setHeader('Set-Cookie', 'meditation_access=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');
+    res.json({ success: true });
+});
 
 // Get Data (All or Specific key)
 app.get('/api/data', (req, res) => {
