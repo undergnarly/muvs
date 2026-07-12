@@ -2018,6 +2018,7 @@ export const Scene3DShell = ({
         if (!hub) return null;
         const menuCovers = {
             music: '/images/menu/music-trans.png',
+            mixes: '/images/menu/mixes-y2k-boombox.png',
             code: '/images/menu/code-trans.png',
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
@@ -2027,7 +2028,7 @@ export const Scene3DShell = ({
         const mixesCover = releaseCovers[HUB_ITEMS.findIndex((item) => item.key === 'mixes')];
         return HUB_ITEMS.map((item, i) => {
             if (menuCovers[item.key]) return menuCovers[item.key];
-            if (item.key === 'about') return mixesCover;
+            if (item.key === 'about') return menuCovers.mixes || mixesCover;
             return releaseCovers[i];
         });
     }, [hub, displayItems]);
