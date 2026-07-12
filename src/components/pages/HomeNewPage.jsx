@@ -844,7 +844,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             const ox = releaseOffsetRef.current;
             pose = { pos: s2w(lp.pos, ox), look: s2w(lp.look, ox), fov: lp.fov };
         } else if (st.phase === 'travel') {
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / (hub.travelDur || 1.8)) * st.dir));
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / ((hub.travelDur || 1.8) * 0.5)) * st.dir));
             const a = hubMenuPose(hub, st.angle);
             const lp = sampleStops(cfg.stops, 0);
             const ox = releaseOffsetRef.current;
@@ -858,7 +858,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
                 onPhase('menu');
             }
         } else if (st.phase === 'foreign') {
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 1.1) * st.dir));
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 0.55) * st.dir));
             const e = hubSmoothstep(st.tt);
             const dx = Math.sin(st.angle);
             const dz = -Math.cos(st.angle);
@@ -1949,7 +1949,7 @@ export const Scene3DShell = ({
             if (ax > ay) {
                 if (now - lastWheel < 650 || ax < 6) return;
                 lastWheel = now;
-                hubRotateBy(e.deltaX > 0 ? 1 : -1);
+                hubRotateBy(e.deltaX > 0 ? -1 : 1);
             } else if (e.deltaY > 0) {
                 if (now - vAccT > 500) vAcc = 0;
                 vAccT = now;
@@ -1978,7 +1978,7 @@ export const Scene3DShell = ({
             const dy = touchY - endY;
             const dx = touchX - endX;
             if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-                hubRotateBy(dx > 0 ? 1 : -1);
+                hubRotateBy(dx > 0 ? -1 : 1);
             } else if (dy > Math.abs(dx) && dy > 70) {
                 tryEnter();
             }
@@ -1990,10 +1990,10 @@ export const Scene3DShell = ({
             if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                hubRotateBy(1);
+                hubRotateBy(-1);
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                hubRotateBy(-1);
+                hubRotateBy(1);
             } else if (['ArrowDown', 'Enter', ' '].includes(e.key)) {
                 e.preventDefault();
                 tryEnter();
@@ -2130,13 +2130,13 @@ export const Scene3DShell = ({
                         {String(ringIndex + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Previous section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                         <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Next section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
