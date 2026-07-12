@@ -10,8 +10,8 @@ import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
 import {
-    RingMenu, HUB_ITEMS, HUB_STEP, HUB_RETURN_KEY, DEFAULT_HUB,
-    hubMod, hubSmoothstep, hubMenuPose, lerpPose,
+    RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
+    hubSmoothstep, hubMenuPose, lerpPose,
 } from './RingMenu';
 import './HomeNewPage.css';
 
@@ -811,7 +811,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     return null;
 };
 
-// Camera master for hub mode: ring orbit ('menu'), ring↔section travel
+// Camera master for hub mode: linear menu switching, menu↔section travel
 // ('travel'), stop-scroll inside the section ('section'), and fog-out toward
 // a section that still lives on its own route ('foreign'). The section world
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
@@ -832,7 +832,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             sectionRef.current.visible = st.phase === 'section' || (st.phase === 'travel' && st.tt > 0.45);
         }
 
-        const targetA = st.menuIndex * HUB_STEP;
+        const targetA = st.menuIndex * HUB_SPACING;
         st.angle += (targetA - st.angle) * Math.min(1, delta * 5);
 
         const D = hub.sectionDist;
@@ -860,12 +860,10 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         } else if (st.phase === 'foreign') {
             st.tt = Math.max(0, Math.min(1, st.tt + (delta / 0.55) * st.dir));
             const e = hubSmoothstep(st.tt);
-            const dx = Math.sin(st.angle);
-            const dz = -Math.cos(st.angle);
-            const dist = hub.ringRadius + hub.camDist + 26 * e;
+            const menuPose = hubMenuPose(hub, st.angle);
             pose = {
-                pos: { x: dx * dist, y: hub.camY + 0.8 * e, z: dz * dist },
-                look: { x: dx * hub.ringRadius, y: hub.lookY, z: dz * hub.ringRadius },
+                pos: { x: menuPose.pos.x, y: hub.camY + 0.8 * e, z: menuPose.pos.z - 26 * e },
+                look: menuPose.look,
                 fov: hub.fov,
             };
             if (st.dir > 0 && st.tt >= 1 && !st.done) {
@@ -1844,7 +1842,7 @@ export const Scene3DShell = ({
         tt: hubInit.returning ? 1 : 0,
         dir: hubInit.returning ? -1 : 0,
         menuIndex: hubInit.idx,
-        angle: hubInit.idx * HUB_STEP,
+        angle: hubInit.idx * HUB_SPACING,
         foreignKey: null,
         done: false,
     } : null);
@@ -1895,7 +1893,7 @@ export const Scene3DShell = ({
     const hubEnter = useCallback(() => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        const item = HUB_ITEMS[hubMod(st.menuIndex)];
+        const item = HUB_ITEMS[st.menuIndex];
         if (item.key === 'music') startTravelIn();
         else startForeign(item);
     }, [startTravelIn, startForeign]);
@@ -1903,22 +1901,23 @@ export const Scene3DShell = ({
     const hubRotateBy = useCallback((d) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        st.menuIndex += d;
-        setRingIndex(hubMod(st.menuIndex));
+        const next = Math.max(0, Math.min(HUB_ITEMS.length - 1, st.menuIndex + d));
+        if (next === st.menuIndex) return;
+        st.menuIndex = next;
+        setRingIndex(next);
     }, []);
 
     const hubSelect = useCallback((index) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        let d = hubMod(index - st.menuIndex);
-        if (d > HUB_ITEMS.length / 2) d -= HUB_ITEMS.length;
+        const d = index - st.menuIndex;
         if (d === 0) hubEnter();
         else hubRotateBy(d);
     }, [hubEnter, hubRotateBy]);
 
     const hubForeignLeft = useCallback(() => {
         const st = hubStateRef.current;
-        const item = HUB_ITEMS.find((m) => m.key === st?.foreignKey) || HUB_ITEMS[hubMod(st?.menuIndex ?? 0)];
+        const item = HUB_ITEMS.find((m) => m.key === st?.foreignKey) || HUB_ITEMS[st?.menuIndex ?? 0];
         try {
             sessionStorage.setItem(HUB_RETURN_KEY, JSON.stringify({ key: item.key, ts: Date.now() }));
         } catch { /* ignore */ }
@@ -1927,7 +1926,7 @@ export const Scene3DShell = ({
 
     const hubOnPhase = useCallback((p) => setHubPhase(p), []);
 
-    // menu-phase input: horizontal wheel/swipe/arrows rotate the ring; a
+    // Menu input mirrors the horizontal release switcher; a
     // deliberate downward scroll / upward swipe / Enter dives into the section.
     useEffect(() => {
         if (!hub || hubPhase !== 'menu') return undefined;
@@ -1949,7 +1948,7 @@ export const Scene3DShell = ({
             if (ax > ay) {
                 if (now - lastWheel < 650 || ax < 6) return;
                 lastWheel = now;
-                hubRotateBy(e.deltaX > 0 ? -1 : 1);
+                hubRotateBy(e.deltaX > 0 ? 1 : -1);
             } else if (e.deltaY > 0) {
                 if (now - vAccT > 500) vAcc = 0;
                 vAccT = now;
@@ -1978,7 +1977,7 @@ export const Scene3DShell = ({
             const dy = touchY - endY;
             const dx = touchX - endX;
             if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-                hubRotateBy(dx > 0 ? -1 : 1);
+                hubRotateBy(dx > 0 ? 1 : -1);
             } else if (dy > Math.abs(dx) && dy > 70) {
                 tryEnter();
             }
@@ -1990,10 +1989,10 @@ export const Scene3DShell = ({
             if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                hubRotateBy(-1);
+                hubRotateBy(1);
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                hubRotateBy(1);
+                hubRotateBy(-1);
             } else if (['ArrowDown', 'Enter', ' '].includes(e.key)) {
                 e.preventDefault();
                 tryEnter();
@@ -2141,19 +2140,19 @@ export const Scene3DShell = ({
                         {String(ringIndex + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Previous section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} disabled={ringIndex === 0} aria-label="Previous section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                         <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Next section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} disabled={ringIndex === HUB_ITEMS.length - 1} aria-label="Next section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                     </div>
-                    <div className="mp3d-hint" aria-hidden="true">scroll down to enter · swipe to rotate</div>
+                    <div className="mp3d-hint" aria-hidden="true">scroll down to enter · swipe to switch</div>
                 </>
             )}
             {hub && hubPhase === 'section' && (
@@ -2203,8 +2202,8 @@ export const Scene3DShell = ({
     );
 };
 
-// '/' — the hub: one unified 3D world (ring menu at the center, the music
-// section out along the MUSIC ray). Camera tuner is on while it's being dialed
+// '/' — the hub: one unified 3D world (linear menu at the center, the music
+// section beyond it). Camera tuner is on while it's being dialed
 // in (user request); re-gate on ?debug=1 when done.
 const HomeNewPage = () => (
     <Scene3DShell serverCfgKey="homeNewConfig" showDebug hub />

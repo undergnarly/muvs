@@ -1,4 +1,4 @@
-/* 3D ring menu (home). Base page/canvas layout reuses .home-new-page /
+/* 3D home menu. Base page/canvas layout reuses .home-new-page /
    .home-new-canvas / .home-new-gradient from HomeNewPage.css. */
 
 .mp3d-counter {
@@ -41,7 +41,8 @@
     transition: transform 0.18s ease;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
-.mp3d-nav:hover { transform: scale(1.06); }
+.mp3d-nav:hover:not(:disabled) { transform: scale(1.06); }
+.mp3d-nav:disabled { opacity: 0.28; cursor: default; box-shadow: none; }
 
 .mp3d-pill {
     flex-shrink: 0;

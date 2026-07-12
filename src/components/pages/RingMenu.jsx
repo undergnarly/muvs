@@ -4,9 +4,8 @@ import { Text, useTexture } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import './RingMenu.css';
 
-// 3D ring menu that lives INSIDE the Scene3DShell canvas (hub mode). The ring
-// sits at the world origin; section worlds are placed far along each item's
-// outward ray so the camera can physically travel ring → section through fog.
+// 3D menu that lives inside the Scene3DShell canvas. Items share the same
+// horizontal spacing and camera movement as releases on the music page.
 
 export const HUB_ITEMS = [
     { key: 'music', label: 'MUSIC', route: ROUTES.MUSIC },
@@ -17,17 +16,16 @@ export const HUB_ITEMS = [
 ];
 
 export const HUB_COUNT = HUB_ITEMS.length;
-export const HUB_STEP = (Math.PI * 2) / HUB_COUNT;
+export const HUB_SPACING = 14;
 export const HUB_RETURN_KEY = 'muvs:menu:return';
 
-export const hubMod = (n) => ((n % HUB_COUNT) + HUB_COUNT) % HUB_COUNT;
 export const hubSmoothstep = (t) => t * t * (3 - 2 * t);
 
 // All hub camera/layout parameters are tunable from the camera tuner and are
 // persisted inside the page cfg under cfg.hub.
 export const DEFAULT_HUB = {
-    ringRadius: 9,    // menu items circle radius
-    camDist: 11,      // camera orbit distance beyond the ring (R + camDist from center)
+    ringRadius: 9,    // menu item depth from the world origin
+    camDist: 11,      // camera distance in front of the menu row
     camY: 2.6,
     lookY: 2.5,
     fov: 50,
@@ -37,13 +35,10 @@ export const DEFAULT_HUB = {
     travelDur: 1.8,   // seconds for ring → section camera travel
 };
 
-export const hubMenuPose = (hub, angle) => {
-    const dx = Math.sin(angle);
-    const dz = -Math.cos(angle);
-    const dist = hub.ringRadius + hub.camDist;
+export const hubMenuPose = (hub, offset) => {
     return {
-        pos: { x: dx * dist, y: hub.camY, z: dz * dist },
-        look: { x: dx * hub.ringRadius, y: hub.lookY, z: dz * hub.ringRadius },
+        pos: { x: offset, y: hub.camY, z: -(hub.ringRadius + hub.camDist) },
+        look: { x: offset, y: hub.lookY, z: -hub.ringRadius },
         fov: hub.fov,
     };
 };
@@ -85,15 +80,12 @@ const RingCover = ({ url, size, onClick }) => {
 };
 
 const RingItem = ({ item, index, cover, hub, onSelect }) => {
-    const theta = index * HUB_STEP;
     const onClick = (e) => {
         e.stopPropagation();
         onSelect(index);
     };
     return (
-        // Rotating the wrapper by -theta puts the item at (R·sinθ, ·, -R·cosθ);
-        // the inner π flip makes it face OUTWARD, toward the orbiting camera.
-        <group rotation={[0, -theta, 0]}>
+        <group position={[index * HUB_SPACING, 0, 0]}>
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
                 <Text
                     position={[0, 2.25, -1.2]}
@@ -123,8 +115,7 @@ const RingItem = ({ item, index, cover, hub, onSelect }) => {
                     <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
                 </Suspense>
             </group>
-            {/* floor caption between the outside camera and the item; the π
-                flip keeps the flat text upright from the camera's side */}
+            {/* Floor caption between the camera and the item. */}
             <group position={[0, 0.01, -(hub.ringRadius + 3.5)]} rotation={[0, Math.PI, 0]}>
                 <group rotation={[-Math.PI / 2, 0, 0]}>
                     <Text
