@@ -18,15 +18,16 @@ const phases = [
     id: "01",
     title: "Исследование и архитектура",
     subtitle: "Фундамент продукта",
-    hours: 40,
+    hours: 56,
     status: "active",
-    deadline: "16 июля",
+    deadline: "18 июля",
     tasks: [
       ["Анализ рынка, ЦА и сценариев использования", 8],
       ["Продуктовые требования и user flow", 8],
       ["Политики безопасного контента", 6],
       ["Выбор AI, TTS, storage и платежных сервисов", 8],
       ["Архитектура, схема данных и расчет себестоимости", 10],
+      ["Аудит существующей кодовой базы Zhanym Soul", 16],
     ],
   },
   {
@@ -35,7 +36,7 @@ const phases = [
     subtitle: "Органический канал привлечения",
     hours: 128,
     status: "planned",
-    deadline: "28 июля",
+    deadline: "30 июля",
     tasks: [
       ["Генератор тем, сценариев и SEO-метаданных", 24],
       ["TTS и подготовка фонового аудио", 24],
@@ -51,7 +52,7 @@ const phases = [
     subtitle: "Основной MVP",
     hours: 232,
     status: "planned",
-    deadline: "19 августа",
+    deadline: "21 августа",
     tasks: [
       ["UX/UI лендинга и пошаговой формы", 32],
       ["Аккаунты и профиль пользователя", 24],
@@ -69,7 +70,7 @@ const phases = [
     subtitle: "Платные пакеты и аналитика",
     hours: 72,
     status: "planned",
-    deadline: "26 августа",
+    deadline: "28 августа",
     tasks: [
       ["Разовые платежи и тарифы", 20],
       ["Бесплатный лимит и система кредитов", 12],
@@ -84,7 +85,7 @@ const phases = [
     subtitle: "Повторное использование",
     hours: 120,
     status: "planned",
-    deadline: "6 сентября",
+    deadline: "8 сентября",
     tasks: [
       ["Личная библиотека и аудиоплеер", 28],
       ["Избранное и история прослушивания", 16],
@@ -100,7 +101,7 @@ const phases = [
     subtitle: "Выход на новые рынки",
     hours: 96,
     status: "planned",
-    deadline: "15 сентября",
+    deadline: "17 сентября",
     tasks: [
       ["i18n интерфейса и контентных шаблонов", 24],
       ["Локализация первых трех языков", 30],
@@ -115,7 +116,7 @@ const phases = [
     subtitle: "iOS и Android",
     hours: 224,
     status: "planned",
-    deadline: "6 октября",
+    deadline: "8 октября",
     tasks: [
       ["Мобильный UX/UI и дизайн-система", 32],
       ["Приложение и интеграция с API", 64],
@@ -131,7 +132,7 @@ const phases = [
     subtitle: "Масштабирование платформы",
     hours: 304,
     status: "planned",
-    deadline: "3 ноября",
+    deadline: "5 ноября",
     tasks: [
       ["Корпоративные аккаунты и роли", 44],
       ["HR-панель и обезличенная аналитика", 36],
@@ -163,6 +164,7 @@ const phaseGuides = {
       "Product requirements document",
       "Карта пользовательских сценариев",
       "Архитектурная схема и risk register",
+      "Аудит переиспользования генератора Zhanym Soul",
     ],
   },
   "02": {
@@ -368,14 +370,14 @@ function Roadmap() {
           <span>Полный проект</span>
           <strong>{totalHours.toLocaleString("ru-RU")} ч</strong>
           <small>
-            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 3 ноября
+            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 5 ноября
           </small>
         </article>
         <article>
           <span>Web MVP</span>
           <strong>{mvpHours} ч</strong>
           <small>
-            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 6 сентября
+            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 8 сентября
           </small>
         </article>
         <article>
