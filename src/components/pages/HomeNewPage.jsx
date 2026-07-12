@@ -2016,7 +2016,12 @@ export const Scene3DShell = ({
 
     const hubCovers = useMemo(() => {
         if (!hub) return null;
-        return HUB_ITEMS.map((_, i) => {
+        const menuCovers = {
+            music: '/images/menu/music-trans.png',
+            code: '/images/menu/code-trans.png',
+        };
+        return HUB_ITEMS.map((item, i) => {
+            if (menuCovers[item.key]) return menuCovers[item.key];
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
             return r?.coverImage || '/images/logo.png';
         });
