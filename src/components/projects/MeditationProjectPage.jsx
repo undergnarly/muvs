@@ -396,64 +396,92 @@ function Roadmap() {
         </p>
       </section>
       <section className="med-phases">
-        {phases.map((phase) => (
-          <article className={`med-phase ${phase.status}`} key={phase.id}>
-            <button
-              className="med-phase-head"
-              onClick={() => setOpen(open === phase.id ? "" : phase.id)}
-            >
-              <span className="med-phase-number">
-                {phase.status === "active" ? <Check size={16} /> : phase.id}
-              </span>
-              <span className="med-phase-title">
-                <small>Фаза {phase.id}</small>
-                <strong>{phase.title}</strong>
-                <em>{phase.subtitle}</em>
-              </span>
-              <span className="med-hours">
-                <Clock3 size={15} /> {estimate(phase.hours)} ч · $
-                {(estimate(phase.hours) * HOURLY_RATE).toLocaleString("en-US")}{" "}
-                · до {phase.deadline}
-              </span>
-              <ChevronDown
-                className={open === phase.id ? "rotated" : ""}
-                size={20}
-              />
-            </button>
-            {open === phase.id && (
-              <div className="med-tasks">
-                {phase.tasks.map(([task, hours], taskIndex) => {
-                  const taskId = `${phase.id}-${String(taskIndex + 1).padStart(2, "0")}`;
-                  const actual =
-                    Number(progress.tasks[taskId]?.actualHours) || 0;
-                  return (
-                    <button
-                      type="button"
-                      key={task}
-                      onClick={() =>
-                        setSelectedTask({ phase, task, hours, taskId })
-                      }
-                    >
-                      <span>{task}</span>
-                      <strong>
-                        План {estimate(hours).toLocaleString("ru-RU")} ч · $
-                        {(estimate(hours) * HOURLY_RATE).toLocaleString(
-                          "en-US",
-                        )}
-                      </strong>
-                      <span className="med-actual">
-                        Факт {actual.toLocaleString("ru-RU")} ч
-                      </span>
-                      <span className="med-task-open">
-                        Подробнее <ArrowRight size={13} />
-                      </span>
-                    </button>
-                  );
-                })}
+        {phases.map((phase) => {
+          const phaseActual = phase.tasks.reduce((sum, _task, taskIndex) => {
+            const taskId = `${phase.id}-${String(taskIndex + 1).padStart(2, "0")}`;
+            return sum + (Number(progress.tasks[taskId]?.actualHours) || 0);
+          }, 0);
+          const phasePlanned = estimate(phase.hours);
+          const phasePercent = Math.min(
+            100,
+            Math.round((phaseActual / phasePlanned) * 100),
+          );
+          return (
+            <article className={`med-phase ${phase.status}`} key={phase.id}>
+              <button
+                className="med-phase-head"
+                onClick={() => setOpen(open === phase.id ? "" : phase.id)}
+              >
+                <span className="med-phase-number">
+                  {phase.status === "active" ? <Check size={16} /> : phase.id}
+                </span>
+                <span className="med-phase-title">
+                  <small>Фаза {phase.id}</small>
+                  <strong>{phase.title}</strong>
+                  <em>{phase.subtitle}</em>
+                </span>
+                <span className="med-hours">
+                  <Clock3 size={15} /> {estimate(phase.hours)} ч · $
+                  {(estimate(phase.hours) * HOURLY_RATE).toLocaleString(
+                    "en-US",
+                  )}{" "}
+                  · до {phase.deadline}
+                </span>
+                <ChevronDown
+                  className={open === phase.id ? "rotated" : ""}
+                  size={20}
+                />
+              </button>
+              <div className="med-phase-progress">
+                <div>
+                  <i style={{ width: `${phasePercent}%` }} />
+                </div>
+                <span>
+                  {phasePercent}% · {phaseActual.toLocaleString("ru-RU")} из{" "}
+                  {phasePlanned} ч
+                </span>
               </div>
-            )}
-          </article>
-        ))}
+              {open === phase.id && (
+                <div className="med-tasks">
+                  <div className="med-tasks-header" aria-hidden="true">
+                    <span>Задача</span>
+                    <span>План и бюджет</span>
+                    <span>Факт</span>
+                    <span>Материалы</span>
+                  </div>
+                  {phase.tasks.map(([task, hours], taskIndex) => {
+                    const taskId = `${phase.id}-${String(taskIndex + 1).padStart(2, "0")}`;
+                    const actual =
+                      Number(progress.tasks[taskId]?.actualHours) || 0;
+                    return (
+                      <button
+                        type="button"
+                        key={task}
+                        onClick={() =>
+                          setSelectedTask({ phase, task, hours, taskId })
+                        }
+                      >
+                        <span>{task}</span>
+                        <strong>
+                          План {estimate(hours).toLocaleString("ru-RU")} ч · $
+                          {(estimate(hours) * HOURLY_RATE).toLocaleString(
+                            "en-US",
+                          )}
+                        </strong>
+                        <span className="med-actual">
+                          Факт {actual.toLocaleString("ru-RU")} ч
+                        </span>
+                        <span className="med-task-open">
+                          Подробнее <ArrowRight size={13} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </article>
+          );
+        })}
       </section>
       <section className="med-report">
         <div className="med-report-head">
