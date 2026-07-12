@@ -4,9 +4,12 @@ import {
   Check,
   ChevronDown,
   Clock3,
+  ExternalLink,
+  FileText,
   LockKeyhole,
   LogOut,
   Sparkles,
+  X,
 } from "lucide-react";
 import "./MeditationProjectPage.css";
 
@@ -152,6 +155,81 @@ const mvpHours = estimate(
   phases.slice(0, 5).reduce((sum, phase) => sum + phase.hours, 0),
 );
 
+const phaseGuides = {
+  "01": {
+    approach:
+      "Интервью, анализ пользовательских сценариев, расчет unit-экономики и фиксация технических ограничений до начала реализации.",
+    deliverables: [
+      "Product requirements document",
+      "Карта пользовательских сценариев",
+      "Архитектурная схема и risk register",
+    ],
+  },
+  "02": {
+    approach:
+      "Модульный pipeline: сценарий → речь → фон → мастеринг → видео → метаданные. Каждый шаг повторяем и контролируется отдельно.",
+    deliverables: [
+      "Шаблоны контента и промптов",
+      "Рабочий media pipeline",
+      "Регламент контроля качества",
+    ],
+  },
+  "03": {
+    approach:
+      "Асинхронная генерация через очередь задач с сохранением статуса, безопасной обработкой персональных параметров и повторным запуском ошибок.",
+    deliverables: [
+      "Web-приложение MVP",
+      "API генерации",
+      "Audio pipeline и административный мониторинг",
+    ],
+  },
+  "04": {
+    approach:
+      "Единая кредитная модель для разовых пакетов и подписок с серверной проверкой лимитов и событиями продуктовой аналитики.",
+    deliverables: [
+      "Платежный flow",
+      "Матрица тарифов и лимитов",
+      "Dashboard конверсий",
+    ],
+  },
+  "05": {
+    approach:
+      "Личная библиотека становится центром удержания: история, избранное, программы и триггерные коммуникации объединяются одним профилем.",
+    deliverables: [
+      "Библиотека и плеер",
+      "Lifecycle-коммуникации",
+      "Программы повторного использования",
+    ],
+  },
+  "06": {
+    approach:
+      "Локализуются не только строки интерфейса, но и промпты, safety-правила, произношение имен и поисковые паттерны каждого рынка.",
+    deliverables: [
+      "Локализованный интерфейс",
+      "Языковые контентные шаблоны",
+      "Мультиязычный QA checklist",
+    ],
+  },
+  "07": {
+    approach:
+      "Приложение использует существующий backend, добавляя нативное воспроизведение, offline-режим, push и store-платежи.",
+    deliverables: [
+      "iOS и Android builds",
+      "Offline/background audio",
+      "Материалы и релизы в stores",
+    ],
+  },
+  "08": {
+    approach:
+      "Корпоративный слой строится с изоляцией данных и ролями, AI-функции подключаются после накопления достаточной истории использования.",
+    deliverables: [
+      "B2B-кабинет и лицензирование",
+      "Партнерский API",
+      "Персонализация и рекомендательная система",
+    ],
+  },
+};
+
 function Login({ onSuccess }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -207,10 +285,40 @@ function Login({ onSuccess }) {
 
 function Roadmap() {
   const [open, setOpen] = useState("01");
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [progress, setProgress] = useState({
+    tasks: {},
+    activity: [],
+    updatedAt: null,
+  });
+  useEffect(() => {
+    fetch("/api/projects/meditation/progress")
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then(setProgress)
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!selectedTask) return undefined;
+    const close = (event) => event.key === "Escape" && setSelectedTask(null);
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", close);
+    };
+  }, [selectedTask]);
   const logout = async () => {
     await fetch("/api/projects/meditation/auth", { method: "DELETE" });
     window.location.reload();
   };
+  const actualHours = Object.values(progress.tasks).reduce(
+    (sum, task) => sum + (Number(task.actualHours) || 0),
+    0,
+  );
+  const progressPercent = Math.min(
+    100,
+    Math.round((actualHours / totalHours) * 100),
+  );
   return (
     <main className="med-project">
       <nav className="med-nav">
@@ -240,15 +348,19 @@ function Roadmap() {
         <div className="med-progress-card">
           <div className="med-progress-top">
             <span>Текущий прогресс</span>
-            <strong>2%</strong>
+            <strong>{progressPercent}%</strong>
           </div>
           <div className="med-bar">
-            <i style={{ width: "2%" }} />
+            <i style={{ width: `${progressPercent}%` }} />
           </div>
           <p>
             <b>Сейчас:</b> исследование и проектирование
           </p>
-          <small>Обновлено 12 июля 2026</small>
+          <small>
+            {progress.updatedAt
+              ? `Обновлено ${new Date(progress.updatedAt).toLocaleString("ru-RU")}`
+              : "Учет времени еще не начат"}
+          </small>
         </div>
       </header>
       <section className="med-stats">
@@ -310,20 +422,201 @@ function Roadmap() {
             </button>
             {open === phase.id && (
               <div className="med-tasks">
-                {phase.tasks.map(([task, hours]) => (
-                  <div key={task}>
-                    <span>{task}</span>
-                    <strong>
-                      {estimate(hours).toLocaleString("ru-RU")} ч · $
-                      {(estimate(hours) * HOURLY_RATE).toLocaleString("en-US")}
-                    </strong>
-                  </div>
-                ))}
+                {phase.tasks.map(([task, hours], taskIndex) => {
+                  const taskId = `${phase.id}-${String(taskIndex + 1).padStart(2, "0")}`;
+                  const actual =
+                    Number(progress.tasks[taskId]?.actualHours) || 0;
+                  return (
+                    <button
+                      type="button"
+                      key={task}
+                      onClick={() =>
+                        setSelectedTask({ phase, task, hours, taskId })
+                      }
+                    >
+                      <span>{task}</span>
+                      <strong>
+                        План {estimate(hours).toLocaleString("ru-RU")} ч · $
+                        {(estimate(hours) * HOURLY_RATE).toLocaleString(
+                          "en-US",
+                        )}
+                      </strong>
+                      <span className="med-actual">
+                        Факт {actual.toLocaleString("ru-RU")} ч
+                      </span>
+                      <span className="med-task-open">
+                        Подробнее <ArrowRight size={13} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </article>
         ))}
       </section>
+      <section className="med-report">
+        <div className="med-report-head">
+          <div>
+            <p className="med-kicker">ОТЧЕТНОСТЬ</p>
+            <h2>Фактическая работа</h2>
+          </div>
+          <div>
+            <strong>{actualHours.toLocaleString("ru-RU")} ч</strong>
+            <span>
+              из {totalHours} ч · $
+              {(actualHours * HOURLY_RATE).toLocaleString("en-US")}
+            </span>
+          </div>
+        </div>
+        <div className="med-activity">
+          {progress.activity.length ? (
+            progress.activity.slice(0, 8).map((item, index) => (
+              <article key={`${item.endedAt}-${index}`}>
+                <time>
+                  {new Date(item.endedAt).toLocaleDateString("ru-RU", {
+                    day: "2-digit",
+                    month: "short",
+                  })}
+                </time>
+                <div>
+                  <strong>{item.taskTitle || item.taskId}</strong>
+                  <p>{item.note || "Рабочая сессия"}</p>
+                </div>
+                <span>{Number(item.hours).toLocaleString("ru-RU")} ч</span>
+              </article>
+            ))
+          ) : (
+            <div className="med-empty-report">
+              Сессий пока нет. Они появятся автоматически после запуска трекера
+              в папке проекта.
+            </div>
+          )}
+        </div>
+      </section>
+      {selectedTask && (
+        <div
+          className="med-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setSelectedTask(null)
+          }
+        >
+          <section
+            className="med-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="med-modal-title"
+          >
+            <button
+              className="med-modal-close"
+              onClick={() => setSelectedTask(null)}
+              aria-label="Закрыть"
+            >
+              <X size={20} />
+            </button>
+            <p className="med-kicker">
+              ФАЗА {selectedTask.phase.id} · ДО{" "}
+              {selectedTask.phase.deadline.toUpperCase()}
+            </p>
+            <h2 id="med-modal-title">{selectedTask.task}</h2>
+            <div className="med-modal-metrics">
+              <span>
+                План {estimate(selectedTask.hours).toLocaleString("ru-RU")} ч
+              </span>
+              <span>
+                Факт{" "}
+                {(
+                  Number(progress.tasks[selectedTask.taskId]?.actualHours) || 0
+                ).toLocaleString("ru-RU")}{" "}
+                ч
+              </span>
+              <span>
+                $
+                {(estimate(selectedTask.hours) * HOURLY_RATE).toLocaleString(
+                  "en-US",
+                )}
+              </span>
+              <span>
+                {selectedTask.phase.status === "active"
+                  ? "В работе"
+                  : "Запланировано"}
+              </span>
+            </div>
+            <div className="med-modal-block">
+              <small>РЕШЕНИЕ</small>
+              <p>{phaseGuides[selectedTask.phase.id].approach}</p>
+            </div>
+            <div className="med-modal-block">
+              <small>РЕЗУЛЬТАТЫ ФАЗЫ</small>
+              <ul>
+                {phaseGuides[selectedTask.phase.id].deliverables.map((item) => (
+                  <li key={item}>
+                    <Check size={14} /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="med-modal-docs">
+              <div>
+                <FileText size={18} />
+                <span>
+                  <strong>Документы задачи</strong>
+                  <small>
+                    {(progress.tasks[selectedTask.taskId]?.documents || [])
+                      .length
+                      ? "Готовые материалы и решения"
+                      : selectedTask.phase.status === "active"
+                        ? "Материалы добавляются по мере готовности"
+                        : "Появятся после начала задачи"}
+                  </small>
+                </span>
+              </div>
+              <span className="med-doc-status">
+                {(progress.tasks[selectedTask.taskId]?.documents || []).length
+                  ? `${progress.tasks[selectedTask.taskId].documents.length} файлов`
+                  : selectedTask.phase.status === "active"
+                    ? "В подготовке"
+                    : "Запланировано"}
+              </span>
+            </div>
+            {(progress.tasks[selectedTask.taskId]?.documents || []).map(
+              (document) => (
+                <a
+                  className="med-document-link"
+                  href={document.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  key={`${document.url}-${document.title}`}
+                >
+                  <FileText size={16} />
+                  <span>{document.title}</span>
+                  <ExternalLink size={14} />
+                </a>
+              ),
+            )}
+            {(progress.tasks[selectedTask.taskId]?.sessions || []).length >
+              0 && (
+              <div className="med-modal-block">
+                <small>ИСТОРИЯ РАБОТ</small>
+                <ul>
+                  {progress.tasks[selectedTask.taskId].sessions
+                    .slice()
+                    .reverse()
+                    .map((session, index) => (
+                      <li key={`${session.endedAt}-${index}`}>
+                        <Clock3 size={14} />{" "}
+                        {new Date(session.endedAt).toLocaleDateString("ru-RU")}{" "}
+                        · {Number(session.hours).toLocaleString("ru-RU")} ч ·{" "}
+                        {session.note || "Рабочая сессия"}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
       <footer>
         <span>
           Оценка предварительная и уточняется после завершения фазы 01.
