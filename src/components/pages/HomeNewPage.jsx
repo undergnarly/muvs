@@ -2017,9 +2017,9 @@ export const Scene3DShell = ({
     const hubCovers = useMemo(() => {
         if (!hub) return null;
         const menuCovers = {
-            music: '/images/menu/music-trans.png',
+            music: '/images/menu/music2.png',
             mixes: '/images/menu/mixes-y2k-boombox.png',
-            code: '/images/menu/code-trans.png',
+            code: '/images/menu/code2.png',
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
