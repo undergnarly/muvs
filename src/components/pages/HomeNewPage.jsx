@@ -2452,6 +2452,11 @@ export const Scene3DShell = ({
                     <div className="mp3d-counter" aria-hidden="true">
                         {String(hubDisplayIndex(ringIndex) + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
+                    <div className="mp3d-swipe-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22">
+                            <path d="M6 9 L12 15 L18 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
+                    </div>
                     <div className="mp3d-ui">
                         <button className="mp3d-nav" onClick={() => hubRotateByButton(1)} aria-label={window.matchMedia('(min-width: 769px)').matches ? 'Previous section' : 'Next section'}>
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">

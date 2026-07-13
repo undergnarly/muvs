@@ -42,6 +42,25 @@
     z-index: 6;
 }
 
+.mp3d-swipe-arrow {
+    position: fixed;
+    left: 50%;
+    bottom: 96px;
+    z-index: 6;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    color: #111111;
+    pointer-events: none;
+    animation: mp3d-swipe-hint 1.5s ease-in-out infinite;
+}
+
+@keyframes mp3d-swipe-hint {
+    0%, 100% { transform: translate(-50%, -2px); opacity: 0.45; }
+    50% { transform: translate(-50%, 4px); opacity: 1; }
+}
+
 .mp3d-nav {
     width: 56px;
     height: 56px;
@@ -110,6 +129,7 @@
     .mp3d-pill { height: 48px; min-width: 0; padding: 0 20px; font-size: 12px; }
     .mp3d-counter { right: 14px; font-size: 11px; }
     .mp3d-hint { display: none; }
+    .mp3d-swipe-arrow { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
 }
 
 .mp3d-back {
