@@ -1977,7 +1977,7 @@ export const Scene3DShell = ({
             const dy = touchY - endY;
             const dx = touchX - endX;
             if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-                hubRotateBy(dx > 0 ? 1 : -1);
+                hubRotateBy(dx > 0 ? -1 : 1);
             } else if (dy > Math.abs(dx) && dy > 70) {
                 tryEnter();
             }
