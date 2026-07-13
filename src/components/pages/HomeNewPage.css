@@ -26,12 +26,10 @@ body.home-new-active {
 
 .home-new-gradient {
     position: absolute;
-    left: 0;
-    right: 0;
-    height: 50vh;
+    inset: 0;
     pointer-events: none;
     z-index: 1;
-    background: linear-gradient(to bottom, #323232, #2e2e2ec2 35%, #ffffff);
+    background: linear-gradient(to bottom, #323232 0%, #555555 22%, #d8d8d8 46%, #ffffff 64%);
 }
 
 /* ---- Debug panel ---- */

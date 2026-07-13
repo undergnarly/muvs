@@ -137,6 +137,7 @@ const buildLogoTexture = (key, color) => {
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code']);
 const HUB_DEFAULT_YOUTUBE = 'https://www.youtube.com/watch?v=gcqrg86VVeQ';
+const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
 const toSlug = (r) => (r?.slug || r?.title || '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -668,7 +669,7 @@ const Floor = ({ big = false }) => (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         {/* hub mode hosts section worlds ~90 units out — the floor must reach them */}
         <planeGeometry args={big ? [260, 260] : [160, 80]} />
-        <meshBasicMaterial color="#ffffff" />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>
 );
 
@@ -856,14 +857,19 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         if (st.phase === 'section') {
             const lp = sampleStops(cfg.stops, progressRef.current);
             const ox = releaseOffsetRef.current;
-            pose = { pos: s2w(lp.pos, ox), look: s2w(lp.look, ox), fov: lp.fov };
+            const sectionLook = { ...lp.look, y: lp.look.y + 0.22 };
+            pose = { pos: s2w(lp.pos, ox), look: s2w(sectionLook, ox), fov: lp.fov };
         } else if (st.phase === 'travel') {
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / ((hub.travelDur || 1.8) * 0.5)) * st.dir));
+            const travelDuration = Math.max(0.36, (hub.travelDur || 1.8) / 3);
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / travelDuration) * st.dir));
             const a = hubMenuPose(hub, st.angle);
             const lp = sampleStops(cfg.stops, 0);
             const ox = releaseOffsetRef.current;
-            const b = { pos: s2w(lp.pos, ox), look: s2w(lp.look, ox), fov: lp.fov };
-            pose = lerpPose(a, b, hubSmoothstep(st.tt));
+            const sectionLook = { ...lp.look, y: lp.look.y + 0.22 };
+            const b = { pos: s2w(lp.pos, ox), look: s2w(sectionLook, ox), fov: lp.fov };
+            // Double smoothstep exaggerates the symmetric acceleration profile:
+            // softer endpoints and a substantially faster midpoint.
+            pose = lerpPose(a, b, hubDynamicEase(st.tt));
             if (st.dir > 0 && st.tt >= 1) {
                 st.phase = 'section';
                 onPhase('section');
@@ -872,7 +878,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
                 onPhase('menu');
             }
         } else if (st.phase === 'foreign') {
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 0.55) * st.dir));
+            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 0.4) * st.dir));
             const e = hubSmoothstep(st.tt);
             const menuPose = hubMenuPose(hub, st.angle);
             pose = {
@@ -931,6 +937,72 @@ const FogSync = ({ cfgRef }) => {
 // Image native 900 × 607 px; transparent screen ratios at x=23.4..71.2%, y=31.4..68.6%.
 const TV_NATIVE = { w: 900, h: 607 };
 
+const TV_STATIC_VERTEX = `
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const TV_STATIC_FRAGMENT = `
+    uniform float uTime;
+    varying vec2 vUv;
+
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    void main() {
+        float frame = floor(uTime * 24.0);
+        vec2 grainUv = floor(vUv * vec2(420.0, 260.0));
+        float grain = hash(grainUv + frame * vec2(17.0, 43.0));
+        float fine = hash(floor(vUv * vec2(900.0, 520.0)) - frame * 7.0);
+        float scanline = 0.82 + 0.18 * sin(vUv.y * 1100.0 + uTime * 13.0);
+        float tearBand = step(0.985, hash(vec2(floor(vUv.y * 90.0), floor(uTime * 7.0))));
+        float tear = tearBand * hash(vec2(floor(uTime * 19.0), floor(vUv.y * 120.0)));
+        float vignette = smoothstep(0.72, 0.18, distance(vUv, vec2(0.5)));
+        float value = clamp((grain * 0.72 + fine * 0.28 + tear * 0.5) * scanline, 0.0, 1.0);
+        value *= 0.72 + vignette * 0.28;
+        gl_FragColor = vec4(vec3(value), 1.0);
+    }
+`;
+
+const TVStaticScreen = ({ position, width, height }) => {
+    const materialRef = useRef(null);
+    const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+    useFrame(({ clock }) => {
+        if (materialRef.current) materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+    });
+    return (
+        <group position={position}>
+            <mesh>
+                <planeGeometry args={[width, height]} />
+                <shaderMaterial
+                    ref={materialRef}
+                    vertexShader={TV_STATIC_VERTEX}
+                    fragmentShader={TV_STATIC_FRAGMENT}
+                    uniforms={uniforms}
+                    toneMapped={false}
+                />
+            </mesh>
+            <Text
+                position={[0, 0, 0.012]}
+                fontSize={Math.min(width * 0.11, height * 0.22)}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                letterSpacing={0.16}
+                font={FONT_BOLD}
+                outlineWidth={Math.min(width, height) * 0.004}
+                outlineColor="#000000"
+            >
+                COMING SOON
+            </Text>
+        </group>
+    );
+};
+
 const extractYouTubeId = (raw) => {
     if (!raw) return null;
     const s = String(raw).trim();
@@ -939,7 +1011,7 @@ const extractYouTubeId = (raw) => {
     return m ? m[1] : null;
 };
 
-const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
+const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false, comingSoon = false }) => {
     const tex = useTexture('/images/mixes-tv.webp');
     useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
     const W = tv.scale;
@@ -972,7 +1044,9 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false }) => {
     const sy = clipH / ifH;
     return (
         <group position={[tv.pos.x, tv.pos.y, tv.pos.z]}>
-            {src ? (
+            {comingSoon ? (
+                <TVStaticScreen position={[ox, oy, iz - 0.02]} width={sw} height={sh} />
+            ) : src ? (
                 <Html
                     transform
                     position={[ox, oy, iz - 0.02]}
@@ -1106,7 +1180,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, dollyRestZRef, dollyPlayZ, dollyEnabled, hub = null }) => {
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hub = null }) => {
     const sectionContent = (
         <>
             {!simple && (
@@ -1130,7 +1204,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                 </React.Fragment>
             ))}
             {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
-            {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} />}
+            {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} comingSoon={tvComingSoon} />}
         </>
     );
 
@@ -1924,6 +1998,7 @@ export const Scene3DShell = ({
             items: mixesItems,
             simple: true,
             tvMixes: mixesItems,
+            comingSoon: true,
             portfolio: null,
             richText: true,
             bottomAction: null,
@@ -2224,7 +2299,8 @@ export const Scene3DShell = ({
                             tvMix={currentMix}
                             tvPlaying={mixPlaying}
                             tv={cfg.tv}
-                            dollyEnabled={!!effectiveMixes}
+                            tvComingSoon={!!activeSection.comingSoon}
+                            dollyEnabled={!!effectiveMixes && !activeSection.comingSoon}
                             dollyRestZRef={dollyRestZRef}
                             dollyPlayZ={cfg.tv.playStop0Z ?? 5.6}
                         />
@@ -2263,7 +2339,7 @@ export const Scene3DShell = ({
                 <button className="mp3d-back" onClick={startTravelBack}>↑ menu</button>
             )}
 
-            {sectionControls && effectiveMixes && effectiveMixes.length > 0 ? (
+            {sectionControls && effectiveMixes && effectiveMixes.length > 0 && !activeSection.comingSoon ? (
                 <MixSwitcher
                     mixes={effectiveMixes}
                     currentIndex={mixIndex}
