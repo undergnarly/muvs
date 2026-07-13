@@ -473,9 +473,11 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
     );
 };
 
-const FloorText = ({ release, x, z, richText = false }) => {
+const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = false }) => {
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
-    const html = richText ? (release.fullDescription || release.description || '') : '';
+    const html = richText
+        ? (fullDescriptionOnly ? (release.fullDescription || '') : (release.fullDescription || release.description || ''))
+        : '';
     const plain = richText ? '' : stripHtml(release.description);
 
     return (
@@ -492,7 +494,7 @@ const FloorText = ({ release, x, z, richText = false }) => {
                 {meta}
             </Text>
 
-            {richText ? (
+            {richText && html ? (
                 <Html
                     transform
                     position={[0, -0.85, 0]}
@@ -505,7 +507,7 @@ const FloorText = ({ release, x, z, richText = false }) => {
                         dangerouslySetInnerHTML={{ __html: html }}
                     />
                 </Html>
-            ) : (
+            ) : !richText ? (
                 <Text
                     position={[0, -0.7, 0]}
                     fontSize={0.32}
@@ -519,7 +521,7 @@ const FloorText = ({ release, x, z, richText = false }) => {
                 >
                     {plain}
                 </Text>
-            )}
+            ) : null}
         </group>
     );
 };
@@ -527,17 +529,17 @@ const FloorText = ({ release, x, z, richText = false }) => {
 const CodeShortDescription = ({ release, x }) => {
     if (!release.description) return null;
     return (
-        <group position={[x, 0.025, 2.45]}>
+        <group position={[x, 0.025, -1.5]}>
             <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(12), 0, 0]}>
                 <Html
                     transform
                     center
-                    distanceFactor={25}
+                    distanceFactor={5}
                     pointerEvents="none"
                     zIndexRange={[5, 0]}
                 >
                     <div
-                        className="hn-code-short"
+                        className="mp3d-rich-caption hn-code-short"
                         dangerouslySetInnerHTML={{ __html: sanitizeCaptionHtml(release.description) }}
                     />
                 </Html>
@@ -831,6 +833,65 @@ const SupportFloorText = ({ x, support }) => (
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 
+const useDeviceTilt = () => {
+    const tiltRef = useRef({ targetX: 0, targetY: 0, x: 0, y: 0 });
+
+    useEffect(() => {
+        const OrientationEvent = window.DeviceOrientationEvent;
+        const isMobile = window.matchMedia('(pointer: coarse)').matches;
+        if (!OrientationEvent || !isMobile) return undefined;
+
+        let baseline = null;
+        let listening = false;
+        const resetBaseline = () => { baseline = null; };
+        const onOrientation = (event) => {
+            if (!Number.isFinite(event.gamma) || !Number.isFinite(event.beta)) return;
+            if (!baseline) baseline = { gamma: event.gamma, beta: event.beta };
+            tiltRef.current.targetX = THREE.MathUtils.clamp((event.gamma - baseline.gamma) / 18, -1, 1);
+            tiltRef.current.targetY = THREE.MathUtils.clamp((event.beta - baseline.beta) / 18, -1, 1);
+        };
+        const startListening = () => {
+            if (listening) return;
+            listening = true;
+            window.addEventListener('deviceorientation', onOrientation, true);
+            window.addEventListener('orientationchange', resetBaseline);
+        };
+
+        let requestOnTouch = null;
+        if (typeof OrientationEvent.requestPermission === 'function') {
+            requestOnTouch = async () => {
+                try {
+                    if (await OrientationEvent.requestPermission() === 'granted') startListening();
+                } catch { /* permission denied or unavailable */ }
+            };
+            window.addEventListener('pointerdown', requestOnTouch, { once: true, passive: true });
+        } else {
+            startListening();
+        }
+
+        return () => {
+            if (requestOnTouch) window.removeEventListener('pointerdown', requestOnTouch);
+            if (listening) {
+                window.removeEventListener('deviceorientation', onOrientation, true);
+                window.removeEventListener('orientationchange', resetBaseline);
+            }
+            tiltRef.current = { targetX: 0, targetY: 0, x: 0, y: 0 };
+        };
+    }, []);
+
+    return tiltRef;
+};
+
+const applyDeviceTilt = (camera, tiltRef, delta) => {
+    if (!tiltRef) return;
+    const tilt = tiltRef.current;
+    const damping = 1 - Math.exp(-Math.min(delta, 0.1) * 7);
+    tilt.x = THREE.MathUtils.lerp(tilt.x, tilt.targetX, damping);
+    tilt.y = THREE.MathUtils.lerp(tilt.y, tilt.targetY, damping);
+    camera.translateX(tilt.x * 0.22);
+    camera.translateY(-tilt.y * 0.14);
+};
+
 // Interpolated camera pose along the section stops at progress p (0..1).
 const sampleStops = (stops, p) => {
     const segCount = stops.length - 1;
@@ -848,10 +909,10 @@ const sampleStops = (stops, p) => {
     };
 };
 
-const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
+const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, tiltRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
-    useFrame(({ camera }) => {
+    useFrame(({ camera }, delta) => {
         const c = cfgRef.current;
         const { pos, look, fov } = sampleStops(c.stops, progressRef.current);
         const offX = releaseOffsetRef.current;
@@ -859,6 +920,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
         camera.position.set(pos.x + offX, pos.y, pos.z);
         lookAt.current.set(look.x + offX, look.y, look.z);
         camera.lookAt(lookAt.current);
+        applyDeviceTilt(camera, tiltRef, delta);
 
         if (Math.abs(camera.fov - fov) > 0.01) {
             camera.fov = fov;
@@ -873,7 +935,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
 // ('travel'), stop-scroll inside the section ('section'), and fog-out toward
 // a section that still lives on its own route ('foreign'). The section world
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
-const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
+const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef, tiltRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
     useFrame(({ camera }, delta) => {
@@ -956,6 +1018,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         camera.position.set(pose.pos.x, pose.pos.y, pose.pos.z);
         lookAt.current.set(pose.look.x, pose.look.y, pose.look.z);
         camera.lookAt(lookAt.current);
+        applyDeviceTilt(camera, tiltRef, delta);
         if (Math.abs(camera.fov - pose.fov) > 0.01) {
             camera.fov = pose.fov;
             camera.updateProjectionMatrix();
@@ -1235,7 +1298,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const sectionContent = (
         <>
             {!simple && (
@@ -1256,7 +1319,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                         </Suspense>
                     )}
                     <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
-                    <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
+                    <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} />
                     {showCodeCaption && <CodeShortDescription release={r} x={i * RELEASE_SPACING} />}
                     {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
                 </React.Fragment>
@@ -1281,9 +1344,10 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                     onForeignLeft={hub.onForeignLeft}
                     ringRef={ringRef}
                     sectionRef={sectionRef}
+                    tiltRef={tiltRef}
                 />
             ) : (
-                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
+                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} tiltRef={tiltRef} />
             )}
             {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
             <FogSync cfgRef={cfgRef} />
@@ -1987,6 +2051,7 @@ export const Scene3DShell = ({
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
+    const deviceTiltRef = useDeviceTilt();
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
@@ -2116,6 +2181,7 @@ export const Scene3DShell = ({
             portfolio: null,
             richText: true,
             showCodeCaption: true,
+            fullDescriptionOnly: true,
             bottomAction: { label: 'MAKE REQUEST', href: requestUrl },
         },
         about: {
@@ -2205,9 +2271,14 @@ export const Scene3DShell = ({
         serverCfgKey, siteSettings, stopCount, tunerConfigKey,
     ]);
 
+    const previousActiveKeyRef = useRef(activeKey);
     useEffect(() => {
-        releaseSwitcher.goTo(0);
-        setTunerScope('item');
+        const sectionChanged = previousActiveKeyRef.current !== activeKey;
+        previousActiveKeyRef.current = activeKey;
+        if (sectionChanged) {
+            releaseSwitcher.goTo(0);
+            setTunerScope('item');
+        }
         const nextStop = hub ? sectionEntryStop : initialStop;
         goTo(nextStop, true, nextStop);
     }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2512,12 +2583,14 @@ export const Scene3DShell = ({
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
+                            tiltRef={deviceTiltRef}
                             floorTextZ={cfg.floorTextZ}
                             photoZ={cfg.photoZ}
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
                             showCodeCaption={!!activeSection.showCodeCaption}
+                            fullDescriptionOnly={!!activeSection.fullDescriptionOnly}
                             simple={activeSection.simple}
                             portfolio={activeSection.portfolio}
                             richText={activeSection.richText}

@@ -514,14 +514,11 @@ body.home-new-active {
 .hn-floor-rich h3 { font-size: 1.1em; }
 
 .hn-code-short {
-    width: 320px;
+    width: 360px;
+    max-height: 5em;
+    overflow: hidden;
     color: #222222;
-    font-family: Urbanist, sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.5;
-    text-align: center;
-    user-select: none;
+    letter-spacing: 0.08em;
 }
 .hn-code-short p,
 .hn-code-short div { margin: 0; }
