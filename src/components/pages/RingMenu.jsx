@@ -33,10 +33,10 @@ export const DEFAULT_HUB = {
     sectionDist: 56,  // distance from world center to the music section origin
     itemSize: 3.4,    // cover plane size
     itemY: 2.45,      // item group height
-    captionOffset: 1.2, // floor caption distance toward the camera
+    captionOffset: -3.05, // floor caption distance toward the camera
     captionY: 0.01,
-    captionTilt: 0,
-    captionSize: 0.2,
+    captionTilt: 21,
+    captionSize: 0.31,
     travelDur: 1.8,   // seconds for ring → section camera travel
 };
 
@@ -123,10 +123,10 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) 
                 )}
             </group>
             {/* Floor caption between the camera and the item. */}
-            <group position={[0, hub.captionY ?? 0.01, -(hub.ringRadius + (hub.captionOffset ?? 1.2))]} rotation={[0, Math.PI, 0]}>
-                <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? 0), 0, 0]}>
+            <group position={[0, hub.captionY ?? DEFAULT_HUB.captionY, -(hub.ringRadius + (hub.captionOffset ?? DEFAULT_HUB.captionOffset))]} rotation={[0, Math.PI, 0]}>
+                <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? DEFAULT_HUB.captionTilt), 0, 0]}>
                     <Text
-                        fontSize={hub.captionSize ?? 0.2}
+                        fontSize={hub.captionSize ?? DEFAULT_HUB.captionSize}
                         color="#888888"
                         anchorX="center"
                         anchorY="top"
