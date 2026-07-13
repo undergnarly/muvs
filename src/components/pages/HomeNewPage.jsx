@@ -914,8 +914,9 @@ const useDeviceTilt = (settings) => {
     return tiltRef;
 };
 
-const TILT_BASE_QUATERNION = new THREE.Quaternion();
-const TILT_LOCKED_QUATERNION = new THREE.Quaternion();
+const TILT_ORBIT_OFFSET = new THREE.Vector3();
+const TILT_ORBIT_RIGHT = new THREE.Vector3();
+const TILT_ORBIT_UP = new THREE.Vector3();
 
 const applyDeviceTilt = (camera, tiltRef, delta, focalPoint) => {
     if (!tiltRef) return;
@@ -928,19 +929,25 @@ const applyDeviceTilt = (camera, tiltRef, delta, focalPoint) => {
     tilt.y = THREE.MathUtils.lerp(tilt.y, tilt.targetY, damping);
     const horizontalDirection = config.invertHorizontal ? -1 : 1;
     const verticalDirection = config.invertVertical ? 1 : -1;
-    TILT_BASE_QUATERNION.copy(camera.quaternion);
-    camera.translateX(tilt.x * Number(config.horizontalStrength) * horizontalDirection);
-    camera.translateY(tilt.y * Number(config.verticalStrength) * verticalDirection);
-    if (focalPoint && Number(config.focalLock) > 0) {
-        camera.lookAt(focalPoint);
-        TILT_LOCKED_QUATERNION.copy(camera.quaternion);
-        camera.quaternion.copy(TILT_BASE_QUATERNION).slerp(
-            TILT_LOCKED_QUATERNION,
-            THREE.MathUtils.clamp(Number(config.focalLock), 0, 1),
-        );
-    }
-    camera.rotateY(THREE.MathUtils.degToRad(tilt.x * Number(config.yawDeg || 0) * horizontalDirection));
-    camera.rotateX(THREE.MathUtils.degToRad(tilt.y * Number(config.pitchDeg || 0) * verticalDirection));
+    if (!focalPoint) return;
+
+    // Orbit on a sphere around the framed object. Keeping the radius constant
+    // and finishing with lookAt makes the image center a true visual anchor.
+    TILT_ORBIT_OFFSET.copy(camera.position).sub(focalPoint);
+    TILT_ORBIT_RIGHT.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+    TILT_ORBIT_UP.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+
+    const yaw = THREE.MathUtils.degToRad(
+        tilt.x * Number(config.yawDeg || 0) * horizontalDirection,
+    );
+    const pitch = THREE.MathUtils.degToRad(
+        tilt.y * Number(config.pitchDeg || 0) * verticalDirection,
+    );
+    TILT_ORBIT_OFFSET.applyAxisAngle(TILT_ORBIT_UP, yaw);
+    TILT_ORBIT_RIGHT.applyAxisAngle(TILT_ORBIT_UP, yaw);
+    TILT_ORBIT_OFFSET.applyAxisAngle(TILT_ORBIT_RIGHT, pitch);
+    camera.position.copy(focalPoint).add(TILT_ORBIT_OFFSET);
+    camera.lookAt(focalPoint);
     camera.updateMatrixWorld();
 };
 

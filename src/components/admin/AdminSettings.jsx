@@ -270,36 +270,6 @@ const AdminSettings = () => {
                         <>
                             <div className="admin-device-tilt-grid">
                                 <div>
-                                    <label style={labelStyle}>Horizontal strength</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.horizontalStrength}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, horizontalStrength: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Vertical strength</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.verticalStrength}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, verticalStrength: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                    />
-                                </div>
-                                <div>
                                     <label style={labelStyle}>Full movement angle (degrees)</label>
                                     <input
                                         type="number"
@@ -332,23 +302,7 @@ const AdminSettings = () => {
                                     <small className="admin-setting-hint">Higher values react faster; lower values feel softer.</small>
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Focal point lock</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.focalLock}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, focalLock: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="0"
-                                        max="1"
-                                        step="0.05"
-                                    />
-                                    <small className="admin-setting-hint">Use 1 to keep the main object fixed in focus.</small>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Horizontal camera rotation (deg)</label>
+                                    <label style={labelStyle}>Horizontal orbit angle (deg)</label>
                                     <input
                                         type="number"
                                         value={siteFormData.deviceTilt.yawDeg}
@@ -363,7 +317,7 @@ const AdminSettings = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Vertical camera rotation (deg)</label>
+                                    <label style={labelStyle}>Vertical orbit angle (deg)</label>
                                     <input
                                         type="number"
                                         value={siteFormData.deviceTilt.pitchDeg}
