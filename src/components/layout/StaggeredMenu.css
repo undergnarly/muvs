@@ -59,7 +59,7 @@
     transition: background-color 0.3s ease;
 }
 
-.sm-logo:hover .sm-logo-img {
+.sm-logo.is-animating .sm-logo-img {
     background-color: var(--sm-accent, #ccff00);
 }
 

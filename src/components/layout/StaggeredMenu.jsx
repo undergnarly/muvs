@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
@@ -13,11 +13,20 @@ const menuItems = [
     { label: 'ABOUT', path: ROUTES.ABOUT },
 ];
 
+let logoAccentUntil = 0;
+
 export const StaggeredMenu = ({ theme = 'light', showSwipeUpHint = false }) => {
     const location = useLocation();
     const { siteSettings } = useData();
     const [open, setOpen] = useState(false);
+    const [logoAccentEnd, setLogoAccentEnd] = useState(() => logoAccentUntil);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (logoAccentEnd <= Date.now()) return undefined;
+        const timeoutId = window.setTimeout(() => setLogoAccentEnd(0), logoAccentEnd - Date.now());
+        return () => window.clearTimeout(timeoutId);
+    }, [logoAccentEnd]);
 
     const position = 'right';
     const colors = ['#1a1a1a', '#2a2a2a'];
@@ -53,6 +62,9 @@ export const StaggeredMenu = ({ theme = 'light', showSwipeUpHint = false }) => {
     const handleLogoClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        logoAccentUntil = Date.now() + 3000;
+        setLogoAccentEnd(logoAccentUntil);
 
         const homePath = ROUTES.HOME || '/';
 
@@ -93,7 +105,7 @@ export const StaggeredMenu = ({ theme = 'light', showSwipeUpHint = false }) => {
             <header className="staggered-menu-header" aria-label="Main navigation header">
                 <a
                     href={ROUTES.HOME || '/'}
-                    className="sm-logo"
+                    className={`sm-logo${logoAccentEnd > Date.now() ? ' is-animating' : ''}`}
                     aria-label="Logo"
                     onClick={handleLogoClick}
                 >
