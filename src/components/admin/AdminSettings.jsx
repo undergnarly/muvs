@@ -5,6 +5,20 @@ import { FaLock, FaUpload, FaTrash, FaSave, FaCog, FaImages } from 'react-icons/
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
 
+const MENU_CAPTION_DEFAULTS = {
+    music: 'SECTION 01 — MUSIC',
+    mixes: 'SECTION 02 — MIXES',
+    code: 'SECTION 03 — CODE',
+    about: 'SECTION 04 — ABOUT',
+};
+
+const MENU_CAPTION_FIELDS = [
+    { key: 'music', label: 'Music' },
+    { key: 'mixes', label: 'Mixes' },
+    { key: 'code', label: 'Code' },
+    { key: 'about', label: 'About' },
+];
+
 const AdminSettings = () => {
     const { adminSettings, updatePin, siteSettings, updateSiteSettings } = useData();
     const [currentPin, setCurrentPin] = useState('');
@@ -21,6 +35,7 @@ const AdminSettings = () => {
         favicon: siteSettings?.favicon || '',
         siteName: siteSettings?.siteName || 'MUVS',
         siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
+        menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
         socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
         scrollAnimation: siteSettings?.scrollAnimation || {
             scrollSectionHeight: 180, // vh
@@ -125,7 +140,7 @@ const AdminSettings = () => {
     };
 
     const handleSaveSiteSettings = () => {
-        updateSiteSettings(siteFormData);
+        updateSiteSettings({ ...siteSettings, ...siteFormData });
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
     };
@@ -169,6 +184,28 @@ const AdminSettings = () => {
                         style={inputStyle}
                         placeholder="Audio • Visual • Code"
                     />
+                </div>
+
+                {/* 3D menu captions */}
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>3D Menu Captions</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        {MENU_CAPTION_FIELDS.map(({ key, label }) => (
+                            <div key={key}>
+                                <label style={labelStyle}>{label}</label>
+                                <input
+                                    type="text"
+                                    value={siteFormData.menuCaptions[key]}
+                                    onChange={e => setSiteFormData({
+                                        ...siteFormData,
+                                        menuCaptions: { ...siteFormData.menuCaptions, [key]: e.target.value }
+                                    })}
+                                    style={inputStyle}
+                                    placeholder={MENU_CAPTION_DEFAULTS[key]}
+                                />
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Social Links */}

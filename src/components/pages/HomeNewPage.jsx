@@ -1253,6 +1253,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                     <RingMenu
                         hub={hub.cfg}
                         covers={hub.covers}
+                        captions={hub.captions}
                         onSelect={hub.onSelect}
                         activeIndex={hub.activeIndex}
                         activeOnly={hub.phase !== 'menu'}
@@ -1776,6 +1777,9 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                     <Row label="item sz"  value={cfg.hub?.itemSize ?? 3.4}  min={1}   max={7}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemSize: v } })} />
                     <Row label="item y"   value={cfg.hub?.itemY ?? 2.45}    min={0}   max={6}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemY: v } })} />
                     <Row label="caption gap" value={cfg.hub?.captionOffset ?? 1.2} min={-8} max={8} step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionOffset: v } })} />
+                    <Row label="caption y" value={cfg.hub?.captionY ?? 0.01} min={-1} max={5} step={0.02} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionY: v } })} />
+                    <Row label="caption tilt" value={cfg.hub?.captionTilt ?? 0} min={-90} max={90} step={1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionTilt: v } })} />
+                    <Row label="caption size" value={cfg.hub?.captionSize ?? 0.2} min={0.05} max={2} step={0.01} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionSize: v } })} />
                     <Row label="travel s" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5}   step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
                 </div>
             )}
@@ -2246,6 +2250,7 @@ export const Scene3DShell = ({
     const hubProps = hub ? {
         cfg: cfg.hub || DEFAULT_HUB,
         covers: hubCovers,
+        captions: siteSettings?.menuCaptions,
         phase: hubPhase,
         activeIndex: ringIndex,
         stateRef: hubStateRef,

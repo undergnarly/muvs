@@ -34,6 +34,9 @@ export const DEFAULT_HUB = {
     itemSize: 3.4,    // cover plane size
     itemY: 2.45,      // item group height
     captionOffset: 1.2, // floor caption distance toward the camera
+    captionY: 0.01,
+    captionTilt: 0,
+    captionSize: 0.2,
     travelDur: 1.8,   // seconds for ring → section camera travel
 };
 
@@ -81,7 +84,7 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -120,10 +123,10 @@ const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
                 )}
             </group>
             {/* Floor caption between the camera and the item. */}
-            <group position={[0, 0.01, -(hub.ringRadius + (hub.captionOffset ?? 1.2))]} rotation={[0, Math.PI, 0]}>
-                <group rotation={[-Math.PI / 2, 0, 0]}>
+            <group position={[0, hub.captionY ?? 0.01, -(hub.ringRadius + (hub.captionOffset ?? 1.2))]} rotation={[0, Math.PI, 0]}>
+                <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? 0), 0, 0]}>
                     <Text
-                        fontSize={0.2}
+                        fontSize={hub.captionSize ?? 0.2}
                         color="#888888"
                         anchorX="center"
                         anchorY="top"
@@ -131,7 +134,7 @@ const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
                         font={FONT_REGULAR}
                         material-side={THREE.FrontSide}
                     >
-                        {`SECTION 0${displayIndex + 1} — ${item.label}`}
+                        {caption ?? `SECTION 0${displayIndex + 1} — ${item.label}`}
                     </Text>
                 </group>
             </group>
@@ -141,7 +144,7 @@ const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, onSelect, activeIndex = 0, activeOnly = false }) => (
+export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, activeOnly = false }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -151,6 +154,7 @@ export const RingMenu = ({ hub, covers, onSelect, activeIndex = 0, activeOnly = 
                 index={i + (copy + 1) * HUB_COUNT}
                 displayIndex={hubDisplayIndex(i)}
                 cover={covers?.[i]}
+                caption={captions?.[item.key]}
                 hub={hub}
                 onSelect={() => onSelect(i)}
             />
