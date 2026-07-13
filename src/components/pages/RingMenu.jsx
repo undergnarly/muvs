@@ -11,7 +11,6 @@ export const HUB_ITEMS = [
     { key: 'music', label: 'MUSIC', route: ROUTES.MUSIC },
     { key: 'mixes', label: 'MIXES', route: ROUTES.MIXES },
     { key: 'code',  label: 'CODE',  route: ROUTES.CODE },
-    { key: 'news',  label: 'NEWS',  route: ROUTES.NEWS },
     { key: 'about', label: 'ABOUT', route: ROUTES.ABOUT },
 ];
 
