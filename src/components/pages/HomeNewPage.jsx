@@ -1897,7 +1897,9 @@ export const Scene3DShell = ({
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
-        const sorted = [...(source || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+        const sorted = (source || [])
+            .filter((item) => item.active !== false)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
         return sorted;
     }, [itemsProp, releases]);
 

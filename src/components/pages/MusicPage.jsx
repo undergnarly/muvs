@@ -9,7 +9,9 @@ const MusicPage = () => {
     const { releases } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const sortedReleases = [...releases].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sortedReleases = releases
+        .filter((release) => release.active !== false)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     return (
         <div className="page-container music-page">

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
+import { FaCompactDisc, FaEdit, FaEye, FaEyeSlash, FaImages, FaPlus, FaSearch, FaTrash, FaUpload } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import './MusicManager.css';
 
 const MusicManager = () => {
     const { releases, updateData } = useData();
@@ -14,11 +15,14 @@ const MusicManager = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [galleryOpen, setGalleryOpen] = useState(false);
     const [galleryTarget, setGalleryTarget] = useState(null);
+    const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     // Initial State
     const initialForm = {
         artists: '',
         title: '',
+        active: true,
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
         titleGap: '0px',
@@ -46,7 +50,7 @@ const MusicManager = () => {
 
     const handleEdit = (item) => {
         setEditingItem(item);
-        setFormData({ ...item }); // Spread to copy fields
+        setFormData({ ...initialForm, ...item, active: item.active !== false });
         setImagePreview(item.coverImage || null);
         setIsFormOpen(true);
     };
@@ -56,6 +60,13 @@ const MusicManager = () => {
             const updated = releases.filter(item => item.id !== id);
             updateData('releases', updated);
         }
+    };
+
+    const handleToggleActive = (item) => {
+        const updated = releases.map((release) => (
+            release.id === item.id ? { ...release, active: release.active === false } : release
+        ));
+        updateData('releases', updated);
     };
 
     const handleAddNew = () => {
@@ -144,6 +155,7 @@ const MusicManager = () => {
         // Basic optimization: Ensure tracks is an array if we messed with it
         const finalData = {
             ...formData,
+            active: formData.active !== false,
             // Ensure ID exists
             id: editingItem ? editingItem.id : Date.now()
         };
@@ -158,67 +170,110 @@ const MusicManager = () => {
         setIsFormOpen(false);
     };
 
+    const activeCount = releases.filter((item) => item.active !== false).length;
+    const hiddenCount = releases.length - activeCount;
+    const filteredReleases = useMemo(() => {
+        const needle = query.trim().toLowerCase();
+        return [...releases]
+            .filter((item) => {
+                const isActive = item.active !== false;
+                if (statusFilter === 'active' && !isActive) return false;
+                if (statusFilter === 'hidden' && isActive) return false;
+                if (!needle) return true;
+                return `${item.title || ''} ${item.artists || ''}`.toLowerCase().includes(needle);
+            })
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+    }, [query, releases, statusFilter]);
+
     // Helper to handle simple track list parsing (for now, just a text area backup or assume empty)
     // In a real advanced admin, we'd have a sub-list editor. 
     // For this MVP, we'll keep tracks as is or allow basic JSON edit if needed.
 
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <h1 style={{ fontSize: '32px', color: 'var(--color-text-light)' }}>Manage Music</h1>
+        <div className="music-admin-page">
+            <div className="music-admin-header">
+                <div>
+                    <span className="music-admin-eyebrow">CONTENT / MUSIC</span>
+                    <h1>Releases</h1>
+                    <p>Create, organize and publish music releases.</p>
+                </div>
                 <Button variant="accent" onClick={handleAddNew}>
                     <FaPlus style={{ marginRight: '8px' }} /> Add Release
                 </Button>
             </div>
 
-            {isFormOpen && (
-                <div style={formContainerStyle}>
-                    <h3 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>
-                        {editingItem ? 'Edit Release' : 'New Release'}
-                    </h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <input
-                                type="text"
-                                placeholder="Artists"
-                                value={formData.artists || ''}
-                                onChange={e => setFormData({ ...formData, artists: e.target.value })}
-                                style={inputStyle}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Title"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                required
-                                style={inputStyle}
-                            />
-                        </div>
+            <div className="music-admin-summary" aria-label="Release summary">
+                <div><strong>{releases.length}</strong><span>All releases</span></div>
+                <div><strong>{activeCount}</strong><span>Published</span></div>
+                <div><strong>{hiddenCount}</strong><span>Hidden</span></div>
+            </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                            <input
-                                type="text"
-                                placeholder="Release Date"
-                                value={formData.releaseDate}
-                                onChange={e => setFormData({ ...formData, releaseDate: e.target.value })}
-                                required
-                                style={inputStyle}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Sort Order (default 0)"
-                                value={formData.order || ''}
-                                onChange={e => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-                                style={inputStyle}
-                            />
-                            <input
-                                type="number"
-                                placeholder="BPM (e.g. 160)"
-                                value={formData.bpm || ''}
-                                onChange={e => setFormData({ ...formData, bpm: e.target.value })}
-                                style={inputStyle}
-                            />
+            {isFormOpen && (
+                <div style={formContainerStyle} className="music-admin-editor">
+                    <div className="music-admin-editor-head">
+                        <div>
+                            <span>{editingItem ? 'EDIT RELEASE' : 'NEW RELEASE'}</span>
+                            <h2>{editingItem ? (formData.title || 'Untitled release') : 'Release details'}</h2>
                         </div>
+                        <label className="music-active-control">
+                            <input
+                                type="checkbox"
+                                checked={formData.active !== false}
+                                onChange={e => setFormData({ ...formData, active: e.target.checked })}
+                            />
+                            <span className="music-active-switch" aria-hidden="true" />
+                            <span>
+                                <strong>{formData.active !== false ? 'Active' : 'Hidden'}</strong>
+                                <small>{formData.active !== false ? 'Visible on the website' : 'Only visible in admin'}</small>
+                            </span>
+                        </label>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="music-admin-form">
+                        <section className="music-form-section">
+                            <div className="music-form-section-title">
+                                <span>01</span>
+                                <div><h3>Basic information</h3><p>The title and ordering shown on the website.</p></div>
+                            </div>
+                            <div className="music-field-grid music-field-grid-2">
+                                <label className="music-field">
+                                    <span>Artist</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Artist name"
+                                        value={formData.artists || ''}
+                                        onChange={e => setFormData({ ...formData, artists: e.target.value })}
+                                        style={inputStyle}
+                                    />
+                                </label>
+                                <label className="music-field">
+                                    <span>Release title *</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Release title"
+                                        value={formData.title}
+                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                        required
+                                        style={inputStyle}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="music-field-grid music-field-grid-3">
+                                <label className="music-field">
+                                    <span>Release date *</span>
+                                    <input type="text" placeholder="2026-07-13" value={formData.releaseDate} onChange={e => setFormData({ ...formData, releaseDate: e.target.value })} required style={inputStyle} />
+                                </label>
+                                <label className="music-field">
+                                    <span>Sort order</span>
+                                    <input type="number" placeholder="0" value={formData.order ?? ''} onChange={e => setFormData({ ...formData, order: parseInt(e.target.value, 10) || 0 })} style={inputStyle} />
+                                </label>
+                                <label className="music-field">
+                                    <span>BPM</span>
+                                    <input type="number" placeholder="160" value={formData.bpm || ''} onChange={e => setFormData({ ...formData, bpm: e.target.value })} style={inputStyle} />
+                                </label>
+                            </div>
+                        </section>
 
                         {/* Bass Reactor Controls */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'center' }}>
@@ -791,38 +846,69 @@ const MusicManager = () => {
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                        <div className="music-form-actions">
                             <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                            <Button variant="accent" type="submit">Save</Button>
+                            <Button variant="accent" type="submit">Save Release</Button>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-                {releases.map(item => (
-                    <div key={item.id} style={itemStyle}>
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            {item.coverImage && (
-                                <img src={item.coverImage} alt={item.title} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
-                            )}
-                            <div>
-                                <h3 style={{ color: 'var(--color-text-light)', marginBottom: '4px' }}>{item.title}</h3>
-                                <div style={{ fontSize: '14px', color: 'var(--color-text-dim)' }}>
-                                    {item.releaseDate} • {item.tracks ? item.tracks.length : 0} Tracks
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleEdit(item)} style={actionButtonStyle}>
-                                <FaEdit />
-                            </button>
-                            <button onClick={() => handleDelete(item.id)} style={{ ...actionButtonStyle, color: '#ff5555' }}>
-                                <FaTrash />
-                            </button>
-                        </div>
+            <div className="music-admin-list-panel">
+                <div className="music-admin-toolbar">
+                    <label className="music-admin-search">
+                        <FaSearch aria-hidden="true" />
+                        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title or artist" aria-label="Search releases" />
+                    </label>
+                    <div className="music-status-filter" aria-label="Filter releases by status">
+                        {[
+                            ['all', 'All'],
+                            ['active', 'Published'],
+                            ['hidden', 'Hidden'],
+                        ].map(([value, label]) => (
+                            <button key={value} className={statusFilter === value ? 'active' : ''} onClick={() => setStatusFilter(value)}>{label}</button>
+                        ))}
                     </div>
-                ))}
+                </div>
+
+                <div className="music-release-list">
+                    {filteredReleases.map(item => {
+                        const isActive = item.active !== false;
+                        return (
+                            <article key={item.id} className={`music-release-row${isActive ? '' : ' is-hidden'}`}>
+                                <div className="music-release-cover">
+                                    {item.coverImage ? <img src={item.coverImage} alt="" /> : <FaCompactDisc aria-hidden="true" />}
+                                </div>
+                                <div className="music-release-main">
+                                    <div className="music-release-title-line">
+                                        <h3>{item.title || 'Untitled release'}</h3>
+                                        <span className={`music-status-badge ${isActive ? 'is-active' : 'is-hidden'}`}>{isActive ? 'Published' : 'Hidden'}</span>
+                                    </div>
+                                    <p>{item.artists || 'No artist specified'}</p>
+                                    <div className="music-release-meta">
+                                        <span>{item.releaseDate || 'No date'}</span>
+                                        <span>{item.tracks?.length || 0} tracks</span>
+                                        <span>Order {item.order || 0}</span>
+                                    </div>
+                                </div>
+                                <div className="music-release-actions">
+                                    <button className="music-icon-action" onClick={() => handleToggleActive(item)} aria-label={isActive ? 'Hide release' : 'Publish release'} title={isActive ? 'Hide release' : 'Publish release'}>
+                                        {isActive ? <FaEye /> : <FaEyeSlash />}
+                                    </button>
+                                    <button className="music-icon-action" onClick={() => handleEdit(item)} aria-label="Edit release" title="Edit release"><FaEdit /></button>
+                                    <button className="music-icon-action is-danger" onClick={() => handleDelete(item.id)} aria-label="Delete release" title="Delete release"><FaTrash /></button>
+                                </div>
+                            </article>
+                        );
+                    })}
+                    {filteredReleases.length === 0 && (
+                        <div className="music-admin-empty">
+                            <FaCompactDisc />
+                            <strong>No releases found</strong>
+                            <span>Change the search or status filter.</span>
+                        </div>
+                    )}
+                </div>
             </div>
             <MediaGallery
                 isOpen={galleryOpen}
@@ -861,26 +947,6 @@ const inputStyle = {
     color: 'white',
     outline: 'none',
     width: '100%'
-};
-
-const itemStyle = {
-    background: 'rgba(0,0,0,0.3)',
-    padding: '16px',
-    borderRadius: '8px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    border: '1px solid rgba(255,255,255,0.05)'
-};
-
-const actionButtonStyle = {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--color-text-dim)',
-    cursor: 'pointer',
-    padding: '8px',
-    fontSize: '16px',
-    transition: 'color 0.2s'
 };
 
 const uploadButtonStyle = {

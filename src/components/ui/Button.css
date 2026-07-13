@@ -12,6 +12,18 @@
     transition: all var(--transition-fast);
     text-align: center;
     font-family: inherit;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-light {
+    background: #ffffff;
+    color: #0a0a0a;
+}
+
+.btn-light:hover {
+    background: #ededed;
 }
 
 /* Light Variant (for Dark backgrounds usually, but spec says: 
@@ -55,4 +67,21 @@
 
 .btn-accent:active {
     transform: scale(0.98);
+}
+
+.btn-outline {
+    background: transparent;
+    border-color: #3c3c3c;
+    color: #ffffff;
+}
+
+.btn-outline:hover {
+    background: #242424;
+    border-color: #5a5a5a;
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
 }
