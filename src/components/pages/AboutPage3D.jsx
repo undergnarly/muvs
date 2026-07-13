@@ -39,6 +39,7 @@ const AboutPage3D = () => {
             cfgStorageKey="muvs:scene3d:about:v1"
             serverCfgKey="aboutConfig"
             stopCount={5}
+            initialStop={1}
             showDebug
             portfolio={PORTFOLIO_PLACEHOLDERS}
             bottomAction={{ label: 'MAKE REQUEST', href: tg }}

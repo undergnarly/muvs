@@ -195,10 +195,11 @@ const hydrateCfg = (cfg, expectedStops) => {
 
 // ================ snap scroll (vertical) ================
 
-const useSnapScroll = (numStops, { enabled = true, onOverscrollUp } = {}) => {
-    const indexRef = useRef(0);
-    const progressRef = useRef(0);
-    const [currentIndex, setCurrentIndex] = useState(0);
+const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex = 0 } = {}) => {
+    const initial = Math.max(0, Math.min(numStops - 1, initialIndex));
+    const indexRef = useRef(initial);
+    const progressRef = useRef(numStops <= 1 ? 0 : initial / (numStops - 1));
+    const [currentIndex, setCurrentIndex] = useState(initial);
     const overscrollUpRef = useRef(onOverscrollUp);
     useEffect(() => { overscrollUpRef.current = onOverscrollUp; }, [onOverscrollUp]);
 
@@ -1882,6 +1883,7 @@ export const Scene3DShell = ({
     tvMixes = null,
     hub = false,
     initialKey = null,
+    initialStop = 0,
 }) => {
     const { releases, mixes, projects, siteSettings, updateSiteSettings } = useData();
     const navigate = useNavigate();
@@ -2060,6 +2062,7 @@ export const Scene3DShell = ({
     const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length, {
         enabled: sectionControls,
         onOverscrollUp: hub ? startTravelBack : undefined,
+        initialIndex: initialStop,
     });
     const releaseSwitcher = useReleaseSwitcher(
         effectiveItems.length,
@@ -2070,7 +2073,7 @@ export const Scene3DShell = ({
 
     useEffect(() => {
         releaseSwitcher.goTo(0);
-        goTo(0);
+        goTo(hub ? 0 : initialStop);
     }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const startTravelIn = useCallback(() => {
