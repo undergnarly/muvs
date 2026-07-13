@@ -46,7 +46,7 @@ const BurgerIcon = () => (
     </svg>
 );
 
-const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleaseSelect }) => {
+const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleaseSelect, compact = false }) => {
     const audioRef = useRef(null);
     const playOnLoadRef = useRef(false);
 
@@ -60,8 +60,9 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(0);
     const [muted, setMuted] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapseOverride, setCollapseOverride] = useState({ mode: compact, value: compact });
     const [showReleases, setShowReleases] = useState(false);
+    const collapsed = collapseOverride.mode === compact ? collapseOverride.value : compact;
 
     const count = tracks.length;
     const track = count ? tracks[Math.min(index, count - 1)] : null;
@@ -172,11 +173,9 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
     }, []);
 
     const toggleCollapsed = useCallback(() => {
-        setCollapsed(c => {
-            if (!c) setShowReleases(false);
-            return !c;
-        });
-    }, []);
+        if (!collapsed) setShowReleases(false);
+        setCollapseOverride({ mode: compact, value: !collapsed });
+    }, [collapsed, compact]);
 
     const toggleBurger = useCallback(() => {
         setShowReleases(r => !r);
@@ -230,65 +229,63 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
         </div>
     );
 
-    if (collapsed) {
-        return (
-            <div className="ap ap--collapsed">
+    return (
+        <div className={`ap${collapsed ? ' ap--collapsed' : ''}`}>
+            <div className="ap-expandable" aria-hidden={collapsed}>
+                <div className="ap-expandable-inner">
+                    <div className="ap-top">
+                        {cover && !showReleases && (
+                            <div className="ap-cover">
+                                <img src={cover} alt="" loading="lazy" decoding="async" />
+                            </div>
+                        )}
+                        {showReleases ? (
+                            <ul className="ap-list" role="listbox" aria-label="Releases">
+                                {releases.map((r, i) => (
+                                    <li
+                                        key={r.id || i}
+                                        className={`ap-row${i === currentReleaseIndex ? ' active' : ''}`}
+                                        onClick={() => { onReleaseSelect?.(i); setShowReleases(false); }}
+                                        role="option"
+                                        aria-selected={i === currentReleaseIndex}
+                                    >
+                                        <span className="ap-row-title">
+                                            {[r.artists, r.title].filter(Boolean).join(' — ')}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <ul className="ap-list" role="listbox" aria-label={liveTitle}>
+                                {tracks.map((t, i) => {
+                                    const active = i === index;
+                                    return (
+                                        <li
+                                            key={t.id || i}
+                                            className={`ap-row${active ? ' active' : ''}`}
+                                            onClick={() => playIndex(i)}
+                                            role="option"
+                                            aria-selected={active}
+                                        >
+                                            <span className="ap-row-title">
+                                                {`${t.artist || release?.artists || ''} — ${getTrackTitle(t, i)}`.replace(/^—\s*/, '').trim()}
+                                            </span>
+                                            {active && playing && (
+                                                <span className="ap-eq" aria-hidden="true"><i /><i /><i /></span>
+                                            )}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="ap-mini-wrap" aria-hidden={!collapsed}>
                 <div className="ap-mini-row">
                     <span className="ap-mini-title">{liveTitle}</span>
                 </div>
-                {seekBar}
-                {controls}
-            </div>
-        );
-    }
-
-    return (
-        <div className="ap">
-            <div className="ap-top">
-                {cover && !showReleases && (
-                    <div className="ap-cover">
-                        <img src={cover} alt="" loading="lazy" decoding="async" />
-                    </div>
-                )}
-                {showReleases ? (
-                    <ul className="ap-list" role="listbox" aria-label="Releases">
-                        {releases.map((r, i) => (
-                            <li
-                                key={r.id || i}
-                                className={`ap-row${i === currentReleaseIndex ? ' active' : ''}`}
-                                onClick={() => { onReleaseSelect?.(i); setShowReleases(false); }}
-                                role="option"
-                                aria-selected={i === currentReleaseIndex}
-                            >
-                                <span className="ap-row-title">
-                                    {[r.artists, r.title].filter(Boolean).join(' — ')}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <ul className="ap-list" role="listbox" aria-label={liveTitle}>
-                        {tracks.map((t, i) => {
-                            const active = i === index;
-                            return (
-                                <li
-                                    key={t.id || i}
-                                    className={`ap-row${active ? ' active' : ''}`}
-                                    onClick={() => playIndex(i)}
-                                    role="option"
-                                    aria-selected={active}
-                                >
-                                    <span className="ap-row-title">
-                                        {`${t.artist || release?.artists || ''} — ${getTrackTitle(t, i)}`.replace(/^—\s*/, '').trim()}
-                                    </span>
-                                    {active && playing && (
-                                        <span className="ap-eq" aria-hidden="true"><i /><i /><i /></span>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
             </div>
             {seekBar}
             {controls}

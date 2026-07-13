@@ -28,6 +28,7 @@ export const DataProvider = ({ children }) => {
         favicon: '',
         siteName: 'MUVS',
         siteDescription: 'Audio • Visual • Code',
+        cameraTunerEnabled: false,
         socialLinks: {
             instagram: 'https://instagram.com/muvs.dev',
             soundcloud: 'https://soundcloud.com/muvs',
@@ -102,7 +103,6 @@ export const DataProvider = ({ children }) => {
     useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('news', news); }, [news, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('about', about); }, [about, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('siteSettings', siteSettings); }, [siteSettings, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('adminSettings', adminSettings); }, [adminSettings, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
@@ -119,10 +119,16 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    const updateSiteSettings = (newSettings) => {
-        userChangedRef.current.add('siteSettings');
+    const updateSiteSettings = React.useCallback(async (newSettings) => {
         setSiteSettings(newSettings);
-    };
+        const response = await fetch('/api/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'siteSettings', value: newSettings })
+        });
+        if (!response.ok) throw new Error(`Site settings save failed with ${response.status}`);
+        return response.json();
+    }, []);
 
     const trackVisit = async (path, referrer = '') => {
         // Exclude admin and login paths

@@ -27,7 +27,8 @@ export const hubSmoothstep = (t) => t * t * (3 - 2 * t);
 // persisted inside the page cfg under cfg.hub.
 export const DEFAULT_HUB = {
     ringRadius: 9,    // menu item depth from the world origin
-    camDist: 11,      // camera distance in front of the menu row
+    camDistDesktop: 9.5,
+    camDistMobile: 11,
     camY: 2.6,
     lookY: 2.5,
     fov: 50,
@@ -41,9 +42,14 @@ export const DEFAULT_HUB = {
     travelDur: 1.8,   // seconds for ring → section camera travel
 };
 
+export const hubCameraDistance = (hub) => {
+    const desktop = typeof window === 'undefined' || window.matchMedia('(min-width: 769px)').matches;
+    return desktop ? (hub.camDistDesktop ?? 9.5) : (hub.camDistMobile ?? 11);
+};
+
 export const hubMenuPose = (hub, offset) => {
     return {
-        pos: { x: offset, y: hub.camY, z: -(hub.ringRadius + hub.camDist) },
+        pos: { x: offset, y: hub.camY, z: -(hub.ringRadius + hubCameraDistance(hub)) },
         look: { x: offset, y: hub.lookY, z: -hub.ringRadius },
         fov: hub.fov,
     };
@@ -85,7 +91,7 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -130,7 +136,11 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) 
                         transform
                         center
                         distanceFactor={25 * (hub.captionSize ?? DEFAULT_HUB.captionSize)}
-                        style={{ pointerEvents: 'none' }}
+                        style={{
+                            pointerEvents: 'none',
+                            opacity: captionsVisible ? 1 : 0,
+                            transition: 'opacity 0.18s ease-out',
+                        }}
                     >
                         <div
                             className="mp3d-rich-caption"
@@ -147,7 +157,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) 
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, activeOnly = false }) => (
+export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -160,6 +170,7 @@ export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, act
                 caption={captions?.[item.key]}
                 hub={hub}
                 onSelect={() => onSelect(i)}
+                captionsVisible={captionsVisible}
             />
         )))}
     </>

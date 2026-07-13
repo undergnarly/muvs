@@ -166,7 +166,7 @@ body.home-new-active {
 
 .dbg-stops {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
     gap: 4px;
     margin-bottom: 6px;
 }

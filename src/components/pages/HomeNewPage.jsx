@@ -12,7 +12,7 @@ import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
-    hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, lerpPose,
+    hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
 } from './RingMenu';
 import './HomeNewPage.css';
 
@@ -1269,6 +1269,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                         onSelect={hub.onSelect}
                         activeIndex={hub.activeIndex}
                         activeOnly={hub.phase !== 'menu'}
+                        captionsVisible={hub.phase === 'menu'}
                     />
                 </group>
             )}
@@ -1708,7 +1709,11 @@ const Vec3Block = ({ title, vec, setVec }) => (
     </div>
 );
 
-const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer, hubMode = false }) => {
+const DebugPanel = ({
+    cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer,
+    hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
+    simple = false, hasTv = false, hideBillboard = false,
+}) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
     const [progress, setProgress] = useState(0);
@@ -1731,6 +1736,14 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
     };
 
     const stop = cfg.stops[editIdx];
+    const inMenu = hubMode && hubPhase === 'menu';
+    const inTransition = hubMode && hubPhase === 'travel';
+    const inSection = !hubMode || hubPhase === 'section';
+    const contextLabel = inMenu
+        ? 'menu'
+        : inTransition
+            ? 'transition'
+            : `${sectionKey} · frame ${editIdx - sectionEntryStop + 1}`;
 
     const [savedFlash, setSavedFlash] = useState(false);
     const exportCfg = () => {
@@ -1755,7 +1768,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
     return (
         <div className="dbg-panel">
             <div className="dbg-head">
-                <span>camera tuner</span>
+                <span>camera tuner · {contextLabel}</span>
                 <span className="dbg-progress">{(progress * 100).toFixed(0)}%</span>
                 <button onClick={saveCfg} className={`dbg-btn dbg-btn-primary ${savedFlash ? 'flash' : ''}`}>{savedFlash ? 'saved!' : 'save'}</button>
                 <button onClick={clearSaved} className="dbg-btn">reset</button>
@@ -1763,25 +1776,29 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <button onClick={() => setOpen(false)} className="dbg-btn">×</button>
             </div>
 
-            <div className="dbg-stops">
-                {cfg.stops.map((_, i) => (
+            {inSection && <div className="dbg-stops">
+                {cfg.stops.map((_, i) => i >= sectionEntryStop && (
                     <button
                         key={i}
                         onClick={() => { goTo(i); setEditIdx(i); }}
                         className={`dbg-stop ${currentIndex === i ? 'active' : ''} ${editIdx === i ? 'editing' : ''}`}
                     >
-                        {Math.round((i / (cfg.stops.length - 1)) * 100)}%
+                        frame {i - sectionEntryStop + 1}
                     </button>
                 ))}
-            </div>
+            </div>}
 
-            <div className="dbg-edit-hint">editing stop {editIdx} ({Math.round((editIdx / (cfg.stops.length - 1)) * 100)}%)</div>
+            {inSection && <div className="dbg-edit-hint">camera and objects visible in this frame</div>}
 
-            {hubMode && (
+            {inMenu && (
                 <div className="dbg-block">
                     <div className="dbg-title">hub menu (ring)</div>
                     <Row label="ring r"   value={cfg.hub?.ringRadius ?? 9}  min={4}   max={24}  step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, ringRadius: v } })} />
-                    <Row label="cam dist" value={cfg.hub?.camDist ?? 11}    min={3}   max={30}  step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camDist: v } })} />
+                    {window.matchMedia('(min-width: 769px)').matches ? (
+                        <Row label="cam dist desktop" value={cfg.hub?.camDistDesktop ?? 9.5} min={3} max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camDistDesktop: v } })} />
+                    ) : (
+                        <Row label="cam dist mobile" value={cfg.hub?.camDistMobile ?? 11} min={3} max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camDistMobile: v } })} />
+                    )}
                     <Row label="cam y"    value={cfg.hub?.camY ?? 2.6}      min={0.2} max={10}  step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, camY: v } })} />
                     <Row label="look y"   value={cfg.hub?.lookY ?? 2.5}     min={0}   max={8}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, lookY: v } })} />
                     <Row label="fov"      value={cfg.hub?.fov ?? 50}        min={25}  max={100} step={1}    onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, fov: v } })} />
@@ -1796,15 +1813,23 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 </div>
             )}
 
-            <Vec3Block title="position" vec={stop.pos} setVec={(v) => updateStop(editIdx, { pos: v })} />
-            <Vec3Block title="look at"  vec={stop.look} setVec={(v) => updateStop(editIdx, { look: v })} />
+            {inTransition && (
+                <div className="dbg-block">
+                    <div className="dbg-title">menu → section transition</div>
+                    <Row label="duration" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5} step={0.1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
+                    <Row label="distance" value={cfg.hub?.sectionDist ?? 56} min={24} max={140} step={1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, sectionDist: v } })} />
+                </div>
+            )}
 
-            <div className="dbg-block">
+            {inSection && <Vec3Block title="camera position" vec={stop.pos} setVec={(v) => updateStop(editIdx, { pos: v })} />}
+            {inSection && <Vec3Block title="camera look at"  vec={stop.look} setVec={(v) => updateStop(editIdx, { look: v })} />}
+
+            {inSection && <div className="dbg-block">
                 <div className="dbg-title">fov · stop {editIdx}</div>
                 <Row label="fov" value={stop.fov} min={10} max={120} step={1} onChange={(v) => updateStop(editIdx, { fov: v })} />
-            </div>
+            </div>}
 
-            <div className="dbg-block">
+            {inSection && editIdx === 0 && !hideBillboard && <div className="dbg-block">
                 <div className="dbg-title">billboard</div>
                 <Row label="cov sz" value={cfg.billboard.coverSize}  min={0.5} max={6}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, coverSize: v } })} />
                 <Row label="cov y"  value={cfg.billboard.coverY}     min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, coverY: v } })} />
@@ -1816,27 +1841,27 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
                 <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
                 <SelectRow label="artist font" value={cfg.billboard.artistFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistFont: v } })} />
-            </div>
+            </div>}
 
-            <div className="dbg-block">
+            {inSection && editIdx === 2 && !simple && <div className="dbg-block">
                 <div className="dbg-title">stack (links)</div>
                 <Row label="x"      value={cfg.stack.pos.x}  min={-15} max={15} step={0.1} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, x: v } } })} />
                 <Row label="y"      value={cfg.stack.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, y: v } } })} />
                 <Row label="z"      value={cfg.stack.pos.z}  min={-5}  max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, pos: { ...cfg.stack.pos, z: v } } })} />
                 <Row label="size"   value={cfg.stack.boxSize} min={0.2} max={2} step={0.02} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, boxSize: v } })} />
                 <Row label="gap"    value={cfg.stack.gap}     min={0}   max={0.5} step={0.01} onChange={(v) => setCfg({ ...cfg, stack: { ...cfg.stack, gap: v } })} />
-            </div>
+            </div>}
 
-            <div className="dbg-block">
+            {inSection && editIdx === 2 && !simple && <div className="dbg-block">
                 <div className="dbg-title">support text</div>
                 <Row label="x"        value={cfg.support.pos.x}    min={-15} max={15} step={0.1} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, x: v } } })} />
                 <Row label="y"        value={cfg.support.pos.y}    min={-1}  max={3}  step={0.01} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, y: v } } })} />
                 <Row label="z"        value={cfg.support.pos.z}    min={-5}  max={30} step={0.1} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, pos: { ...cfg.support.pos, z: v } } })} />
                 <Row label="meta sz"  value={cfg.support.metaSize} min={0.1} max={1}  step={0.02} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, metaSize: v } })} />
                 <Row label="text sz"  value={cfg.support.fontSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, support: { ...cfg.support, fontSize: v } })} />
-            </div>
+            </div>}
 
-            <div className="dbg-block">
+            {inSection && editIdx === 0 && hasTv && <div className="dbg-block">
                 <div className="dbg-title">tv (mixes)</div>
                 <Row label="x"     value={cfg.tv.pos.x}  min={-15} max={15} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, x: v } } })} />
                 <Row label="y"     value={cfg.tv.pos.y}  min={-3}  max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, pos: { ...cfg.tv.pos, y: v } } })} />
@@ -1851,15 +1876,19 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <Row label="screen x1" value={cfg.tv.screen.x1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, x1: v } } })} />
                 <Row label="screen y0" value={cfg.tv.screen.y0} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y0: v } } })} />
                 <Row label="screen y1" value={cfg.tv.screen.y1} min={0} max={1} step={0.005} onChange={(v) => setCfg({ ...cfg, tv: { ...cfg.tv, screen: { ...cfg.tv.screen, y1: v } } })} />
-            </div>
+            </div>}
 
-            <div className="dbg-block">
-                <div className="dbg-title">scene</div>
+            {inSection && editIdx === 1 && <div className="dbg-block">
+                <div className="dbg-title">captions and photos</div>
                 <Row label="floor txt z" value={cfg.floorTextZ} min={-15} max={20} onChange={(v) => setCfg({ ...cfg, floorTextZ: v })} />
                 <Row label="photo z"     value={cfg.photoZ}     min={-15} max={20} onChange={(v) => setCfg({ ...cfg, photoZ: v })} />
+            </div>}
+
+            {inSection && editIdx === cfg.stops.length - 1 && <div className="dbg-block">
+                <div className="dbg-title">scene depth</div>
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
                 <Row label="fog far"     value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
-            </div>
+            </div>}
         </div>
     );
 };
@@ -1941,14 +1970,14 @@ export const Scene3DShell = ({
         if (!serverCfgKey) return;
         const hydrated = hydrateCfg(nextCfg, stopCount);
         if (!hydrated) return;
-        updateSiteSettings({ ...siteSettings, [serverCfgKey]: hydrated });
+        return updateSiteSettings({ ...siteSettings, [serverCfgKey]: hydrated });
     }, [serverCfgKey, siteSettings, updateSiteSettings, stopCount]);
 
     const resetServerCfg = useCallback(() => {
         if (!serverCfgKey) return;
         const nextSettings = { ...(siteSettings || {}) };
         delete nextSettings[serverCfgKey];
-        updateSiteSettings(nextSettings);
+        return updateSiteSettings(nextSettings);
     }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
     useEffect(() => {
@@ -2173,6 +2202,11 @@ export const Scene3DShell = ({
         setRingIndex(hubMod(st.menuIndex));
     }, []);
 
+    const hubRotateByButton = useCallback((direction) => {
+        const desktop = window.matchMedia('(min-width: 769px)').matches;
+        hubRotateBy(desktop ? -direction : direction);
+    }, [hubRotateBy]);
+
     const hubSelect = useCallback((index) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
@@ -2357,10 +2391,8 @@ export const Scene3DShell = ({
     }, []);
 
     const saveCfg = useCallback(async (nextCfg) => {
-        try {
-            localStorage.setItem(cfgStorageKey, JSON.stringify(nextCfg));
-            await saveCfgToServer(nextCfg);
-        } catch (e) { console.error('save failed', e); }
+        localStorage.setItem(cfgStorageKey, JSON.stringify(nextCfg));
+        await saveCfgToServer(nextCfg);
     }, [cfgStorageKey, saveCfgToServer]);
 
     const clearCfg = useCallback(async () => {
@@ -2374,7 +2406,7 @@ export const Scene3DShell = ({
                 <div className="home-new-canvas">
                     <Canvas
                         camera={hub
-                            ? { position: [0, (cfg.hub || DEFAULT_HUB).camY, -((cfg.hub || DEFAULT_HUB).ringRadius + (cfg.hub || DEFAULT_HUB).camDist)], fov: (cfg.hub || DEFAULT_HUB).fov }
+                            ? { position: [0, (cfg.hub || DEFAULT_HUB).camY, -((cfg.hub || DEFAULT_HUB).ringRadius + hubCameraDistance(cfg.hub || DEFAULT_HUB))], fov: (cfg.hub || DEFAULT_HUB).fov }
                             : { position: [0, 3, 7], fov: cfg.stops[0].fov }}
                         gl={{ antialias: true, alpha: true }}
                         dpr={[1, 2]}
@@ -2421,13 +2453,13 @@ export const Scene3DShell = ({
                         {String(hubDisplayIndex(ringIndex) + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
+                        <button className="mp3d-nav" onClick={() => hubRotateByButton(1)} aria-label={window.matchMedia('(min-width: 769px)').matches ? 'Previous section' : 'Next section'}>
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                         <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
+                        <button className="mp3d-nav" onClick={() => hubRotateByButton(-1)} aria-label={window.matchMedia('(min-width: 769px)').matches ? 'Next section' : 'Previous section'}>
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
@@ -2463,10 +2495,11 @@ export const Scene3DShell = ({
                     releases={effectiveItems}
                     currentReleaseIndex={releaseSwitcher.current}
                     onReleaseSelect={releaseSwitcher.goTo}
+                    compact={currentIndex > 0}
                 />
             ))}
 
-            {showDebug && createPortal(
+            {(showDebug || siteSettings?.cameraTunerEnabled) && createPortal(
                 <DebugPanel
                     cfg={cfg}
                     setCfg={setCfg}
@@ -2476,6 +2509,12 @@ export const Scene3DShell = ({
                     onSaveToServer={saveCfg}
                     onResetServer={clearCfg}
                     hubMode={hub}
+                    hubPhase={hubPhase}
+                    sectionKey={activeKey}
+                    sectionEntryStop={sectionEntryStop}
+                    simple={activeSection.simple}
+                    hasTv={!!effectiveMixes}
+                    hideBillboard={!!activeSection.hideBillboard}
                 />,
                 document.body,
             )}
@@ -2485,12 +2524,14 @@ export const Scene3DShell = ({
 
 // '/' — the hub: one unified 3D world (linear menu at the center, the music
 // section beyond it).
+const debugQueryEnabled = () => /[?&](?:debug|cam)=1\b/.test(window.location.search);
+
 const HomeNewPage = () => (
-    <Scene3DShell serverCfgKey="homeNewConfig" showDebug hub />
+    <Scene3DShell serverCfgKey="homeNewConfig" showDebug={debugQueryEnabled()} hub />
 );
 
 const HubSectionPage = ({ initialKey }) => {
-    const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
+    const showDebug = debugQueryEnabled();
     return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} />;
 };
 

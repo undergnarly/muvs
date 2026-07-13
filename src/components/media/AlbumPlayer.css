@@ -11,7 +11,7 @@
     padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
     border-radius: 20px;
     background: rgba(226, 226, 226, 0.6);
     backdrop-filter: blur(20px) saturate(1.1);
@@ -19,9 +19,27 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
     --ap-accent: #ccff00;
     font-family: inherit;
+    transition: padding 0.34s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.34s ease;
 }
 
 /* ---- top: cover + playlist ---- */
+.ap-expandable {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 0.38s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+}
+
+.ap-expandable-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ap--collapsed .ap-expandable {
+    grid-template-rows: 0fr;
+    opacity: 0;
+}
+
 .ap-top {
     display: flex;
     align-items: stretch;
@@ -107,6 +125,7 @@
 /* ---- seek bar ---- */
 .ap-seek {
     padding: 6px 2px;
+    margin-top: 10px;
     cursor: pointer;
 }
 .ap-seek-track {
@@ -136,6 +155,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-top: 10px;
 }
 .ap-btn {
     flex: 0 0 auto;
@@ -179,6 +199,23 @@
 }
 
 /* ---- collapsed state ---- */
+.ap-mini-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+
+.ap-mini-wrap > * {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ap--collapsed .ap-mini-wrap {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
 .ap--collapsed .ap-mini-row {
     display: flex;
     align-items: center;

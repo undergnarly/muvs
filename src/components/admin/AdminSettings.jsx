@@ -81,6 +81,7 @@ const AdminSettings = () => {
         favicon: siteSettings?.favicon || '',
         siteName: siteSettings?.siteName || 'MUVS',
         siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
+        cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
         menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
         socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
         scrollAnimation: siteSettings?.scrollAnimation || {
@@ -108,6 +109,13 @@ const AdminSettings = () => {
             randomSeed: Date.now()
         }
     });
+
+    useEffect(() => {
+        setSiteFormData(prev => ({
+            ...prev,
+            cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
+        }));
+    }, [siteSettings?.cameraTunerEnabled]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -185,10 +193,17 @@ const AdminSettings = () => {
         }
     };
 
-    const handleSaveSiteSettings = () => {
-        updateSiteSettings({ ...siteSettings, ...siteFormData });
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 2000);
+    const handleSaveSiteSettings = async () => {
+        setError('');
+        setSuccess(false);
+        try {
+            await updateSiteSettings({ ...siteSettings, ...siteFormData });
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 2000);
+        } catch (saveError) {
+            console.error('Site settings save failed:', saveError);
+            setError('Site settings were not saved');
+        }
     };
 
     return (
@@ -230,6 +245,21 @@ const AdminSettings = () => {
                         style={inputStyle}
                         placeholder="Audio • Visual • Code"
                     />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                    <label className="admin-setting-toggle">
+                        <input
+                            type="checkbox"
+                            checked={siteFormData.cameraTunerEnabled}
+                            onChange={e => setSiteFormData({ ...siteFormData, cameraTunerEnabled: e.target.checked })}
+                        />
+                        <span className="admin-setting-toggle-control" aria-hidden="true" />
+                        <span>
+                            <strong>Camera Tuner</strong>
+                            <small>Show camera controls on all 3D pages.</small>
+                        </span>
+                    </label>
                 </div>
 
                 {/* 3D menu captions */}

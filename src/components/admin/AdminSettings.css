@@ -52,3 +52,52 @@
     content: attr(data-placeholder);
     pointer-events: none;
 }
+
+.admin-setting-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    cursor: pointer;
+}
+
+.admin-setting-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.admin-setting-toggle-control {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: #343434;
+    transition: background 0.18s ease;
+}
+
+.admin-setting-toggle-control::after {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #a0a0a0;
+    content: '';
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.admin-setting-toggle input:checked + .admin-setting-toggle-control { background: var(--color-accent); }
+.admin-setting-toggle input:checked + .admin-setting-toggle-control::after { transform: translateX(16px); background: #101010; }
+.admin-setting-toggle input:focus-visible + .admin-setting-toggle-control { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+.admin-setting-toggle > span:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-setting-toggle strong { color: #ffffff; font-size: 13px; }
+.admin-setting-toggle small { color: #7f7f7f; font-size: 11px; }
