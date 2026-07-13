@@ -156,6 +156,12 @@ const buildLogoTexture = (key, color) => {
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
 const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code', 'about']);
+const HUB_SECTION_CONFIG_KEYS = {
+    music: 'musicNewConfig',
+    mixes: 'mixesNewConfig',
+    code: 'codeNewConfig',
+    about: 'aboutNewConfig',
+};
 const HUB_DEFAULT_YOUTUBE = 'https://www.youtube.com/watch?v=gcqrg86VVeQ';
 const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
@@ -1951,9 +1957,9 @@ export const Scene3DShell = ({
         stops: buildDefaultStops(stopCount + defaultStopOffset).slice(defaultStopOffset),
     }), [stopCount, defaultStopOffset]);
 
-    const loadLocal = useCallback(() => {
+    const loadLocal = useCallback((storageKey = cfgStorageKey) => {
         try {
-            const raw = localStorage.getItem(cfgStorageKey);
+            const raw = localStorage.getItem(storageKey);
             if (!raw) return null;
             return hydrateCfg(JSON.parse(raw), stopCount);
         } catch { return null; }
@@ -1964,39 +1970,19 @@ export const Scene3DShell = ({
     const [cfg, setCfg] = useState(() => loadLocal() || hydrateCfg(serverCfg, stopCount) || initialCfg);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
-    const localCfgSyncedRef = useRef(false);
 
-    const saveCfgToServer = useCallback((nextCfg) => {
-        if (!serverCfgKey) return;
+    const saveCfgToServer = useCallback((nextCfg, targetServerKey = serverCfgKey) => {
+        if (!targetServerKey) return;
         const hydrated = hydrateCfg(nextCfg, stopCount);
         if (!hydrated) return;
-        return updateSiteSettings({ ...siteSettings, [serverCfgKey]: hydrated });
+        return updateSiteSettings({ ...siteSettings, [targetServerKey]: hydrated });
     }, [serverCfgKey, siteSettings, updateSiteSettings, stopCount]);
 
-    const resetServerCfg = useCallback(() => {
-        if (!serverCfgKey) return;
-        const nextSettings = { ...(siteSettings || {}), [serverCfgKey]: null };
+    const resetServerCfg = useCallback((targetServerKey = serverCfgKey) => {
+        if (!targetServerKey) return;
+        const nextSettings = { ...(siteSettings || {}), [targetServerKey]: null };
         return updateSiteSettings(nextSettings);
     }, [serverCfgKey, siteSettings, updateSiteSettings]);
-
-    useEffect(() => {
-        if (!isLoaded) return;
-        const localCfg = loadLocal();
-        if (localCfg && !localCfgSyncedRef.current) {
-            localCfgSyncedRef.current = true;
-            setCfg(localCfg);
-            if (serverCfgKey && JSON.stringify(serverCfg) !== JSON.stringify(localCfg)) {
-                saveCfgToServer(localCfg);
-            }
-            return;
-        }
-        if (!localCfg) {
-            const hydrated = hydrateCfg(serverCfg, stopCount);
-            // equality guard: sibling siteSettings writes (e.g. visit stats)
-            // change serverCfg identity without changing content
-            if (hydrated && JSON.stringify(hydrated) !== JSON.stringify(cfgRef.current)) setCfg(hydrated);
-        }
-    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount, isLoaded]);
 
     // ---- hub (3D ring menu) state ----
     // Returning from a foreign section: the initializer only READS (StrictMode
@@ -2036,6 +2022,37 @@ export const Scene3DShell = ({
     const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
     const [activeKey, setActiveKey] = useState(hubInit?.entered || 'music');
     const sectionControls = !hub || hubPhase === 'section';
+    const cfgContext = hub && hubPhase === 'menu' ? 'menu' : activeKey;
+    const activeServerCfgKey = cfgContext === 'menu'
+        ? serverCfgKey
+        : (HUB_SECTION_CONFIG_KEYS[cfgContext] || serverCfgKey);
+    const activeStorageKey = `${cfgStorageKey}:${cfgContext}`;
+
+    useEffect(() => {
+        if (!isLoaded) return;
+
+        const specificServerCfg = activeServerCfgKey ? siteSettings?.[activeServerCfgKey] : null;
+        const legacyServerCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
+        const targetCfg = loadLocal(activeStorageKey)
+            || hydrateCfg(specificServerCfg, stopCount)
+            || loadLocal(cfgStorageKey)
+            || hydrateCfg(legacyServerCfg, stopCount)
+            || initialCfg;
+
+        if (cfgContext === 'menu') {
+            setCfg(targetCfg);
+            return;
+        }
+
+        const menuCfg = loadLocal(`${cfgStorageKey}:menu`)
+            || hydrateCfg(legacyServerCfg, stopCount)
+            || loadLocal(cfgStorageKey)
+            || initialCfg;
+        setCfg({ ...targetCfg, hub: menuCfg.hub || DEFAULT_HUB });
+    }, [
+        activeServerCfgKey, activeStorageKey, cfgContext, cfgStorageKey, initialCfg,
+        isLoaded, loadLocal, serverCfgKey, siteSettings, stopCount,
+    ]);
 
     const musicSection = useMemo(() => ({
         items: displayItems,
@@ -2391,14 +2408,14 @@ export const Scene3DShell = ({
     }, []);
 
     const saveCfg = useCallback(async (nextCfg) => {
-        localStorage.setItem(cfgStorageKey, JSON.stringify(nextCfg));
-        await saveCfgToServer(nextCfg);
-    }, [cfgStorageKey, saveCfgToServer]);
+        localStorage.setItem(activeStorageKey, JSON.stringify(nextCfg));
+        await saveCfgToServer(nextCfg, activeServerCfgKey);
+    }, [activeServerCfgKey, activeStorageKey, saveCfgToServer]);
 
     const clearCfg = useCallback(async () => {
-        try { localStorage.removeItem(cfgStorageKey); } catch { /* ignore */ }
-        await resetServerCfg();
-    }, [cfgStorageKey, resetServerCfg]);
+        try { localStorage.removeItem(activeStorageKey); } catch { /* ignore */ }
+        await resetServerCfg(activeServerCfgKey);
+    }, [activeServerCfgKey, activeStorageKey, resetServerCfg]);
 
     return (
         <div className="home-new-page">
