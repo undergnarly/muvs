@@ -7,54 +7,18 @@ import { news as defaultNews } from '../data/news';
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-    // Helper to load from storage or fallback to default
-    // Initial state with defaults
-    const [releases, setReleases] = useState(defaultReleases);
-    const [mixes, setMixes] = useState(defaultMixes);
-    const [projects, setProjects] = useState(defaultProjects);
-    const [news, setNews] = useState(defaultNews);
-    const [newsSettings, setNewsSettings] = useState({
-        titleFontSize: '60px',
-        titleTopPosition: '20%',
-        backgroundImageDesktop: '',
-        backgroundImageMobile: ''
-    });
-    const [about, setAbout] = useState({
-        title: 'ABOUT',
-        content: 'I am a developer and music enthusiast passionate about building immersive digital experiences. With a background in both front-end engineering and electronic music production, I strive to bridge the gap between technical precision and artistic expression.',
-        backgroundImage: ''
-    });
-    const [siteSettings, setSiteSettings] = useState({
-        favicon: '',
-        siteName: 'MUVS',
-        siteDescription: 'Audio • Visual • Code',
-        cameraTunerEnabled: false,
-        menuParticles: { music: true, mixes: true },
-        socialLinks: {
-            instagram: 'https://instagram.com/muvs.dev',
-            soundcloud: 'https://soundcloud.com/muvs',
-            bandcamp: 'https://muvs.bandcamp.com',
-            telegram: 'https://t.me/muvs_dev'
-        },
-        scrollAnimation: {
-            scrollSectionHeight: 180, // vh
-            detailOverlay: -10, // vh
-            zoomOutMax: 0.65,
-            imageParallaxY: -100,
-            textParallaxY: 50
-        }
-    });
-    const [stats, setStats] = useState({
-        totalVisits: 0,
-        totalPlays: 0,
-        daily: {},
-        sources: {},
-        pages: {},
-        countries: {},
-        detailViews: 0
-    });
+    // The API payload is the only runtime source of truth. Code defaults are
+    // retained below solely for the explicit admin reset action.
+    const [releases, setReleases] = useState([]);
+    const [mixes, setMixes] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [news, setNews] = useState([]);
+    const [newsSettings, setNewsSettings] = useState({});
+    const [about, setAbout] = useState({});
+    const [siteSettings, setSiteSettings] = useState({});
+    const [stats, setStats] = useState({});
     const [messages, setMessages] = useState([]);
-    const [adminSettings, setAdminSettings] = useState({ pin: '1234' });
+    const [adminSettings, setAdminSettings] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
     // Track whether user/admin made changes (not initial load)
     const userChangedRef = React.useRef(new Set());
@@ -233,7 +197,9 @@ export const DataProvider = ({ children }) => {
 
     return (
         <DataContext.Provider value={value}>
-            {children}
+            {isLoaded ? children : (
+                <div style={{ width: '100vw', height: '100vh', background: '#ffffff' }} aria-hidden="true" />
+            )}
         </DataContext.Provider>
     );
 };

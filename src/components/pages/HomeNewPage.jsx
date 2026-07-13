@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -163,11 +163,12 @@ const HUB_SECTION_CONFIG_KEYS = {
     code: 'codeNewConfig',
     about: 'aboutNewConfig',
 };
-const HUB_DEFAULT_YOUTUBE = 'https://www.youtube.com/watch?v=gcqrg86VVeQ';
 const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
 const toSlug = (r) => (r?.slug || r?.title || '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const sceneItemKey = (item, index = 0) => String(item?.id ?? item?.slug ?? (toSlug(item) || index));
 
 const buildDefaultStops = (count) => {
     const out = [];
@@ -1745,6 +1746,7 @@ const DebugPanel = ({
     cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer,
     hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
     simple = false, hasTv = false, hideBillboard = false,
+    tunerItems = [], tunerItemIndex = 0, tunerScope = 'item', onTunerItem,
 }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
@@ -1792,7 +1794,6 @@ const DebugPanel = ({
     };
     const clearSaved = async () => {
         await onResetServer?.();
-        setCfg(DEFAULT_CFG);
     };
 
     if (!open) return <button className="dbg-toggle" onClick={() => setOpen(true)}>cam</button>;
@@ -1807,6 +1808,23 @@ const DebugPanel = ({
                 <button onClick={exportCfg} className="dbg-btn">copy</button>
                 <button onClick={() => setOpen(false)} className="dbg-btn">×</button>
             </div>
+
+            {inSection && tunerItems.length > 0 && (
+                <label className="dbg-select-row">
+                    <span className="dbg-label">item</span>
+                    <select
+                        value={tunerScope === 'section' ? 'section' : `item:${tunerItemIndex}`}
+                        onChange={(e) => onTunerItem?.(e.target.value)}
+                    >
+                        <option value="section">SECTION DEFAULT</option>
+                        {tunerItems.map((item, index) => (
+                            <option key={sceneItemKey(item, index)} value={`item:${index}`}>
+                                {String(index + 1).padStart(2, '0')} · {item.title || item.name || `Item ${index + 1}`}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            )}
 
             {inSection && <div className="dbg-stops">
                 {cfg.stops.map((_, i) => i >= sectionEntryStop && (
@@ -1983,32 +2001,10 @@ export const Scene3DShell = ({
         stops: buildDefaultStops(stopCount + defaultStopOffset).slice(defaultStopOffset),
     }), [stopCount, defaultStopOffset]);
 
-    const loadLocal = useCallback((storageKey = cfgStorageKey) => {
-        try {
-            const raw = localStorage.getItem(storageKey);
-            if (!raw) return null;
-            return hydrateCfg(JSON.parse(raw), stopCount);
-        } catch { return null; }
-    }, [cfgStorageKey, stopCount]);
-
-    const serverCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
-
-    const [cfg, setCfg] = useState(() => loadLocal() || hydrateCfg(serverCfg, stopCount) || initialCfg);
+    const [cfg, setCfg] = useState(initialCfg);
+    const [cfgReady, setCfgReady] = useState(false);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
-
-    const saveCfgToServer = useCallback((nextCfg, targetServerKey = serverCfgKey) => {
-        if (!targetServerKey) return;
-        const hydrated = hydrateCfg(nextCfg, stopCount);
-        if (!hydrated) return;
-        return updateSiteSettings({ ...siteSettings, [targetServerKey]: hydrated });
-    }, [serverCfgKey, siteSettings, updateSiteSettings, stopCount]);
-
-    const resetServerCfg = useCallback((targetServerKey = serverCfgKey) => {
-        if (!targetServerKey) return;
-        const nextSettings = { ...(siteSettings || {}), [targetServerKey]: null };
-        return updateSiteSettings(nextSettings);
-    }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
     // ---- hub (3D ring menu) state ----
     // Returning from a foreign section: the initializer only READS (StrictMode
@@ -2052,33 +2048,6 @@ export const Scene3DShell = ({
     const activeServerCfgKey = cfgContext === 'menu'
         ? serverCfgKey
         : (HUB_SECTION_CONFIG_KEYS[cfgContext] || serverCfgKey);
-    const activeStorageKey = `${cfgStorageKey}:${cfgContext}`;
-
-    useEffect(() => {
-        if (!isLoaded) return;
-
-        const specificServerCfg = activeServerCfgKey ? siteSettings?.[activeServerCfgKey] : null;
-        const legacyServerCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
-        const targetCfg = loadLocal(activeStorageKey)
-            || hydrateCfg(specificServerCfg, stopCount)
-            || loadLocal(cfgStorageKey)
-            || hydrateCfg(legacyServerCfg, stopCount)
-            || initialCfg;
-
-        if (cfgContext === 'menu') {
-            setCfg(targetCfg);
-            return;
-        }
-
-        const menuCfg = loadLocal(`${cfgStorageKey}:menu`)
-            || hydrateCfg(legacyServerCfg, stopCount)
-            || loadLocal(cfgStorageKey)
-            || initialCfg;
-        setCfg({ ...targetCfg, hub: menuCfg.hub || DEFAULT_HUB });
-    }, [
-        activeServerCfgKey, activeStorageKey, cfgContext, cfgStorageKey, initialCfg,
-        isLoaded, loadLocal, serverCfgKey, siteSettings, stopCount,
-    ]);
 
     const musicSection = useMemo(() => ({
         items: displayItems,
@@ -2090,12 +2059,7 @@ export const Scene3DShell = ({
     }), [displayItems, simple, tvMixes, portfolio, richText, bottomAction]);
 
     const mixesItems = useMemo(() => {
-        const source = (mixes || []).length ? mixes : [{
-            id: 'mixes-empty',
-            title: 'MIXES',
-            description: 'Add mixes in the admin panel.',
-            youtubeUrl: HUB_DEFAULT_YOUTUBE,
-        }];
+        const source = mixes || [];
         return [...source]
             .sort((a, b) => (a.order || 0) - (b.order || 0))
             .map((mix) => ({
@@ -2103,17 +2067,11 @@ export const Scene3DShell = ({
                 artists: mix.artists || 'MUVS',
                 releaseDate: mix.releaseDate || mix.recordDate || mix.date || '',
                 coverImage: mix.coverImage || mix.backgroundImage || '',
-                youtubeUrl: mix.youtubeUrl || HUB_DEFAULT_YOUTUBE,
             }));
     }, [mixes]);
 
     const codeItems = useMemo(() => {
-        const source = (projects || []).length ? projects : [{
-            id: 'code-empty',
-            title: 'CODE',
-            type: 'PROJECTS',
-            description: 'Add websites, AI work and projects in the admin panel.',
-        }];
+        const source = projects || [];
         return [...source]
             .sort((a, b) => (a.order || 0) - (b.order || 0))
             .map((project) => ({
@@ -2126,16 +2084,20 @@ export const Scene3DShell = ({
             }));
     }, [projects]);
 
-    const aboutItems = useMemo(() => [{
-        id: 'about',
-        title: about?.title || 'ABOUT',
-        artists: 'MUVS',
-        description: about?.content || 'Add the about text in the admin panel.',
-        releaseDate: '',
-        coverImage: about?.backgroundImage || '',
-    }], [about]);
+    const aboutItems = useMemo(() => (
+        about?.title || about?.content || about?.backgroundImage
+            ? [{
+                id: about.id || 'about',
+                title: about.title || '',
+                artists: 'MUVS',
+                description: about.content || '',
+                releaseDate: '',
+                coverImage: about.backgroundImage || '',
+            }]
+            : []
+    ), [about]);
 
-    const requestUrl = siteSettings?.socialLinks?.telegram || 'https://t.me/muvs';
+    const requestUrl = siteSettings?.socialLinks?.telegram || '';
     const hubSections = useMemo(() => ({
         music: musicSection,
         mixes: {
@@ -2170,6 +2132,11 @@ export const Scene3DShell = ({
     const activeSection = hub ? (hubSections[activeKey] || musicSection) : musicSection;
     const effectiveItems = activeSection.items;
     const sectionEntryStop = activeSection.entryStop ?? 0;
+    const [mixIndex, setMixIndex] = useState(0);
+    const [mixPlaying, setMixPlaying] = useState(false);
+    const [tunerScope, setTunerScope] = useState('item');
+    const effectiveMixes = activeSection.tvMixes;
+    const currentMix = effectiveMixes?.[mixIndex] || null;
 
     const startTravelBack = useCallback(() => {
         const st = hubStateRef.current;
@@ -2187,7 +2154,7 @@ export const Scene3DShell = ({
         navigate(ROUTES.HOME);
     }, [navigate, returnToHubKey]);
 
-    const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length, {
+    const { progressRef, currentIndex, goTo } = useSnapScroll(stopCount, {
         enabled: sectionControls,
         onOverscrollUp: hub ? startTravelBack : (returnToHubKey ? returnToHub : undefined),
         initialIndex: hub && hubInit?.entered ? sectionEntryStop : initialStop,
@@ -2199,9 +2166,48 @@ export const Scene3DShell = ({
         { enabled: sectionControls },
     );
     const currentRelease = effectiveItems[Math.min(releaseSwitcher.current, effectiveItems.length - 1)];
+    const tunerItemIndex = effectiveMixes ? mixIndex : releaseSwitcher.current;
+    const tunerItem = effectiveMixes ? currentMix : currentRelease;
+    const tunerItemKey = tunerItem ? sceneItemKey(tunerItem, tunerItemIndex) : null;
+    const tunerConfigKey = tunerScope === 'item' ? tunerItemKey : null;
+
+    useLayoutEffect(() => {
+        if (!isLoaded) return;
+
+        const legacyServerCfg = serverCfgKey ? siteSettings?.[serverCfgKey] : null;
+        const sectionServerCfg = activeServerCfgKey ? siteSettings?.[activeServerCfgKey] : null;
+        let localFallback = null;
+        if (!activeServerCfgKey) {
+            try {
+                const raw = localStorage.getItem(cfgStorageKey);
+                if (raw) localFallback = hydrateCfg(JSON.parse(raw), stopCount);
+            } catch { /* ignore invalid legacy cache */ }
+        }
+
+        if (cfgContext === 'menu') {
+            setCfg(hydrateCfg(sectionServerCfg, stopCount) || localFallback || initialCfg);
+            setCfgReady(true);
+            return;
+        }
+
+        const sectionCfg = hydrateCfg(sectionServerCfg, stopCount)
+            || hydrateCfg(legacyServerCfg, stopCount)
+            || localFallback
+            || initialCfg;
+        const itemCfg = tunerConfigKey
+            ? hydrateCfg(siteSettings?.sceneItemConfigs?.[cfgContext]?.[tunerConfigKey], stopCount)
+            : null;
+        const menuCfg = hydrateCfg(legacyServerCfg, stopCount) || initialCfg;
+        setCfg({ ...(itemCfg || sectionCfg), hub: menuCfg.hub || DEFAULT_HUB });
+        setCfgReady(true);
+    }, [
+        activeServerCfgKey, cfgContext, cfgStorageKey, initialCfg, isLoaded,
+        serverCfgKey, siteSettings, stopCount, tunerConfigKey,
+    ]);
 
     useEffect(() => {
         releaseSwitcher.goTo(0);
+        setTunerScope('item');
         const nextStop = hub ? sectionEntryStop : initialStop;
         goTo(nextStop, true, nextStop);
     }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2411,10 +2417,6 @@ export const Scene3DShell = ({
         if (window.location.hash !== next) window.history.replaceState(null, '', next);
     }, [releaseSwitcher.current, effectiveItems]);
 
-    const [mixIndex, setMixIndex] = useState(0);
-    const [mixPlaying, setMixPlaying] = useState(false);
-    const effectiveMixes = activeSection.tvMixes;
-    const currentMix = effectiveMixes?.[mixIndex] || null;
     useEffect(() => {
         setMixIndex(0);
         setMixPlaying(false);
@@ -2437,14 +2439,59 @@ export const Scene3DShell = ({
     }, []);
 
     const saveCfg = useCallback(async (nextCfg) => {
-        localStorage.setItem(activeStorageKey, JSON.stringify(nextCfg));
-        await saveCfgToServer(nextCfg, activeServerCfgKey);
-    }, [activeServerCfgKey, activeStorageKey, saveCfgToServer]);
+        const hydrated = hydrateCfg(nextCfg, stopCount);
+        if (!hydrated) return;
+
+        if (hub && cfgContext !== 'menu' && tunerConfigKey) {
+            const sectionItems = siteSettings?.sceneItemConfigs?.[cfgContext] || {};
+            await updateSiteSettings({
+                ...siteSettings,
+                sceneItemConfigs: {
+                    ...(siteSettings?.sceneItemConfigs || {}),
+                    [cfgContext]: { ...sectionItems, [tunerConfigKey]: hydrated },
+                },
+            });
+            return;
+        }
+
+        if (activeServerCfgKey) {
+            await updateSiteSettings({ ...siteSettings, [activeServerCfgKey]: hydrated });
+            return;
+        }
+
+        localStorage.setItem(cfgStorageKey, JSON.stringify(hydrated));
+    }, [
+        activeServerCfgKey, cfgContext, cfgStorageKey, hub, siteSettings,
+        stopCount, tunerConfigKey, updateSiteSettings,
+    ]);
 
     const clearCfg = useCallback(async () => {
-        try { localStorage.removeItem(activeStorageKey); } catch { /* ignore */ }
-        await resetServerCfg(activeServerCfgKey);
-    }, [activeServerCfgKey, activeStorageKey, resetServerCfg]);
+        if (hub && cfgContext !== 'menu' && tunerConfigKey) {
+            const sectionItems = { ...(siteSettings?.sceneItemConfigs?.[cfgContext] || {}) };
+            delete sectionItems[tunerConfigKey];
+            await updateSiteSettings({
+                ...siteSettings,
+                sceneItemConfigs: {
+                    ...(siteSettings?.sceneItemConfigs || {}),
+                    [cfgContext]: sectionItems,
+                },
+            });
+            return;
+        }
+
+        if (activeServerCfgKey) {
+            await updateSiteSettings({ ...(siteSettings || {}), [activeServerCfgKey]: null });
+            return;
+        }
+
+        localStorage.removeItem(cfgStorageKey);
+        setCfg(initialCfg);
+    }, [
+        activeServerCfgKey, cfgContext, cfgStorageKey, hub, initialCfg,
+        siteSettings, tunerConfigKey, updateSiteSettings,
+    ]);
+
+    if (!cfgReady) return <div className="home-new-page" aria-hidden="true" />;
 
     return (
         <div className="home-new-page">
@@ -2567,6 +2614,20 @@ export const Scene3DShell = ({
                     simple={activeSection.simple}
                     hasTv={!!effectiveMixes}
                     hideBillboard={!!activeSection.hideBillboard}
+                    tunerItems={effectiveItems}
+                    tunerItemIndex={tunerItemIndex}
+                    tunerScope={tunerScope}
+                    onTunerItem={(value) => {
+                        if (value === 'section') {
+                            setTunerScope('section');
+                            return;
+                        }
+                        const index = Number(value.split(':')[1]);
+                        setTunerScope('item');
+                        if (effectiveMixes) setMixIndex(index);
+                        else releaseSwitcher.goTo(index);
+                        goTo(sectionEntryStop, true, sectionEntryStop);
+                    }}
                 />,
                 document.body,
             )}
