@@ -16,6 +16,13 @@ const RELEASE_FONT_OPTIONS = [
     { value: 'yuliana', label: 'Yuliana' },
 ];
 
+const normalizeReleaseSlug = (value = '') => value
+    .trim()
+    .replace(/^#+/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const MusicManager = () => {
     const { releases, updateData } = useData();
     const [editingItem, setEditingItem] = useState(null);
@@ -27,11 +34,13 @@ const MusicManager = () => {
     const [galleryTarget, setGalleryTarget] = useState(null);
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [formError, setFormError] = useState('');
 
     // Initial State
     const initialForm = {
         artists: '',
         title: '',
+        slug: '',
         active: true,
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
@@ -65,6 +74,7 @@ const MusicManager = () => {
     const handleEdit = (item) => {
         setEditingItem(item);
         setFormData({ ...initialForm, ...item, active: item.active !== false });
+        setFormError('');
         setImagePreview(item.coverImage || null);
         setIsFormOpen(true);
     };
@@ -88,6 +98,7 @@ const MusicManager = () => {
         setFormData(initialForm);
         setImagePreview(null);
         setUploadStatus('');
+        setFormError('');
         setIsFormOpen(true);
     };
 
@@ -166,9 +177,19 @@ const MusicManager = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        const slug = normalizeReleaseSlug(formData.slug);
+        const duplicate = slug && releases.some((item) => (
+            item.id !== editingItem?.id && normalizeReleaseSlug(item.slug || item.title) === slug
+        ));
+        if (duplicate) {
+            setFormError(`Hashtag #${slug} is already used by another release.`);
+            return;
+        }
+
         // Basic optimization: Ensure tracks is an array if we messed with it
         const finalData = {
             ...formData,
+            slug,
             active: formData.active !== false,
             // Ensure ID exists
             id: editingItem ? editingItem.id : Date.now()
@@ -194,7 +215,7 @@ const MusicManager = () => {
                 if (statusFilter === 'active' && !isActive) return false;
                 if (statusFilter === 'hidden' && isActive) return false;
                 if (!needle) return true;
-                return `${item.title || ''} ${item.artists || ''}`.toLowerCase().includes(needle);
+                return `${item.title || ''} ${item.artists || ''} ${item.slug || ''}`.toLowerCase().includes(needle);
             })
             .sort((a, b) => (a.order || 0) - (b.order || 0));
     }, [query, releases, statusFilter]);
@@ -272,6 +293,32 @@ const MusicManager = () => {
                                     />
                                 </label>
                             </div>
+
+                            <div className="music-field-grid music-field-grid-2">
+                                <label className="music-field">
+                                    <span>Release hashtag</span>
+                                    <div className="music-hashtag-input">
+                                        <span aria-hidden="true">#</span>
+                                        <input
+                                            type="text"
+                                            placeholder="veiled"
+                                            value={formData.slug || ''}
+                                            onChange={e => {
+                                                setFormError('');
+                                                setFormData({ ...formData, slug: normalizeReleaseSlug(e.target.value) });
+                                            }}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <small>
+                                        {formData.slug
+                                            ? `${window.location.origin}/music#${normalizeReleaseSlug(formData.slug)}`
+                                            : 'Leave empty to generate the link from the release title.'}
+                                    </small>
+                                </label>
+                            </div>
+
+                            {formError && <div className="music-form-error" role="alert">{formError}</div>}
 
                             <div className="music-field-grid music-field-grid-3">
                                 <label className="music-field">
@@ -938,6 +985,7 @@ const MusicManager = () => {
                 <div className="music-release-list">
                     {filteredReleases.map(item => {
                         const isActive = item.active !== false;
+                        const releaseSlug = normalizeReleaseSlug(item.slug || item.title);
                         return (
                             <article key={item.id} className={`music-release-row${isActive ? '' : ' is-hidden'}`}>
                                 <div className="music-release-cover">
@@ -953,6 +1001,9 @@ const MusicManager = () => {
                                         <span>{item.releaseDate || 'No date'}</span>
                                         <span>{item.tracks?.length || 0} tracks</span>
                                         <span>Order {item.order || 0}</span>
+                                        {releaseSlug && (
+                                            <a href={`/music#${releaseSlug}`} target="_blank" rel="noreferrer">#{releaseSlug}</a>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="music-release-actions">

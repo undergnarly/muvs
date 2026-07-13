@@ -2403,7 +2403,9 @@ export const Scene3DShell = ({
     useEffect(() => {
         if (hashNavigatedRef.current || !effectiveItems.length) return;
         hashNavigatedRef.current = true;
-        const hash = window.location.hash.replace('#', '');
+        let hashValue = window.location.hash.replace(/^#/, '');
+        try { hashValue = decodeURIComponent(hashValue); } catch { /* use the raw hash */ }
+        const hash = toSlug({ slug: hashValue });
         if (!hash) return;
         const idx = effectiveItems.findIndex((r) => toSlug(r) === hash);
         if (idx >= 0) releaseSwitcher.goTo(idx);
