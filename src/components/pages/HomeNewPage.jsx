@@ -440,7 +440,7 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
                 letterSpacing={-0.02}
                 font={releaseFontUrl(release.title3dFont || billboard.titleFont, FONT_BOLD)}
             >
-                {(release.title || 'UNTITLED').toUpperCase()}
+                {release.title || 'Untitled'}
             </Text>
 
             <Text
@@ -452,7 +452,7 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
                 letterSpacing={0.15}
                 font={releaseFontUrl(release.artist3dFont || billboard.artistFont, FONT_REGULAR)}
             >
-                {(release.artists || '').toUpperCase()}
+                {release.artists || ''}
             </Text>
 
             {!hideCover && (
