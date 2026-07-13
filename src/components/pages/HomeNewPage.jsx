@@ -1876,8 +1876,69 @@ const DebugPanel = ({
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
     const [progress, setProgress] = useState(0);
+    const [tunerPage, setTunerPage] = useState(0);
+    const [tunerPageCount, setTunerPageCount] = useState(1);
+    const panelRef = useRef(null);
+    const pageViewportRef = useRef(null);
+    const lastPageWheelRef = useRef(0);
+    const inMenu = hubMode && hubPhase === 'menu';
+    const inTransition = hubMode && hubPhase === 'travel';
+    const inSection = !hubMode || hubPhase === 'section';
 
     useEffect(() => { setEditIdx(currentIndex); }, [currentIndex]);
+
+    useLayoutEffect(() => {
+        if (!open || !pageViewportRef.current) return undefined;
+        const viewport = pageViewportRef.current;
+        const measure = () => {
+            const count = Math.max(1, Math.ceil(viewport.scrollHeight / Math.max(1, viewport.clientHeight)));
+            setTunerPageCount(count);
+            setTunerPage((current) => Math.min(current, count - 1));
+        };
+        const frameId = requestAnimationFrame(measure);
+        const observer = new ResizeObserver(measure);
+        observer.observe(viewport);
+        if (viewport.firstElementChild) observer.observe(viewport.firstElementChild);
+        return () => {
+            cancelAnimationFrame(frameId);
+            observer.disconnect();
+        };
+    }, [open, inMenu, inTransition, inSection, editIdx, sectionKey, hasTv, simple, hideBillboard, tunerScope, tunerItemIndex]);
+
+    useEffect(() => {
+        const viewport = pageViewportRef.current;
+        if (!viewport) return;
+        viewport.scrollTo({ top: tunerPage * viewport.clientHeight, behavior: 'smooth' });
+    }, [tunerPage]);
+
+    useEffect(() => {
+        setTunerPage(0);
+    }, [inMenu, inTransition, inSection, editIdx, sectionKey, tunerScope, tunerItemIndex]);
+
+    useEffect(() => {
+        const panel = panelRef.current;
+        if (!panel) return undefined;
+        const stopSceneGesture = (event) => {
+            event.stopPropagation();
+            if (event.type !== 'wheel') return;
+            event.preventDefault();
+            if (!event.target.closest('.dbg-page-viewport') || Math.abs(event.deltaY) < 8) return;
+            const now = Date.now();
+            if (now - lastPageWheelRef.current < 320) return;
+            lastPageWheelRef.current = now;
+            setTunerPage((current) => Math.max(0, Math.min(tunerPageCount - 1, current + (event.deltaY > 0 ? 1 : -1))));
+        };
+        panel.addEventListener('wheel', stopSceneGesture, { passive: false });
+        panel.addEventListener('touchstart', stopSceneGesture, { passive: true });
+        panel.addEventListener('touchmove', stopSceneGesture, { passive: true });
+        panel.addEventListener('touchend', stopSceneGesture, { passive: true });
+        return () => {
+            panel.removeEventListener('wheel', stopSceneGesture);
+            panel.removeEventListener('touchstart', stopSceneGesture);
+            panel.removeEventListener('touchmove', stopSceneGesture);
+            panel.removeEventListener('touchend', stopSceneGesture);
+        };
+    }, [tunerPageCount]);
 
     useEffect(() => {
         let raf;
@@ -1895,9 +1956,6 @@ const DebugPanel = ({
     };
 
     const stop = cfg.stops[editIdx];
-    const inMenu = hubMode && hubPhase === 'menu';
-    const inTransition = hubMode && hubPhase === 'travel';
-    const inSection = !hubMode || hubPhase === 'section';
     const contextLabel = inMenu
         ? 'menu'
         : inTransition
@@ -1924,7 +1982,7 @@ const DebugPanel = ({
     if (!open) return <button className="dbg-toggle" onClick={() => setOpen(true)}>cam</button>;
 
     return (
-        <div className="dbg-panel">
+        <div className="dbg-panel" ref={panelRef}>
             <div className="dbg-head">
                 <span>camera tuner · {contextLabel}</span>
                 <span className="dbg-progress">{(progress * 100).toFixed(0)}%</span>
@@ -1933,6 +1991,9 @@ const DebugPanel = ({
                 <button onClick={exportCfg} className="dbg-btn">copy</button>
                 <button onClick={() => setOpen(false)} className="dbg-btn">×</button>
             </div>
+
+            <div className="dbg-page-viewport" ref={pageViewportRef}>
+            <div className="dbg-page-content">
 
             {inSection && tunerItems.length > 0 && (
                 <label className="dbg-select-row">
@@ -2064,6 +2125,30 @@ const DebugPanel = ({
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
                 <Row label="fog far"     value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
             </div>}
+            </div>
+            </div>
+
+            <div className="dbg-pagination">
+                <button
+                    type="button"
+                    className="dbg-page-btn"
+                    onClick={() => setTunerPage((current) => Math.max(0, current - 1))}
+                    disabled={tunerPage === 0}
+                    aria-label="Previous tuner page"
+                >
+                    ‹
+                </button>
+                <span>page {tunerPage + 1} / {tunerPageCount}</span>
+                <button
+                    type="button"
+                    className="dbg-page-btn"
+                    onClick={() => setTunerPage((current) => Math.min(tunerPageCount - 1, current + 1))}
+                    disabled={tunerPage >= tunerPageCount - 1}
+                    aria-label="Next tuner page"
+                >
+                    ›
+                </button>
+            </div>
         </div>
     );
 };
