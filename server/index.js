@@ -248,10 +248,25 @@ app.post("/api/data", (req, res) => {
   }
 
   const db = getDb();
-  db[key] = value;
+  let nextValue = value;
+  if (
+    key === "siteSettings" &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    nextValue = { ...(db.siteSettings || {}), ...value };
+    Object.entries(value).forEach(([settingKey, settingValue]) => {
+      if (settingValue === null) delete nextValue[settingKey];
+    });
+  }
+  db[key] = nextValue;
 
   if (saveDb(db)) {
-    res.json({ success: true, count: Array.isArray(value) ? value.length : 1 });
+    res.json({
+      success: true,
+      count: Array.isArray(nextValue) ? nextValue.length : 1,
+    });
   } else {
     res.status(500).json({ error: "Failed to save data" });
   }

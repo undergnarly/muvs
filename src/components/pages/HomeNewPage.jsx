@@ -1975,8 +1975,7 @@ export const Scene3DShell = ({
 
     const resetServerCfg = useCallback(() => {
         if (!serverCfgKey) return;
-        const nextSettings = { ...(siteSettings || {}) };
-        delete nextSettings[serverCfgKey];
+        const nextSettings = { ...(siteSettings || {}), [serverCfgKey]: null };
         return updateSiteSettings(nextSettings);
     }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
