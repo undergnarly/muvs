@@ -1,7 +1,8 @@
 import React, { Suspense, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { Text, useTexture } from '@react-three/drei';
+import { Html, Text, useTexture } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
+import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -125,17 +126,19 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect }) 
             {/* Floor caption between the camera and the item. */}
             <group position={[0, hub.captionY ?? DEFAULT_HUB.captionY, -(hub.ringRadius + (hub.captionOffset ?? DEFAULT_HUB.captionOffset))]} rotation={[0, Math.PI, 0]}>
                 <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? DEFAULT_HUB.captionTilt), 0, 0]}>
-                    <Text
-                        fontSize={hub.captionSize ?? DEFAULT_HUB.captionSize}
-                        color="#888888"
-                        anchorX="center"
-                        anchorY="top"
-                        letterSpacing={0.18}
-                        font={FONT_REGULAR}
-                        material-side={THREE.FrontSide}
+                    <Html
+                        transform
+                        center
+                        distanceFactor={25 * (hub.captionSize ?? DEFAULT_HUB.captionSize)}
+                        style={{ pointerEvents: 'none' }}
                     >
-                        {caption ?? `SECTION 0${displayIndex + 1} — ${item.label}`}
-                    </Text>
+                        <div
+                            className="mp3d-rich-caption"
+                            dangerouslySetInnerHTML={{
+                                __html: sanitizeCaptionHtml(caption ?? `SECTION 0${displayIndex + 1} — ${item.label}`),
+                            }}
+                        />
+                    </Html>
                 </group>
             </group>
         </group>

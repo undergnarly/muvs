@@ -1,6 +1,22 @@
 /* 3D home menu. Base page/canvas layout reuses .home-new-page /
    .home-new-canvas / .home-new-gradient from HomeNewPage.css. */
 
+.mp3d-rich-caption {
+    width: max-content;
+    max-width: 520px;
+    color: #888888;
+    font-family: Urbanist, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.18em;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.mp3d-rich-caption p,
+.mp3d-rich-caption div { margin: 0; }
+
 .mp3d-counter {
     position: fixed;
     right: 24px;

@@ -47,6 +47,11 @@ const releaseFontUrl = (value, fallback) => (
     RELEASE_FONT_OPTIONS.find((font) => font.value === value)?.url || fallback
 );
 
+const releaseTextSize = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 const DEFAULT_STOPS = [
     { pos: { x: 0,    y: 3.0,  z: 7.0  }, look: { x: 0,    y:  2.6, z: 0.0  }, fov: 46  },
     { pos: { x: 0,    y: 5.2,  z: 10.3 }, look: { x: 0,    y: -0.2, z: 9.7  }, fov: 113 },
@@ -150,7 +155,7 @@ const buildLogoTexture = (key, color) => {
 };
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
-const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code']);
+const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code', 'about']);
 const HUB_DEFAULT_YOUTUBE = 'https://www.youtube.com/watch?v=gcqrg86VVeQ';
 const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
@@ -196,8 +201,10 @@ const hydrateCfg = (cfg, expectedStops) => {
 
 // ================ snap scroll (vertical) ================
 
-const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex = 0 } = {}) => {
-    const initial = Math.max(0, Math.min(numStops - 1, initialIndex));
+const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex = 0, minIndex = 0 } = {}) => {
+    const minIndexRef = useRef(minIndex);
+    useEffect(() => { minIndexRef.current = minIndex; }, [minIndex]);
+    const initial = Math.max(minIndex, Math.min(numStops - 1, initialIndex));
     const indexRef = useRef(initial);
     const progressRef = useRef(numStops <= 1 ? 0 : initial / (numStops - 1));
     const [currentIndex, setCurrentIndex] = useState(initial);
@@ -205,9 +212,11 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
     useEffect(() => { overscrollUpRef.current = onOverscrollUp; }, [onOverscrollUp]);
 
     const goTo = useCallback(
-        (idx) => {
-            const i = Math.max(0, Math.min(numStops - 1, idx));
+        (idx, immediate = false, minOverride = null) => {
+            const floor = minOverride ?? minIndexRef.current;
+            const i = Math.max(floor, Math.min(numStops - 1, idx));
             indexRef.current = i;
+            if (immediate) progressRef.current = numStops <= 1 ? 0 : i / (numStops - 1);
             setCurrentIndex(i);
         },
         [numStops],
@@ -217,11 +226,11 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
         if (!enabled) return undefined;
         let lastWheel = 0;
         const step = (dir) => {
-            if (dir === -1 && indexRef.current === 0) {
+            if (dir === -1 && indexRef.current <= minIndexRef.current) {
                 overscrollUpRef.current?.();
                 return;
             }
-            const next = Math.max(0, Math.min(numStops - 1, indexRef.current + dir));
+            const next = Math.max(minIndexRef.current, Math.min(numStops - 1, indexRef.current + dir));
             if (next !== indexRef.current) {
                 indexRef.current = next;
                 setCurrentIndex(next);
@@ -422,26 +431,26 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
         <group position={[x, 2.6, 0]}>
             <Text
                 position={[0, billboard.titleY, billboard.titleZ]}
-                fontSize={billboard.titleSize}
+                fontSize={releaseTextSize(release.title3dSize, billboard.titleSize)}
                 color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={9}
                 textAlign="center"
                 letterSpacing={-0.02}
-                font={releaseFontUrl(billboard.titleFont, FONT_BOLD)}
+                font={releaseFontUrl(release.title3dFont || billboard.titleFont, FONT_BOLD)}
             >
                 {(release.title || 'UNTITLED').toUpperCase()}
             </Text>
 
             <Text
                 position={[0, billboard.artistY, billboard.artistZ]}
-                fontSize={billboard.artistSize}
+                fontSize={releaseTextSize(release.artist3dSize, billboard.artistSize)}
                 color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
-                font={releaseFontUrl(billboard.artistFont, FONT_REGULAR)}
+                font={releaseFontUrl(release.artist3dFont || billboard.artistFont, FONT_REGULAR)}
             >
                 {(release.artists || '').toUpperCase()}
             </Text>
@@ -879,7 +888,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             const travelDuration = Math.max(0.36, (hub.travelDur || 1.8) / 3);
             st.tt = Math.max(0, Math.min(1, st.tt + (delta / travelDuration) * st.dir));
             const a = hubMenuPose(hub, st.angle);
-            const lp = sampleStops(cfg.stops, 0);
+            const lp = sampleStops(cfg.stops, progressRef.current);
             const ox = releaseOffsetRef.current;
             const sectionLook = { ...lp.look, y: lp.look.y + 0.22 };
             const b = { pos: s2w(lp.pos, ox), look: s2w(sectionLook, ox), fov: lp.fov };
@@ -1196,7 +1205,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hub = null }) => {
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const sectionContent = (
         <>
             {!simple && (
@@ -1211,9 +1220,11 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
             )}
             {releases.map((r, i) => (
                 <React.Fragment key={r.id ?? i}>
-                    <Suspense fallback={null}>
-                        <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} />
-                    </Suspense>
+                    {!hideBillboard && (
+                        <Suspense fallback={null}>
+                            <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} />
+                        </Suspense>
+                    )}
                     <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
                     <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
                     {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
@@ -1853,16 +1864,19 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
     );
 };
 
-const StopIndicator = ({ count, currentIndex, goTo }) => (
+const StopIndicator = ({ count, currentIndex, goTo, startIndex = 0 }) => (
     <div className="hn-dots" aria-hidden="true">
-        {Array.from({ length: count }).map((_, i) => (
+        {Array.from({ length: Math.max(0, count - startIndex) }).map((_, offset) => {
+            const i = offset + startIndex;
+            return (
             <button
                 key={i}
                 className={`hn-dot ${currentIndex === i ? 'active' : ''}`}
                 onClick={() => goTo(i)}
                 aria-label={`Go to stop ${i + 1}`}
             />
-        ))}
+            );
+        })}
     </div>
 );
 
@@ -1892,7 +1906,7 @@ export const Scene3DShell = ({
     defaultStopOffset = 0,
     returnToHubKey = null,
 }) => {
-    const { releases, mixes, projects, siteSettings, updateSiteSettings } = useData();
+    const { releases, mixes, projects, about, siteSettings, updateSiteSettings } = useData();
     const navigate = useNavigate();
 
     const displayItems = React.useMemo(() => {
@@ -2039,6 +2053,15 @@ export const Scene3DShell = ({
             }));
     }, [projects]);
 
+    const aboutItems = useMemo(() => [{
+        id: 'about',
+        title: about?.title || 'ABOUT',
+        artists: 'MUVS',
+        description: about?.content || 'Add the about text in the admin panel.',
+        releaseDate: '',
+        coverImage: about?.backgroundImage || '',
+    }], [about]);
+
     const requestUrl = siteSettings?.socialLinks?.telegram || 'https://t.me/muvs';
     const hubSections = useMemo(() => ({
         music: musicSection,
@@ -2059,9 +2082,20 @@ export const Scene3DShell = ({
             richText: true,
             bottomAction: { label: 'MAKE REQUEST', href: requestUrl },
         },
-    }), [musicSection, mixesItems, codeItems, requestUrl]);
+        about: {
+            items: aboutItems,
+            simple: true,
+            tvMixes: null,
+            portfolio: null,
+            richText: false,
+            bottomAction: { label: 'MAKE REQUEST', href: requestUrl },
+            entryStop: 1,
+            hideBillboard: true,
+        },
+    }), [musicSection, mixesItems, codeItems, aboutItems, requestUrl]);
     const activeSection = hub ? (hubSections[activeKey] || musicSection) : musicSection;
     const effectiveItems = activeSection.items;
+    const sectionEntryStop = activeSection.entryStop ?? 0;
 
     const startTravelBack = useCallback(() => {
         const st = hubStateRef.current;
@@ -2082,7 +2116,8 @@ export const Scene3DShell = ({
     const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length, {
         enabled: sectionControls,
         onOverscrollUp: hub ? startTravelBack : (returnToHubKey ? returnToHub : undefined),
-        initialIndex: initialStop,
+        initialIndex: hub && hubInit?.entered ? sectionEntryStop : initialStop,
+        minIndex: hub ? sectionEntryStop : 0,
     });
     const releaseSwitcher = useReleaseSwitcher(
         effectiveItems.length,
@@ -2093,13 +2128,14 @@ export const Scene3DShell = ({
 
     useEffect(() => {
         releaseSwitcher.goTo(0);
-        goTo(hub ? 0 : initialStop);
+        const nextStop = hub ? sectionEntryStop : initialStop;
+        goTo(nextStop, true, nextStop);
     }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const startTravelIn = useCallback(() => {
+    const startTravelIn = useCallback((entryStop = 0) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        goTo(0);
+        goTo(entryStop, true, entryStop);
         st.phase = 'travel';
         st.dir = 1;
         st.tt = Math.max(0, st.tt);
@@ -2122,12 +2158,13 @@ export const Scene3DShell = ({
         if (!st || st.phase !== 'menu') return;
         const item = HUB_ITEMS[hubMod(st.menuIndex)];
         if (HUB_IN_CANVAS.has(item.key)) {
+            const entryStop = hubSections[item.key]?.entryStop ?? 0;
             setActiveKey(item.key);
-            startTravelIn();
+            startTravelIn(entryStop);
         } else {
             startForeign(item);
         }
-    }, [startTravelIn, startForeign]);
+    }, [hubSections, startTravelIn, startForeign]);
 
     const hubRotateBy = useCallback((d) => {
         const st = hubStateRef.current;
@@ -2356,6 +2393,7 @@ export const Scene3DShell = ({
                             simple={activeSection.simple}
                             portfolio={activeSection.portfolio}
                             richText={activeSection.richText}
+                            hideBillboard={!!activeSection.hideBillboard}
                             tvMix={currentMix}
                             tvPlaying={mixPlaying}
                             tv={cfg.tv}
@@ -2374,7 +2412,7 @@ export const Scene3DShell = ({
             />
             <Header theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'} />
             {sectionControls && (
-                <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
+                <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}
 
             {hub && hubPhase === 'menu' && (
@@ -2459,5 +2497,6 @@ const HubSectionPage = ({ initialKey }) => {
 export const MusicNewPage = () => <HubSectionPage initialKey="music" />;
 export const MixesHubPage = () => <HubSectionPage initialKey="mixes" />;
 export const CodeHubPage = () => <HubSectionPage initialKey="code" />;
+export const AboutHubPage = () => <HubSectionPage initialKey="about" />;
 
 export default HomeNewPage;

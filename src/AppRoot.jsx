@@ -12,8 +12,7 @@ import LectureTextPage from './components/pages/LectureTextPage';
 import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
 import ThreeDPage from './components/pages/ThreeDPage';
-import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage } from './components/pages/HomeNewPage';
-import AboutPage3D from './components/pages/AboutPage3D';
+import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage, AboutHubPage } from './components/pages/HomeNewPage';
 import NewsPage3D from './components/pages/NewsPage3D';
 import CVPage3D from './components/pages/CVPage3D';
 import LecturePage3D from './components/pages/LecturePage3D';
@@ -115,7 +114,7 @@ function AppRoot() {
             <Routes>
                 <Route path={ROUTES.HOME} element={<HomeNewPage />} />
                 <Route path={ROUTES.MUSIC} element={<MusicNewPage />} />
-                <Route path={ROUTES.ABOUT} element={<AboutPage3D />} />
+                <Route path={ROUTES.ABOUT} element={<AboutHubPage />} />
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />
                 <Route path={ROUTES.MIXES} element={<MixesHubPage />} />
                 <Route path={ROUTES.CODE} element={<CodeHubPage />} />

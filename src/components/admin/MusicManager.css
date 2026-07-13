@@ -185,6 +185,7 @@
 }
 
 .music-admin-form input,
+.music-admin-form select,
 .music-admin-form textarea {
     border-radius: 6px !important;
     border-color: #363636 !important;
@@ -192,9 +193,35 @@
 }
 
 .music-admin-form input:focus,
+.music-admin-form select:focus,
 .music-admin-form textarea:focus {
     border-color: var(--color-accent) !important;
     box-shadow: 0 0 0 2px rgba(204, 255, 0, 0.1);
+}
+
+.music-admin-form select {
+    color: #ffffff;
+    color-scheme: dark;
+}
+
+.music-typography-note {
+    margin: 10px 0 0;
+    color: #777777;
+    font-size: 10px;
+}
+
+.music-legacy-settings {
+    padding: 12px 14px;
+    border: 1px solid #292929;
+    border-radius: 6px;
+    background: #111111;
+}
+
+.music-legacy-settings summary {
+    cursor: pointer;
+    color: #929292;
+    font-size: 11px;
+    font-weight: 650;
 }
 
 .music-form-actions {

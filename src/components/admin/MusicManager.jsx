@@ -6,6 +6,16 @@ import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
 import './MusicManager.css';
 
+const RELEASE_FONT_OPTIONS = [
+    { value: '', label: 'Camera Tuner default' },
+    { value: 'urbanist-regular', label: 'Urbanist Regular' },
+    { value: 'urbanist-bold', label: 'Urbanist Bold' },
+    { value: 'cat-schmalfette', label: 'CAT Schmalfette' },
+    { value: 'deutsch-gothic', label: 'Deutsch Gothic' },
+    { value: 'drei-fraktur', label: 'Drei Fraktur' },
+    { value: 'yuliana', label: 'Yuliana' },
+];
+
 const MusicManager = () => {
     const { releases, updateData } = useData();
     const [editingItem, setEditingItem] = useState(null);
@@ -25,6 +35,10 @@ const MusicManager = () => {
         active: true,
         titleFontSize: 'min(24vw, 120px)',
         artistFontSize: 'min(12vw, 60px)',
+        title3dFont: '',
+        artist3dFont: '',
+        title3dSize: null,
+        artist3dSize: null,
         titleGap: '0px',
         textTopPosition: '20%',
         parallaxStrength: 100, // Legacy support
@@ -299,29 +313,79 @@ const MusicManager = () => {
                             </label>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                            <input
-                                type="text"
-                                placeholder="Title Font Size (e.g. min(24vw, 120px))"
-                                value={formData.titleFontSize || ''}
-                                onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })}
-                                style={inputStyle}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Artist Font Size (e.g. min(12vw, 60px))"
-                                value={formData.artistFontSize || ''}
-                                onChange={e => setFormData({ ...formData, artistFontSize: e.target.value })}
-                                style={inputStyle}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Title Gap (e.g. 10px or 2vh)"
-                                value={formData.titleGap || ''}
-                                onChange={e => setFormData({ ...formData, titleGap: e.target.value })}
-                                style={inputStyle}
-                            />
-                        </div>
+                        <section className="music-form-section">
+                            <div className="music-form-section-title">
+                                <span>02</span>
+                                <div><h3>3D typography</h3><p>Overrides the Camera Tuner typography for this release.</p></div>
+                            </div>
+                            <div className="music-field-grid music-field-grid-2">
+                                <label className="music-field">
+                                    <span>Release title font</span>
+                                    <select
+                                        value={formData.title3dFont || ''}
+                                        onChange={e => setFormData({ ...formData, title3dFont: e.target.value })}
+                                        style={inputStyle}
+                                    >
+                                        {RELEASE_FONT_OPTIONS.map(font => <option key={`title-${font.value}`} value={font.value}>{font.label}</option>)}
+                                    </select>
+                                </label>
+                                <label className="music-field">
+                                    <span>Release title size</span>
+                                    <input
+                                        type="number"
+                                        min="0.1"
+                                        max="3"
+                                        step="0.02"
+                                        placeholder="Camera Tuner default"
+                                        value={formData.title3dSize ?? ''}
+                                        onChange={e => setFormData({ ...formData, title3dSize: e.target.value === '' ? null : Number(e.target.value) })}
+                                        style={inputStyle}
+                                    />
+                                </label>
+                                <label className="music-field">
+                                    <span>Artist font</span>
+                                    <select
+                                        value={formData.artist3dFont || ''}
+                                        onChange={e => setFormData({ ...formData, artist3dFont: e.target.value })}
+                                        style={inputStyle}
+                                    >
+                                        {RELEASE_FONT_OPTIONS.map(font => <option key={`artist-${font.value}`} value={font.value}>{font.label}</option>)}
+                                    </select>
+                                </label>
+                                <label className="music-field">
+                                    <span>Artist size</span>
+                                    <input
+                                        type="number"
+                                        min="0.05"
+                                        max="2"
+                                        step="0.02"
+                                        placeholder="Camera Tuner default"
+                                        value={formData.artist3dSize ?? ''}
+                                        onChange={e => setFormData({ ...formData, artist3dSize: e.target.value === '' ? null : Number(e.target.value) })}
+                                        style={inputStyle}
+                                    />
+                                </label>
+                            </div>
+                            <p className="music-typography-note">Leave a font or size empty to inherit the current Camera Tuner value.</p>
+                        </section>
+
+                        <details className="music-legacy-settings">
+                            <summary>Legacy page settings</summary>
+                            <div className="music-field-grid music-field-grid-3">
+                                <label className="music-field">
+                                    <span>Title CSS size</span>
+                                    <input type="text" value={formData.titleFontSize || ''} onChange={e => setFormData({ ...formData, titleFontSize: e.target.value })} style={inputStyle} />
+                                </label>
+                                <label className="music-field">
+                                    <span>Artist CSS size</span>
+                                    <input type="text" value={formData.artistFontSize || ''} onChange={e => setFormData({ ...formData, artistFontSize: e.target.value })} style={inputStyle} />
+                                </label>
+                                <label className="music-field">
+                                    <span>Title gap</span>
+                                    <input type="text" value={formData.titleGap || ''} onChange={e => setFormData({ ...formData, titleGap: e.target.value })} style={inputStyle} />
+                                </label>
+                            </div>
+                        </details>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <input

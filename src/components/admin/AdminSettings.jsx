@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaLock, FaUpload, FaTrash, FaSave, FaCog, FaImages } from 'react-icons/fa';
+import { FaBold, FaCog, FaImages, FaItalic, FaLock, FaSave, FaTrash, FaUnderline, FaUpload } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import { sanitizeCaptionHtml } from '../../utils/captionRichText';
+import './AdminSettings.css';
 
 const MENU_CAPTION_DEFAULTS = {
     music: 'SECTION 01 — MUSIC',
@@ -18,6 +20,50 @@ const MENU_CAPTION_FIELDS = [
     { key: 'code', label: 'Code' },
     { key: 'about', label: 'About' },
 ];
+
+const CaptionEditor = ({ value, onChange, placeholder }) => {
+    const editorRef = useRef(null);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (editor && document.activeElement !== editor && editor.innerHTML !== value) {
+            editor.innerHTML = sanitizeCaptionHtml(value);
+        }
+    }, [value]);
+
+    const format = (command) => {
+        editorRef.current?.focus();
+        document.execCommand(command, false);
+        onChange(sanitizeCaptionHtml(editorRef.current?.innerHTML || ''));
+    };
+
+    const syncValue = () => {
+        const clean = sanitizeCaptionHtml(editorRef.current?.innerHTML || '');
+        if (editorRef.current && editorRef.current.innerHTML !== clean) editorRef.current.innerHTML = clean;
+        onChange(clean);
+    };
+
+    return (
+        <div className="caption-rich-editor">
+            <div className="caption-rich-toolbar" role="toolbar" aria-label="Caption formatting">
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('bold')} aria-label="Bold" title="Bold"><FaBold /></button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('italic')} aria-label="Italic" title="Italic"><FaItalic /></button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('underline')} aria-label="Underline" title="Underline"><FaUnderline /></button>
+            </div>
+            <div
+                ref={editorRef}
+                className="caption-rich-input"
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-multiline="true"
+                data-placeholder={placeholder}
+                onInput={syncValue}
+                onBlur={syncValue}
+            />
+        </div>
+    );
+};
 
 const AdminSettings = () => {
     const { adminSettings, updatePin, siteSettings, updateSiteSettings } = useData();
@@ -193,14 +239,12 @@ const AdminSettings = () => {
                         {MENU_CAPTION_FIELDS.map(({ key, label }) => (
                             <div key={key}>
                                 <label style={labelStyle}>{label}</label>
-                                <input
-                                    type="text"
+                                <CaptionEditor
                                     value={siteFormData.menuCaptions[key]}
-                                    onChange={e => setSiteFormData({
+                                    onChange={value => setSiteFormData({
                                         ...siteFormData,
-                                        menuCaptions: { ...siteFormData.menuCaptions, [key]: e.target.value }
+                                        menuCaptions: { ...siteFormData.menuCaptions, [key]: value }
                                     })}
-                                    style={inputStyle}
                                     placeholder={MENU_CAPTION_DEFAULTS[key]}
                                 />
                             </div>
