@@ -111,9 +111,11 @@ const RingItem = ({ item, index, cover, hub, onSelect }) => {
                 >
                     {`0${index + 1}`}
                 </Text>
-                <Suspense fallback={null}>
-                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
-                </Suspense>
+                {cover && (
+                    <Suspense fallback={null}>
+                        <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
+                    </Suspense>
+                )}
             </group>
             {/* Floor caption between the camera and the item. */}
             <group position={[0, 0.01, -(hub.ringRadius + 3.5)]} rotation={[0, Math.PI, 0]}>

@@ -833,7 +833,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         }
 
         const targetA = st.menuIndex * HUB_SPACING;
-        st.angle += (targetA - st.angle) * Math.min(1, delta * 5);
+        st.angle += (targetA - st.angle) * 0.08;
 
         const D = hub.sectionDist;
         const s2w = (p, ox = 0) => ({ x: -(p.x + ox), y: p.y, z: -p.z - D });
@@ -2017,17 +2017,16 @@ export const Scene3DShell = ({
         if (!hub) return null;
         const menuCovers = {
             music: '/images/menu/music2.png',
-            mixes: '/images/menu/mixes-y2k-boombox.png',
+            mixes: null,
             code: '/images/menu/code2.png',
+            about: null,
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
             return r?.coverImage || '/images/logo.png';
         });
-        const mixesCover = releaseCovers[HUB_ITEMS.findIndex((item) => item.key === 'mixes')];
         return HUB_ITEMS.map((item, i) => {
-            if (menuCovers[item.key]) return menuCovers[item.key];
-            if (item.key === 'about') return menuCovers.mixes || mixesCover;
+            if (Object.hasOwn(menuCovers, item.key)) return menuCovers[item.key];
             return releaseCovers[i];
         });
     }, [hub, displayItems]);
@@ -2203,10 +2202,9 @@ export const Scene3DShell = ({
 };
 
 // '/' — the hub: one unified 3D world (linear menu at the center, the music
-// section beyond it). Camera tuner is on while it's being dialed
-// in (user request); re-gate on ?debug=1 when done.
+// section beyond it).
 const HomeNewPage = () => (
-    <Scene3DShell serverCfgKey="homeNewConfig" showDebug hub />
+    <Scene3DShell serverCfgKey="homeNewConfig" hub />
 );
 
 // '/music' — the standalone music page (direct links, burger menu).
