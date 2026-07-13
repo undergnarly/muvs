@@ -33,6 +33,18 @@ const RELEASE_SPACING = 14;
 const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
 const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
 const FONT_HANDWRITTEN = '/fonts/yuliana.ttf';
+const RELEASE_FONT_OPTIONS = [
+    { value: 'urbanist-regular', label: 'Urbanist Regular', url: FONT_REGULAR },
+    { value: 'urbanist-bold', label: 'Urbanist Bold', url: FONT_BOLD },
+    { value: 'cat-schmalfette', label: 'CAT Schmalfette', url: '/fonts/cat-schmalfette.ttf' },
+    { value: 'deutsch-gothic', label: 'Deutsch Gothic', url: '/fonts/deutsch-gothic.otf' },
+    { value: 'drei-fraktur', label: 'Drei Fraktur', url: '/fonts/drei-fraktur.ttf' },
+    { value: 'yuliana', label: 'Yuliana', url: FONT_HANDWRITTEN },
+];
+
+const releaseFontUrl = (value, fallback) => (
+    RELEASE_FONT_OPTIONS.find((font) => font.value === value)?.url || fallback
+);
 
 const DEFAULT_STOPS = [
     { pos: { x: 0,    y: 3.0,  z: 7.0  }, look: { x: 0,    y:  2.6, z: 0.0  }, fov: 46  },
@@ -47,9 +59,11 @@ const DEFAULT_BILLBOARD = {
     titleY: 1.15,
     titleZ: -3,
     titleSize: 0.72,
+    titleFont: 'urbanist-bold',
     artistY: 1.6,
     artistZ: -3,
     artistSize: 0.26,
+    artistFont: 'urbanist-regular',
 };
 
 const DEFAULT_STACK = {
@@ -413,7 +427,7 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
                 maxWidth={9}
                 textAlign="center"
                 letterSpacing={-0.02}
-                font={FONT_BOLD}
+                font={releaseFontUrl(billboard.titleFont, FONT_BOLD)}
             >
                 {(release.title || 'UNTITLED').toUpperCase()}
             </Text>
@@ -425,7 +439,7 @@ const Billboard = ({ release, x, billboard, hideCover = false }) => {
                 anchorX="center"
                 anchorY="middle"
                 letterSpacing={0.15}
-                font={FONT_REGULAR}
+                font={releaseFontUrl(billboard.artistFont, FONT_REGULAR)}
             >
                 {(release.artists || '').toUpperCase()}
             </Text>
@@ -1235,7 +1249,13 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
             <Floor big={!!hub} />
             {hub && (
                 <group ref={ringRef}>
-                    <RingMenu hub={hub.cfg} covers={hub.covers} onSelect={hub.onSelect} />
+                    <RingMenu
+                        hub={hub.cfg}
+                        covers={hub.covers}
+                        onSelect={hub.onSelect}
+                        activeIndex={hub.activeIndex}
+                        activeOnly={hub.phase !== 'menu'}
+                    />
                 </group>
             )}
             {hub ? (
@@ -1654,6 +1674,17 @@ const Row = ({ label, value, onChange, min = -30, max = 30, step = 0.1 }) => (
     </div>
 );
 
+const SelectRow = ({ label, value, onChange, options }) => (
+    <label className="dbg-select-row">
+        <span className="dbg-label">{label}</span>
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+            {options.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+        </select>
+    </label>
+);
+
 const Vec3Block = ({ title, vec, setVec }) => (
     <div className="dbg-block">
         <div className="dbg-title">{title}</div>
@@ -1743,7 +1774,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                     <Row label="sect dist" value={cfg.hub?.sectionDist ?? 56} min={24} max={140} step={1}   onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, sectionDist: v } })} />
                     <Row label="item sz"  value={cfg.hub?.itemSize ?? 3.4}  min={1}   max={7}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemSize: v } })} />
                     <Row label="item y"   value={cfg.hub?.itemY ?? 2.45}    min={0}   max={6}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemY: v } })} />
-                    <Row label="caption gap" value={cfg.hub?.captionOffset ?? 1.2} min={0.2} max={8} step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionOffset: v } })} />
+                    <Row label="caption gap" value={cfg.hub?.captionOffset ?? 1.2} min={-8} max={8} step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionOffset: v } })} />
                     <Row label="travel s" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5}   step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
                 </div>
             )}
@@ -1763,9 +1794,11 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                 <Row label="ttl y"  value={cfg.billboard.titleY}     min={-3}  max={5}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleY: v } })} />
                 <Row label="ttl z"  value={cfg.billboard.titleZ}     min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleZ: v } })} />
                 <Row label="ttl sz" value={cfg.billboard.titleSize}  min={0.1} max={3}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleSize: v } })} />
+                <SelectRow label="title font" value={cfg.billboard.titleFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, titleFont: v } })} />
                 <Row label="art y"  value={cfg.billboard.artistY}    min={-3}  max={5}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistY: v } })} />
                 <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
                 <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
+                <SelectRow label="artist font" value={cfg.billboard.artistFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistFont: v } })} />
             </div>
 
             <div className="dbg-block">
@@ -2210,6 +2243,8 @@ export const Scene3DShell = ({
     const hubProps = hub ? {
         cfg: cfg.hub || DEFAULT_HUB,
         covers: hubCovers,
+        phase: hubPhase,
+        activeIndex: ringIndex,
         stateRef: hubStateRef,
         onSelect: hubSelect,
         onPhase: hubOnPhase,
@@ -2321,13 +2356,13 @@ export const Scene3DShell = ({
                         {String(hubDisplayIndex(ringIndex) + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                         <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>

@@ -141,9 +141,10 @@ const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, onSelect }) => (
+export const RingMenu = ({ hub, covers, onSelect, activeIndex = 0, activeOnly = false }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
+            (!activeOnly || i === activeIndex) &&
             <RingItem
                 key={`${copy}-${item.key}`}
                 item={item}
