@@ -1935,7 +1935,7 @@ export const Scene3DShell = ({
     defaultStopOffset = 0,
     returnToHubKey = null,
 }) => {
-    const { releases, mixes, projects, about, siteSettings, updateSiteSettings } = useData();
+    const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
 
     const displayItems = React.useMemo(() => {
@@ -1981,6 +1981,7 @@ export const Scene3DShell = ({
     }, [serverCfgKey, siteSettings, updateSiteSettings]);
 
     useEffect(() => {
+        if (!isLoaded) return;
         const localCfg = loadLocal();
         if (localCfg && !localCfgSyncedRef.current) {
             localCfgSyncedRef.current = true;
@@ -1996,7 +1997,7 @@ export const Scene3DShell = ({
             // change serverCfg identity without changing content
             if (hydrated && JSON.stringify(hydrated) !== JSON.stringify(cfgRef.current)) setCfg(hydrated);
         }
-    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount]);
+    }, [serverCfg, saveCfgToServer, loadLocal, serverCfgKey, stopCount, isLoaded]);
 
     // ---- hub (3D ring menu) state ----
     // Returning from a foreign section: the initializer only READS (StrictMode

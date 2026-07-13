@@ -66,7 +66,7 @@ const CaptionEditor = ({ value, onChange, placeholder }) => {
 };
 
 const AdminSettings = () => {
-    const { adminSettings, updatePin, siteSettings, updateSiteSettings } = useData();
+    const { adminSettings, updatePin, siteSettings, updateSiteSettings, isLoaded } = useData();
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -110,12 +110,19 @@ const AdminSettings = () => {
         }
     });
 
+    const settingsHydratedRef = useRef(false);
     useEffect(() => {
+        if (!isLoaded || settingsHydratedRef.current) return;
+        settingsHydratedRef.current = true;
         setSiteFormData(prev => ({
             ...prev,
+            ...siteSettings,
             cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
+            menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
+            socialLinks: { ...prev.socialLinks, ...(siteSettings?.socialLinks || {}) },
         }));
-    }, [siteSettings?.cameraTunerEnabled]);
+        setFaviconPreview(siteSettings?.favicon || null);
+    }, [isLoaded, siteSettings]);
 
     const handleSubmit = (e) => {
         e.preventDefault();

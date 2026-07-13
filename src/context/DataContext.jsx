@@ -120,6 +120,7 @@ export const DataProvider = ({ children }) => {
     };
 
     const updateSiteSettings = React.useCallback(async (newSettings) => {
+        if (!isLoaded) throw new Error('Site settings are not loaded yet');
         setSiteSettings(newSettings);
         const response = await fetch('/api/data', {
             method: 'POST',
@@ -128,7 +129,7 @@ export const DataProvider = ({ children }) => {
         });
         if (!response.ok) throw new Error(`Site settings save failed with ${response.status}`);
         return response.json();
-    }, []);
+    }, [isLoaded]);
 
     const trackVisit = async (path, referrer = '') => {
         // Exclude admin and login paths
@@ -218,6 +219,7 @@ export const DataProvider = ({ children }) => {
         stats,
         messages,
         adminSettings,
+        isLoaded,
         updateData,
         updateSiteSettings,
         trackVisit,
