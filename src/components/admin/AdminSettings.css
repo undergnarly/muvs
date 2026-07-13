@@ -66,6 +66,12 @@
     font-size: 11px;
 }
 
+.admin-setting-subheading {
+    margin: 22px 0 14px;
+    color: #ffffff;
+    font-size: 13px;
+}
+
 @media (max-width: 720px) {
     .admin-setting-toggle-grid,
     .admin-device-tilt-grid { grid-template-columns: 1fr; }

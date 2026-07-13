@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
+import GyroParallaxLayer from './GyroParallaxLayer';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -176,7 +177,7 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, tiltRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -184,6 +185,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
     return (
         <group position={[index * HUB_SPACING, 0, 0]}>
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
+                <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuHeading">
                 <Text
                     position={[0, 2.25, -1.2]}
                     fontSize={0.92}
@@ -208,19 +210,25 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 >
                     {`0${displayIndex + 1}`}
                 </Text>
+                </GyroParallaxLayer>
                 {cover && (
+                    <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuImage">
                     <Suspense fallback={null}>
                         <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
                     </Suspense>
+                    </GyroParallaxLayer>
                 )}
-                {particlesVisible && item.key === 'music' && particleSettings?.music !== false && (
-                    <MusicInsectParticles seed={index * 13} />
-                )}
-                {particlesVisible && item.key === 'mixes' && particleSettings?.mixes !== false && (
-                    <MixesBronzeParticles seed={index * 17} />
-                )}
+                <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuParticles">
+                    {particlesVisible && item.key === 'music' && particleSettings?.music !== false && (
+                        <MusicInsectParticles seed={index * 13} />
+                    )}
+                    {particlesVisible && item.key === 'mixes' && particleSettings?.mixes !== false && (
+                        <MixesBronzeParticles seed={index * 17} />
+                    )}
+                </GyroParallaxLayer>
             </group>
             {/* Floor caption between the camera and the item. */}
+            <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuCaption">
             <group position={[0, hub.captionY ?? DEFAULT_HUB.captionY, -(hub.ringRadius + (hub.captionOffset ?? DEFAULT_HUB.captionOffset))]} rotation={[0, Math.PI, 0]}>
                 <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? DEFAULT_HUB.captionTilt), 0, 0]}>
                     <Html
@@ -242,13 +250,14 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                     </Html>
                 </group>
             </group>
+            </GyroParallaxLayer>
         </group>
     );
 };
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, tiltRef }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -264,6 +273,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 captionsVisible={captionsVisible}
                 particlesVisible={particlesVisible}
                 particleSettings={particleSettings}
+                tiltRef={tiltRef}
             />
         )))}
     </>
