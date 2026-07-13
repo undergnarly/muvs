@@ -29,6 +29,7 @@ export const DataProvider = ({ children }) => {
         siteName: 'MUVS',
         siteDescription: 'Audio • Visual • Code',
         cameraTunerEnabled: false,
+        menuParticles: { music: true, mixes: true },
         socialLinks: {
             instagram: 'https://instagram.com/muvs.dev',
             soundcloud: 'https://soundcloud.com/muvs',

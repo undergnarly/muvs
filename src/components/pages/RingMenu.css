@@ -131,25 +131,3 @@
     .mp3d-hint { display: none; }
     .mp3d-swipe-arrow { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
 }
-
-.mp3d-back {
-    position: fixed;
-    top: 86px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 7;
-    height: 36px;
-    padding: 0 18px;
-    border-radius: 999px;
-    background: transparent;
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    border: 1px solid #ffffff;
-    cursor: pointer;
-    transition: transform 0.18s ease, background 0.18s ease;
-}
-.mp3d-back:hover { transform: translateX(-50%) scale(1.03); background: rgba(255, 255, 255, 0.1); }

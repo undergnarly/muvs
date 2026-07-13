@@ -2,9 +2,9 @@ import React from 'react';
 import StaggeredMenu from './StaggeredMenu';
 import './Header.css';
 
-const Header = ({ theme = 'light' }) => {
+const Header = ({ theme = 'light', showSwipeUpHint = false }) => {
     return (
-        <StaggeredMenu theme={theme} />
+        <StaggeredMenu theme={theme} showSwipeUpHint={showSwipeUpHint} />
     );
 };
 

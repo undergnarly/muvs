@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
@@ -66,6 +67,90 @@ const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/f
 const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
 const FALLBACK_COVER = '/images/logo.png';
 
+const particleRandom = (index, salt) => {
+    const value = Math.sin((index + 1) * 91.345 + salt * 17.17) * 43758.5453;
+    return value - Math.floor(value);
+};
+
+const MusicInsectParticles = ({ seed = 0 }) => {
+    const ref = React.useRef(null);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
+    const insects = useMemo(() => Array.from({ length: 26 }, (_, index) => ({
+        x: (particleRandom(index, seed + 1) - 0.5) * 4.8,
+        y: (particleRandom(index, seed + 2) - 0.5) * 3.4,
+        z: (particleRandom(index, seed + 3) - 0.5) * 3.8,
+        phase: particleRandom(index, seed + 4) * Math.PI * 2,
+        speed: 0.45 + particleRandom(index, seed + 5) * 0.8,
+        drift: 0.12 + particleRandom(index, seed + 6) * 0.28,
+        size: 0.018 + particleRandom(index, seed + 7) * 0.025,
+    })), [seed]);
+
+    useFrame(({ clock }) => {
+        if (!ref.current) return;
+        const time = clock.elapsedTime;
+        insects.forEach((insect, index) => {
+            const motion = time * insect.speed + insect.phase;
+            dummy.position.set(
+                insect.x + Math.sin(motion * 1.7) * insect.drift + Math.sin(motion * 0.43) * 0.16,
+                insect.y + Math.cos(motion * 1.2) * insect.drift * 0.8 + Math.sin(motion * 0.61) * 0.12,
+                insect.z + Math.sin(motion * 0.9) * insect.drift * 1.4,
+            );
+            const flutter = insect.size * (0.82 + Math.sin(motion * 8) * 0.18);
+            dummy.scale.set(flutter * 1.8, flutter * 0.65, flutter * 0.65);
+            dummy.rotation.set(motion * 0.15, motion, Math.sin(motion) * 0.7);
+            dummy.updateMatrix();
+            ref.current.setMatrixAt(index, dummy.matrix);
+        });
+        ref.current.instanceMatrix.needsUpdate = true;
+    });
+
+    return (
+        <instancedMesh ref={ref} args={[null, null, insects.length]} frustumCulled={false}>
+            <sphereGeometry args={[1, 5, 4]} />
+            <meshBasicMaterial color="#1b160f" transparent opacity={0.72} depthWrite={false} />
+        </instancedMesh>
+    );
+};
+
+const MixesBronzeParticles = ({ seed = 0 }) => {
+    const ref = React.useRef(null);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
+    const particles = useMemo(() => Array.from({ length: 34 }, (_, index) => ({
+        x: (particleRandom(index, seed + 11) - 0.5) * 5.4,
+        y: particleRandom(index, seed + 12) * 5.2 - 2.1,
+        z: (particleRandom(index, seed + 13) - 0.5) * 5.2,
+        phase: particleRandom(index, seed + 14) * Math.PI * 2,
+        speed: 0.09 + particleRandom(index, seed + 15) * 0.16,
+        size: 0.016 + particleRandom(index, seed + 16) * 0.04,
+    })), [seed]);
+
+    useFrame(({ clock }) => {
+        if (!ref.current) return;
+        const time = clock.elapsedTime;
+        particles.forEach((particle, index) => {
+            const y = ((particle.y + 2.1 + time * particle.speed) % 5.2) - 2.1;
+            dummy.position.set(
+                particle.x + Math.sin(time * 0.23 + particle.phase) * 0.18,
+                y,
+                particle.z + Math.cos(time * 0.17 + particle.phase) * 0.12,
+            );
+            const pulse = particle.size * (0.9 + Math.sin(time * 0.7 + particle.phase) * 0.1);
+            dummy.scale.setScalar(pulse);
+            dummy.rotation.set(0, 0, 0);
+            dummy.updateMatrix();
+            ref.current.setMatrixAt(index, dummy.matrix);
+        });
+        ref.current.instanceMatrix.needsUpdate = true;
+    });
+
+    return (
+        <instancedMesh ref={ref} args={[null, null, particles.length]} frustumCulled={false}>
+            <sphereGeometry args={[1, 6, 5]} />
+            <meshBasicMaterial color="#a86f3d" transparent opacity={0.68} depthWrite={false} />
+        </instancedMesh>
+    );
+};
+
 const RingCover = ({ url, size, onClick }) => {
     const tex = useTexture(url || FALLBACK_COVER);
     useEffect(() => {
@@ -91,7 +176,7 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -128,6 +213,12 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                         <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
                     </Suspense>
                 )}
+                {particlesVisible && item.key === 'music' && particleSettings?.music !== false && (
+                    <MusicInsectParticles seed={index * 13} />
+                )}
+                {particlesVisible && item.key === 'mixes' && particleSettings?.mixes !== false && (
+                    <MixesBronzeParticles seed={index * 17} />
+                )}
             </group>
             {/* Floor caption between the camera and the item. */}
             <group position={[0, hub.captionY ?? DEFAULT_HUB.captionY, -(hub.ringRadius + (hub.captionOffset ?? DEFAULT_HUB.captionOffset))]} rotation={[0, Math.PI, 0]}>
@@ -157,7 +248,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -171,6 +262,8 @@ export const RingMenu = ({ hub, covers, captions, onSelect, activeIndex = 0, act
                 hub={hub}
                 onSelect={() => onSelect(i)}
                 captionsVisible={captionsVisible}
+                particlesVisible={particlesVisible}
+                particleSettings={particleSettings}
             />
         )))}
     </>

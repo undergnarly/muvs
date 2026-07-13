@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
-import { FaBold, FaCog, FaImages, FaItalic, FaLock, FaSave, FaTrash, FaUnderline, FaUpload } from 'react-icons/fa';
+import { FaCog, FaImages, FaLock, FaSave, FaTrash, FaUpload } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
-import { sanitizeCaptionHtml } from '../../utils/captionRichText';
+import RichTextEditor from './RichTextEditor';
 import './AdminSettings.css';
 
 const MENU_CAPTION_DEFAULTS = {
@@ -21,48 +21,9 @@ const MENU_CAPTION_FIELDS = [
     { key: 'about', label: 'About' },
 ];
 
-const CaptionEditor = ({ value, onChange, placeholder }) => {
-    const editorRef = useRef(null);
-
-    useEffect(() => {
-        const editor = editorRef.current;
-        if (editor && document.activeElement !== editor && editor.innerHTML !== value) {
-            editor.innerHTML = sanitizeCaptionHtml(value);
-        }
-    }, [value]);
-
-    const format = (command) => {
-        editorRef.current?.focus();
-        document.execCommand(command, false);
-        onChange(sanitizeCaptionHtml(editorRef.current?.innerHTML || ''));
-    };
-
-    const syncValue = () => {
-        const clean = sanitizeCaptionHtml(editorRef.current?.innerHTML || '');
-        if (editorRef.current && editorRef.current.innerHTML !== clean) editorRef.current.innerHTML = clean;
-        onChange(clean);
-    };
-
-    return (
-        <div className="caption-rich-editor">
-            <div className="caption-rich-toolbar" role="toolbar" aria-label="Caption formatting">
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('bold')} aria-label="Bold" title="Bold"><FaBold /></button>
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('italic')} aria-label="Italic" title="Italic"><FaItalic /></button>
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => format('underline')} aria-label="Underline" title="Underline"><FaUnderline /></button>
-            </div>
-            <div
-                ref={editorRef}
-                className="caption-rich-input"
-                contentEditable
-                suppressContentEditableWarning
-                role="textbox"
-                aria-multiline="true"
-                data-placeholder={placeholder}
-                onInput={syncValue}
-                onBlur={syncValue}
-            />
-        </div>
-    );
+const MENU_PARTICLE_DEFAULTS = {
+    music: true,
+    mixes: true,
 };
 
 const AdminSettings = () => {
@@ -83,6 +44,7 @@ const AdminSettings = () => {
         siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
         cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
         menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
+        menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
         socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
         scrollAnimation: siteSettings?.scrollAnimation || {
             scrollSectionHeight: 180, // vh
@@ -119,6 +81,7 @@ const AdminSettings = () => {
             ...siteSettings,
             cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
             menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
+            menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
             socialLinks: { ...prev.socialLinks, ...(siteSettings?.socialLinks || {}) },
         }));
         setFaviconPreview(siteSettings?.favicon || null);
@@ -276,7 +239,7 @@ const AdminSettings = () => {
                         {MENU_CAPTION_FIELDS.map(({ key, label }) => (
                             <div key={key}>
                                 <label style={labelStyle}>{label}</label>
-                                <CaptionEditor
+                                <RichTextEditor
                                     value={siteFormData.menuCaptions[key]}
                                     onChange={value => setSiteFormData({
                                         ...siteFormData,
@@ -286,6 +249,42 @@ const AdminSettings = () => {
                                 />
                             </div>
                         ))}
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>3D Menu Particles</h3>
+                    <div className="admin-setting-toggle-grid">
+                        <label className="admin-setting-toggle">
+                            <input
+                                type="checkbox"
+                                checked={siteFormData.menuParticles.music !== false}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    menuParticles: { ...siteFormData.menuParticles, music: e.target.checked }
+                                })}
+                            />
+                            <span className="admin-setting-toggle-control" aria-hidden="true" />
+                            <span>
+                                <strong>Music insect swarm</strong>
+                                <small>Small particles flying around the Music object.</small>
+                            </span>
+                        </label>
+                        <label className="admin-setting-toggle">
+                            <input
+                                type="checkbox"
+                                checked={siteFormData.menuParticles.mixes !== false}
+                                onChange={e => setSiteFormData({
+                                    ...siteFormData,
+                                    menuParticles: { ...siteFormData.menuParticles, mixes: e.target.checked }
+                                })}
+                            />
+                            <span className="admin-setting-toggle-control" aria-hidden="true" />
+                            <span>
+                                <strong>Mixes bronze rise</strong>
+                                <small>Bronze particles slowly rising around the Mixes object.</small>
+                            </span>
+                        </label>
                     </div>
                 </div>
 

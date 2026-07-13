@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import RichTextEditor from './RichTextEditor';
 
 const ProjectsManager = () => {
     const { projects, updateData } = useData();
@@ -255,13 +256,10 @@ const ProjectsManager = () => {
                             />
                         </div>
 
-                        <textarea
-                            placeholder="Short Description (supports HTML for links)"
+                        <RichTextEditor
+                            placeholder="Short description"
                             value={formData.description}
-                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            rows={2}
-                            required
-                            style={{ ...inputStyle, resize: 'vertical' }}
+                            onChange={description => setFormData({ ...formData, description })}
                         />
                         <textarea
                             placeholder="Full Description (supports HTML)"

@@ -86,6 +86,26 @@
     border-radius: 4px;
 }
 
+.sm-swipe-up-hint {
+    display: grid;
+    width: 22px;
+    height: 28px;
+    place-items: center;
+    margin-right: 0.1rem;
+    font-size: 20px;
+    font-weight: 400;
+    pointer-events: none;
+}
+
+.sm-swipe-up-hint > span {
+    animation: sm-swipe-up 1.5s ease-in-out infinite;
+}
+
+@keyframes sm-swipe-up {
+    0%, 100% { transform: translateY(3px); opacity: 0.45; }
+    50% { transform: translateY(-3px); opacity: 1; }
+}
+
 .sm-toggle-textWrap {
     position: relative;
     display: inline-block;

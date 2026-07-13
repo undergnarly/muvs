@@ -10,6 +10,7 @@ import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
+import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -93,6 +94,14 @@ const DEFAULT_TV = {
     playStop0Z: 5.6,
 };
 
+const DEFAULT_CODE_CAPTION = {
+    pos: { x: 0, y: 0.025, z: 2.45 },
+    tilt: 12,
+    scale: 1,
+    width: 320,
+    fontSize: 14,
+};
+
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 7.3,
@@ -103,6 +112,7 @@ const DEFAULT_CFG = {
     stack: DEFAULT_STACK,
     support: DEFAULT_SUPPORT,
     tv: DEFAULT_TV,
+    codeCaption: DEFAULT_CODE_CAPTION,
     hub: DEFAULT_HUB,
 };
 
@@ -200,6 +210,11 @@ const hydrateCfg = (cfg, expectedStops) => {
             pos: { ...DEFAULT_TV.pos, ...(cfg.tv?.pos || {}) },
             screen: { ...DEFAULT_TV.screen, ...(cfg.tv?.screen || {}) },
             iframeShift: { ...DEFAULT_TV.iframeShift, ...(cfg.tv?.iframeShift || {}) },
+        },
+        codeCaption: {
+            ...DEFAULT_CODE_CAPTION,
+            ...(cfg.codeCaption || {}),
+            pos: { ...DEFAULT_CODE_CAPTION.pos, ...(cfg.codeCaption?.pos || {}) },
         },
         hub: { ...DEFAULT_HUB, ...(cfg.hub || {}) },
     };
@@ -518,6 +533,29 @@ const FloorText = ({ release, x, z, richText = false }) => {
                     {plain}
                 </Text>
             )}
+        </group>
+    );
+};
+
+const CodeShortDescription = ({ release, x, config }) => {
+    if (!release.description) return null;
+    return (
+        <group position={[x + config.pos.x, config.pos.y, config.pos.z]}>
+            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(config.tilt), 0, 0]}>
+                <Html
+                    transform
+                    center
+                    distanceFactor={25 * config.scale}
+                    pointerEvents="none"
+                    zIndexRange={[5, 0]}
+                >
+                    <div
+                        className="hn-code-short"
+                        style={{ width: `${config.width}px`, fontSize: `${config.fontSize}px` }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeCaptionHtml(release.description) }}
+                    />
+                </Html>
+            </group>
         </group>
     );
 };
@@ -1211,7 +1249,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const sectionContent = (
         <>
             {!simple && (
@@ -1233,6 +1271,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                     )}
                     <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
                     <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
+                    {showCodeCaption && <CodeShortDescription release={r} x={i * RELEASE_SPACING} config={codeCaption} />}
                     {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
                 </React.Fragment>
             ))}
@@ -1272,10 +1311,12 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                         hub={hub.cfg}
                         covers={hub.covers}
                         captions={hub.captions}
+                        particleSettings={hub.particleSettings}
                         onSelect={hub.onSelect}
                         activeIndex={hub.activeIndex}
                         activeOnly={hub.phase !== 'menu'}
                         captionsVisible={hub.phase === 'menu'}
+                        particlesVisible={hub.phase === 'menu'}
                     />
                 </group>
             )}
@@ -1660,12 +1701,12 @@ const MixSwitcher = ({ mixes, currentIndex, onIndex, playing, onTogglePlay }) =>
 
 // ================ bottom action ================
 
-const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext }) => {
+const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext, light = false }) => {
     const onClick = () => {
         if (href) window.open(href, '_blank', 'noopener,noreferrer');
     };
     return (
-        <div className="hn-player">
+        <div className={`hn-player${light ? ' hn-player-light' : ''}`}>
             <div className="hn-player-bar-row">
                 <button className="hn-player-nav" onClick={onPrev} disabled={!canPrev} aria-label="Previous">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -1718,7 +1759,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
 const DebugPanel = ({
     cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer,
     hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
-    simple = false, hasTv = false, hideBillboard = false,
+    simple = false, hasTv = false, hideBillboard = false, hasCodeCaption = false,
 }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
@@ -1847,6 +1888,17 @@ const DebugPanel = ({
                 <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
                 <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
                 <SelectRow label="artist font" value={cfg.billboard.artistFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistFont: v } })} />
+            </div>}
+
+            {inSection && editIdx === 0 && hasCodeCaption && <div className="dbg-block">
+                <div className="dbg-title">code short description</div>
+                <Row label="x" value={cfg.codeCaption.pos.x} min={-10} max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, x: v } } })} />
+                <Row label="y" value={cfg.codeCaption.pos.y} min={-1} max={5} step={0.01} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, y: v } } })} />
+                <Row label="z" value={cfg.codeCaption.pos.z} min={-8} max={12} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, z: v } } })} />
+                <Row label="tilt" value={cfg.codeCaption.tilt} min={-90} max={90} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, tilt: v } })} />
+                <Row label="scale" value={cfg.codeCaption.scale} min={0.1} max={4} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, scale: v } })} />
+                <Row label="width" value={cfg.codeCaption.width} min={120} max={800} step={10} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, width: v } })} />
+                <Row label="font size" value={cfg.codeCaption.fontSize} min={8} max={48} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, fontSize: v } })} />
             </div>}
 
             {inSection && editIdx === 2 && !simple && <div className="dbg-block">
@@ -2095,7 +2147,8 @@ export const Scene3DShell = ({
                 artists: project.artists || project.type || 'PROJECT',
                 releaseDate: project.releaseDate || project.date || '',
                 coverImage: project.coverImage || project.thumbnail || '',
-                description: project.fullDescription || project.description || '',
+                description: project.description || '',
+                fullDescription: project.fullDescription || project.description || '',
             }));
     }, [projects]);
 
@@ -2126,6 +2179,7 @@ export const Scene3DShell = ({
             tvMixes: null,
             portfolio: null,
             richText: true,
+            showCodeCaption: true,
             bottomAction: { label: 'MAKE REQUEST', href: requestUrl },
         },
         about: {
@@ -2355,6 +2409,7 @@ export const Scene3DShell = ({
         cfg: cfg.hub || DEFAULT_HUB,
         covers: hubCovers,
         captions: siteSettings?.menuCaptions,
+        particleSettings: siteSettings?.menuParticles,
         phase: hubPhase,
         activeIndex: ringIndex,
         stateRef: hubStateRef,
@@ -2439,6 +2494,8 @@ export const Scene3DShell = ({
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
+                            codeCaption={cfg.codeCaption}
+                            showCodeCaption={!!activeSection.showCodeCaption}
                             simple={activeSection.simple}
                             portfolio={activeSection.portfolio}
                             richText={activeSection.richText}
@@ -2459,7 +2516,10 @@ export const Scene3DShell = ({
                 className={`home-new-gradient${sectionControls && currentIndex > 0 ? ' is-floor-view' : ''}`}
                 aria-hidden="true"
             />
-            <Header theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'} />
+            <Header
+                theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
+                showSwipeUpHint={hub && hubPhase === 'section'}
+            />
             {sectionControls && (
                 <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}
@@ -2490,10 +2550,6 @@ export const Scene3DShell = ({
                     <div className="mp3d-hint" aria-hidden="true">scroll down to enter · swipe to switch</div>
                 </>
             )}
-            {hub && hubPhase === 'section' && (
-                <button className="mp3d-back" onClick={startTravelBack}>↑ menu</button>
-            )}
-
             {sectionControls && effectiveMixes && effectiveMixes.length > 0 && !activeSection.comingSoon ? (
                 <MixSwitcher
                     mixes={effectiveMixes}
@@ -2510,6 +2566,7 @@ export const Scene3DShell = ({
                     onNext={releaseSwitcher.next}
                     canPrev={releaseSwitcher.current > 0}
                     canNext={releaseSwitcher.current < effectiveItems.length - 1}
+                    light={activeKey === 'code'}
                 />
             ) : (!simple && currentRelease && sectionControls && (
                 <AlbumPlayer
@@ -2537,6 +2594,7 @@ export const Scene3DShell = ({
                     simple={activeSection.simple}
                     hasTv={!!effectiveMixes}
                     hideBillboard={!!activeSection.hideBillboard}
+                    hasCodeCaption={!!activeSection.showCodeCaption}
                 />,
                 document.body,
             )}
