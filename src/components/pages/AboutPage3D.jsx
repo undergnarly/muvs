@@ -36,10 +36,11 @@ const AboutPage3D = () => {
         <Scene3DShell
             items={items}
             simple
-            cfgStorageKey="muvs:scene3d:about:v1"
-            serverCfgKey="aboutConfig"
-            stopCount={5}
-            initialStop={1}
+            cfgStorageKey="muvs:scene3d:about:v2"
+            serverCfgKey="aboutConfigV2"
+            stopCount={4}
+            defaultStopOffset={1}
+            returnToHubKey="about"
             showDebug
             portfolio={PORTFOLIO_PLACEHOLDERS}
             bottomAction={{ label: 'MAKE REQUEST', href: tg }}

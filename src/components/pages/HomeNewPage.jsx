@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
+import { ROUTES } from '../../utils/constants';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, lerpPose,
@@ -1888,6 +1889,8 @@ export const Scene3DShell = ({
     hub = false,
     initialKey = null,
     initialStop = 0,
+    defaultStopOffset = 0,
+    returnToHubKey = null,
 }) => {
     const { releases, mixes, projects, siteSettings, updateSiteSettings } = useData();
     const navigate = useNavigate();
@@ -1898,7 +1901,10 @@ export const Scene3DShell = ({
         return sorted;
     }, [itemsProp, releases]);
 
-    const initialCfg = useMemo(() => ({ ...DEFAULT_CFG, stops: buildDefaultStops(stopCount) }), [stopCount]);
+    const initialCfg = useMemo(() => ({
+        ...DEFAULT_CFG,
+        stops: buildDefaultStops(stopCount + defaultStopOffset).slice(defaultStopOffset),
+    }), [stopCount, defaultStopOffset]);
 
     const loadLocal = useCallback(() => {
         try {
@@ -2063,9 +2069,17 @@ export const Scene3DShell = ({
         setHubPhase('travel');
     }, []);
 
+    const returnToHub = useCallback(() => {
+        if (!returnToHubKey) return;
+        try {
+            sessionStorage.setItem(HUB_RETURN_KEY, JSON.stringify({ key: returnToHubKey, ts: Date.now() }));
+        } catch { /* ignore */ }
+        navigate(ROUTES.HOME);
+    }, [navigate, returnToHubKey]);
+
     const { progressRef, currentIndex, goTo } = useSnapScroll(cfg.stops.length, {
         enabled: sectionControls,
-        onOverscrollUp: hub ? startTravelBack : undefined,
+        onOverscrollUp: hub ? startTravelBack : (returnToHubKey ? returnToHub : undefined),
         initialIndex: initialStop,
     });
     const releaseSwitcher = useReleaseSwitcher(
@@ -2233,7 +2247,7 @@ export const Scene3DShell = ({
         if (!hub) return null;
         const menuCovers = {
             music: '/images/menu/music2.png',
-            mixes: null,
+            mixes: '/images/menu/mixes-trans.webp',
             code: '/images/menu/code2.png',
             about: null,
         };
