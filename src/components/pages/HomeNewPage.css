@@ -30,6 +30,12 @@ body.home-new-active {
     pointer-events: none;
     z-index: 1;
     background: linear-gradient(to bottom, #323232 0%, #555555 22%, #d8d8d8 46%, #ffffff 64%);
+    opacity: 1;
+    transition: opacity 0.45s ease;
+}
+
+.home-new-gradient.is-floor-view {
+    opacity: 0;
 }
 
 /* ---- Debug panel ---- */

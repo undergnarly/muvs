@@ -2344,7 +2344,10 @@ export const Scene3DShell = ({
                 </div>
             )}
 
-            <div className="home-new-gradient" aria-hidden="true" />
+            <div
+                className={`home-new-gradient${sectionControls && currentIndex > 0 ? ' is-floor-view' : ''}`}
+                aria-hidden="true"
+            />
             <Header theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'} />
             {sectionControls && (
                 <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} />
