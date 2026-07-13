@@ -11,7 +11,7 @@ import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
-    hubMod, hubSmoothstep, hubMenuPose, lerpPose,
+    hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, lerpPose,
 } from './RingMenu';
 import './HomeNewPage.css';
 
@@ -1743,6 +1743,7 @@ const DebugPanel = ({ cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServ
                     <Row label="sect dist" value={cfg.hub?.sectionDist ?? 56} min={24} max={140} step={1}   onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, sectionDist: v } })} />
                     <Row label="item sz"  value={cfg.hub?.itemSize ?? 3.4}  min={1}   max={7}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemSize: v } })} />
                     <Row label="item y"   value={cfg.hub?.itemY ?? 2.45}    min={0}   max={6}   step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, itemY: v } })} />
+                    <Row label="caption gap" value={cfg.hub?.captionOffset ?? 1.2} min={0.2} max={8} step={0.05} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionOffset: v } })} />
                     <Row label="travel s" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5}   step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
                 </div>
             )}
@@ -2317,7 +2318,7 @@ export const Scene3DShell = ({
             {hub && hubPhase === 'menu' && (
                 <>
                     <div className="mp3d-counter" aria-hidden="true">
-                        {String(ringIndex + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
+                        {String(hubDisplayIndex(ringIndex) + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
                         <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
@@ -2385,7 +2386,7 @@ export const Scene3DShell = ({
 // '/' — the hub: one unified 3D world (linear menu at the center, the music
 // section beyond it).
 const HomeNewPage = () => (
-    <Scene3DShell serverCfgKey="homeNewConfig" hub />
+    <Scene3DShell serverCfgKey="homeNewConfig" showDebug hub />
 );
 
 const HubSectionPage = ({ initialKey }) => {

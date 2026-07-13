@@ -19,6 +19,7 @@ export const HUB_SPACING = 14;
 export const HUB_RETURN_KEY = 'muvs:menu:return';
 
 export const hubMod = (n) => ((n % HUB_COUNT) + HUB_COUNT) % HUB_COUNT;
+export const hubDisplayIndex = (index) => hubMod(-index);
 export const hubSmoothstep = (t) => t * t * (3 - 2 * t);
 
 // All hub camera/layout parameters are tunable from the camera tuner and are
@@ -32,6 +33,7 @@ export const DEFAULT_HUB = {
     sectionDist: 56,  // distance from world center to the music section origin
     itemSize: 3.4,    // cover plane size
     itemY: 2.45,      // item group height
+    captionOffset: 1.2, // floor caption distance toward the camera
     travelDur: 1.8,   // seconds for ring → section camera travel
 };
 
@@ -118,7 +120,7 @@ const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
                 )}
             </group>
             {/* Floor caption between the camera and the item. */}
-            <group position={[0, 0.01, -(hub.ringRadius + 3.5)]} rotation={[0, Math.PI, 0]}>
+            <group position={[0, 0.01, -(hub.ringRadius + (hub.captionOffset ?? 1.2))]} rotation={[0, Math.PI, 0]}>
                 <group rotation={[-Math.PI / 2, 0, 0]}>
                     <Text
                         fontSize={0.2}
@@ -146,7 +148,7 @@ export const RingMenu = ({ hub, covers, onSelect }) => (
                 key={`${copy}-${item.key}`}
                 item={item}
                 index={i + (copy + 1) * HUB_COUNT}
-                displayIndex={i}
+                displayIndex={hubDisplayIndex(i)}
                 cover={covers?.[i]}
                 hub={hub}
                 onSelect={() => onSelect(i)}
