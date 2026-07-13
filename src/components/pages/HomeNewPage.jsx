@@ -94,14 +94,6 @@ const DEFAULT_TV = {
     playStop0Z: 5.6,
 };
 
-const DEFAULT_CODE_CAPTION = {
-    pos: { x: 0, y: 0.025, z: 2.45 },
-    tilt: 12,
-    scale: 1,
-    width: 320,
-    fontSize: 14,
-};
-
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 7.3,
@@ -112,7 +104,6 @@ const DEFAULT_CFG = {
     stack: DEFAULT_STACK,
     support: DEFAULT_SUPPORT,
     tv: DEFAULT_TV,
-    codeCaption: DEFAULT_CODE_CAPTION,
     hub: DEFAULT_HUB,
 };
 
@@ -210,11 +201,6 @@ const hydrateCfg = (cfg, expectedStops) => {
             pos: { ...DEFAULT_TV.pos, ...(cfg.tv?.pos || {}) },
             screen: { ...DEFAULT_TV.screen, ...(cfg.tv?.screen || {}) },
             iframeShift: { ...DEFAULT_TV.iframeShift, ...(cfg.tv?.iframeShift || {}) },
-        },
-        codeCaption: {
-            ...DEFAULT_CODE_CAPTION,
-            ...(cfg.codeCaption || {}),
-            pos: { ...DEFAULT_CODE_CAPTION.pos, ...(cfg.codeCaption?.pos || {}) },
         },
         hub: { ...DEFAULT_HUB, ...(cfg.hub || {}) },
     };
@@ -537,21 +523,20 @@ const FloorText = ({ release, x, z, richText = false }) => {
     );
 };
 
-const CodeShortDescription = ({ release, x, config }) => {
+const CodeShortDescription = ({ release, x }) => {
     if (!release.description) return null;
     return (
-        <group position={[x + config.pos.x, config.pos.y, config.pos.z]}>
-            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(config.tilt), 0, 0]}>
+        <group position={[x, 0.025, 2.45]}>
+            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(12), 0, 0]}>
                 <Html
                     transform
                     center
-                    distanceFactor={25 * config.scale}
+                    distanceFactor={25}
                     pointerEvents="none"
                     zIndexRange={[5, 0]}
                 >
                     <div
                         className="hn-code-short"
-                        style={{ width: `${config.width}px`, fontSize: `${config.fontSize}px` }}
                         dangerouslySetInnerHTML={{ __html: sanitizeCaptionHtml(release.description) }}
                     />
                 </Html>
@@ -1249,7 +1234,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const sectionContent = (
         <>
             {!simple && (
@@ -1271,7 +1256,7 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, floorTextZ, ph
                     )}
                     <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} />
                     <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} />
-                    {showCodeCaption && <CodeShortDescription release={r} x={i * RELEASE_SPACING} config={codeCaption} />}
+                    {showCodeCaption && <CodeShortDescription release={r} x={i * RELEASE_SPACING} />}
                     {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} />}
                 </React.Fragment>
             ))}
@@ -1759,7 +1744,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
 const DebugPanel = ({
     cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer,
     hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
-    simple = false, hasTv = false, hideBillboard = false, hasCodeCaption = false,
+    simple = false, hasTv = false, hideBillboard = false,
 }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
@@ -1888,17 +1873,6 @@ const DebugPanel = ({
                 <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
                 <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
                 <SelectRow label="artist font" value={cfg.billboard.artistFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistFont: v } })} />
-            </div>}
-
-            {inSection && editIdx === 0 && hasCodeCaption && <div className="dbg-block">
-                <div className="dbg-title">code short description</div>
-                <Row label="x" value={cfg.codeCaption.pos.x} min={-10} max={10} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, x: v } } })} />
-                <Row label="y" value={cfg.codeCaption.pos.y} min={-1} max={5} step={0.01} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, y: v } } })} />
-                <Row label="z" value={cfg.codeCaption.pos.z} min={-8} max={12} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, z: v } } })} />
-                <Row label="tilt" value={cfg.codeCaption.tilt} min={-90} max={90} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, tilt: v } })} />
-                <Row label="scale" value={cfg.codeCaption.scale} min={0.1} max={4} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, scale: v } })} />
-                <Row label="width" value={cfg.codeCaption.width} min={120} max={800} step={10} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, width: v } })} />
-                <Row label="font size" value={cfg.codeCaption.fontSize} min={8} max={48} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, fontSize: v } })} />
             </div>}
 
             {inSection && editIdx === 2 && !simple && <div className="dbg-block">
@@ -2494,7 +2468,6 @@ export const Scene3DShell = ({
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
-                            codeCaption={cfg.codeCaption}
                             showCodeCaption={!!activeSection.showCodeCaption}
                             simple={activeSection.simple}
                             portfolio={activeSection.portfolio}
@@ -2594,7 +2567,6 @@ export const Scene3DShell = ({
                     simple={activeSection.simple}
                     hasTv={!!effectiveMixes}
                     hideBillboard={!!activeSection.hideBillboard}
-                    hasCodeCaption={!!activeSection.showCodeCaption}
                 />,
                 document.body,
             )}
