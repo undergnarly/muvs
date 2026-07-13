@@ -9,9 +9,9 @@ import './RingMenu.css';
 
 export const HUB_ITEMS = [
     { key: 'music', label: 'MUSIC', route: ROUTES.MUSIC },
-    { key: 'mixes', label: 'MIXES', route: ROUTES.MIXES },
-    { key: 'code',  label: 'CODE',  route: ROUTES.CODE },
     { key: 'about', label: 'ABOUT', route: ROUTES.ABOUT },
+    { key: 'code',  label: 'CODE',  route: ROUTES.CODE },
+    { key: 'mixes', label: 'MIXES', route: ROUTES.MIXES },
 ];
 
 export const HUB_COUNT = HUB_ITEMS.length;
