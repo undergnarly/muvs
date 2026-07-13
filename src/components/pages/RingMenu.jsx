@@ -18,6 +18,7 @@ export const HUB_COUNT = HUB_ITEMS.length;
 export const HUB_SPACING = 14;
 export const HUB_RETURN_KEY = 'muvs:menu:return';
 
+export const hubMod = (n) => ((n % HUB_COUNT) + HUB_COUNT) % HUB_COUNT;
 export const hubSmoothstep = (t) => t * t * (3 - 2 * t);
 
 // All hub camera/layout parameters are tunable from the camera tuner and are
@@ -78,10 +79,10 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, cover, hub, onSelect }) => {
+const RingItem = ({ item, index, displayIndex, cover, hub, onSelect }) => {
     const onClick = (e) => {
         e.stopPropagation();
-        onSelect(index);
+        onSelect();
     };
     return (
         <group position={[index * HUB_SPACING, 0, 0]}>
@@ -108,7 +109,7 @@ const RingItem = ({ item, index, cover, hub, onSelect }) => {
                     font={FONT_REGULAR}
                     material-side={THREE.FrontSide}
                 >
-                    {`0${index + 1}`}
+                    {`0${displayIndex + 1}`}
                 </Text>
                 {cover && (
                     <Suspense fallback={null}>
@@ -128,7 +129,7 @@ const RingItem = ({ item, index, cover, hub, onSelect }) => {
                         font={FONT_REGULAR}
                         material-side={THREE.FrontSide}
                     >
-                        {`SECTION 0${index + 1} — ${item.label}`}
+                        {`SECTION 0${displayIndex + 1} — ${item.label}`}
                     </Text>
                 </group>
             </group>
@@ -136,10 +137,20 @@ const RingItem = ({ item, index, cover, hub, onSelect }) => {
     );
 };
 
+const LOOP_COPIES = [-1, 0, 1];
+
 export const RingMenu = ({ hub, covers, onSelect }) => (
     <>
-        {HUB_ITEMS.map((item, i) => (
-            <RingItem key={item.key} item={item} index={i} cover={covers?.[i]} hub={hub} onSelect={onSelect} />
-        ))}
+        {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
+            <RingItem
+                key={`${copy}-${item.key}`}
+                item={item}
+                index={i + (copy + 1) * HUB_COUNT}
+                displayIndex={i}
+                cover={covers?.[i]}
+                hub={hub}
+                onSelect={() => onSelect(i)}
+            />
+        )))}
     </>
 );

@@ -12,11 +12,9 @@ import LectureTextPage from './components/pages/LectureTextPage';
 import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
 import ThreeDPage from './components/pages/ThreeDPage';
-import HomeNewPage, { MusicNewPage } from './components/pages/HomeNewPage';
+import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage } from './components/pages/HomeNewPage';
 import AboutPage3D from './components/pages/AboutPage3D';
 import NewsPage3D from './components/pages/NewsPage3D';
-import MixesPage3D from './components/pages/MixesPage3D';
-import CodePage3D from './components/pages/CodePage3D';
 import CVPage3D from './components/pages/CVPage3D';
 import LecturePage3D from './components/pages/LecturePage3D';
 import LectureTextPage3D from './components/pages/LectureTextPage3D';
@@ -119,8 +117,8 @@ function AppRoot() {
                 <Route path={ROUTES.MUSIC} element={<MusicNewPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutPage3D />} />
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />
-                <Route path={ROUTES.MIXES} element={<MixesPage3D />} />
-                <Route path={ROUTES.CODE} element={<CodePage3D />} />
+                <Route path={ROUTES.MIXES} element={<MixesHubPage />} />
+                <Route path={ROUTES.CODE} element={<CodeHubPage />} />
                 <Route path={ROUTES.LECTURE} element={<LecturePage3D />} />
                 <Route path={ROUTES.LECTURE_TEXT} element={<LectureTextPage3D />} />
                 <Route path={ROUTES.CV} element={<CVPage3D />} />

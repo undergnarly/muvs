@@ -11,7 +11,7 @@ import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
-    hubSmoothstep, hubMenuPose, lerpPose,
+    hubMod, hubSmoothstep, hubMenuPose, lerpPose,
 } from './RingMenu';
 import './HomeNewPage.css';
 
@@ -135,6 +135,8 @@ const buildLogoTexture = (key, color) => {
 };
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
+const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code']);
+const HUB_DEFAULT_YOUTUBE = 'https://www.youtube.com/watch?v=gcqrg86VVeQ';
 
 const toSlug = (r) => (r?.slug || r?.title || '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -834,9 +836,21 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
 
         const targetA = st.menuIndex * HUB_SPACING;
         st.angle += (targetA - st.angle) * 0.08;
+        if (st.phase === 'menu' && Math.abs(targetA - st.angle) < 0.001) {
+            const count = HUB_ITEMS.length;
+            if (st.menuIndex < count) {
+                st.menuIndex += count;
+                st.angle += count * HUB_SPACING;
+            } else if (st.menuIndex >= count * 2) {
+                st.menuIndex -= count;
+                st.angle -= count * HUB_SPACING;
+            }
+        }
 
         const D = hub.sectionDist;
-        const s2w = (p, ox = 0) => ({ x: -(p.x + ox), y: p.y, z: -p.z - D });
+        const sectionX = st.angle;
+        const s2w = (p, ox = 0) => ({ x: sectionX - (p.x + ox), y: p.y, z: -p.z - D });
+        if (sectionRef?.current) sectionRef.current.position.set(sectionX, 0, -D);
 
         let pose;
         if (st.phase === 'section') {
@@ -1537,19 +1551,21 @@ const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext }) => {
     };
     return (
         <div className="hn-player">
-            <button className="hn-player-nav" onClick={onPrev} disabled={!canPrev} aria-label="Previous">
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                    <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-            </button>
+            <div className="hn-player-bar-row">
+                <button className="hn-player-nav" onClick={onPrev} disabled={!canPrev} aria-label="Previous">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
 
-            <button className="hn-action-pill" onClick={onClick}>{label}</button>
+                <button className="hn-action-pill" onClick={onClick}>{label}</button>
 
-            <button className="hn-player-nav" onClick={onNext} disabled={!canNext} aria-label="Next">
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                    <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-            </button>
+                <button className="hn-player-nav" onClick={onNext} disabled={!canNext} aria-label="Next">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                </button>
+            </div>
         </div>
     );
 };
@@ -1757,8 +1773,9 @@ export const Scene3DShell = ({
     richText = false,
     tvMixes = null,
     hub = false,
+    initialKey = null,
 }) => {
-    const { releases, siteSettings, updateSiteSettings } = useData();
+    const { releases, mixes, projects, siteSettings, updateSiteSettings } = useData();
     const navigate = useNavigate();
 
     const displayItems = React.useMemo(() => {
@@ -1822,6 +1839,10 @@ export const Scene3DShell = ({
     // token on the first invocation); the idempotent delete happens in an effect.
     const [hubInit] = useState(() => {
         if (!hub) return null;
+        if (initialKey && HUB_IN_CANVAS.has(initialKey)) {
+            const idx = Math.max(0, HUB_ITEMS.findIndex((item) => item.key === initialKey));
+            return { idx, returning: false, entered: initialKey };
+        }
         let info = null;
         try {
             const raw = sessionStorage.getItem(HUB_RETURN_KEY);
@@ -1831,24 +1852,93 @@ export const Scene3DShell = ({
             }
         } catch { /* ignore */ }
         const idx = info ? Math.max(0, HUB_ITEMS.findIndex((m) => m.key === info.key)) : 0;
-        return { idx, returning: !!info };
+        return { idx, returning: !!info, entered: null };
     });
     useEffect(() => {
         if (!hub) return;
         try { sessionStorage.removeItem(HUB_RETURN_KEY); } catch { /* ignore */ }
     }, [hub]);
     const hubStateRef = useRef(hub ? {
-        phase: hubInit.returning ? 'foreign' : 'menu',
-        tt: hubInit.returning ? 1 : 0,
+        phase: hubInit.entered ? 'section' : (hubInit.returning ? 'foreign' : 'menu'),
+        tt: (hubInit.entered || hubInit.returning) ? 1 : 0,
         dir: hubInit.returning ? -1 : 0,
-        menuIndex: hubInit.idx,
-        angle: hubInit.idx * HUB_SPACING,
+        menuIndex: hubInit.idx + HUB_ITEMS.length,
+        angle: (hubInit.idx + HUB_ITEMS.length) * HUB_SPACING,
         foreignKey: null,
         done: false,
     } : null);
     const [hubPhase, setHubPhase] = useState(() => (hub ? hubStateRef.current.phase : 'section'));
     const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
+    const [activeKey, setActiveKey] = useState(hubInit?.entered || 'music');
     const sectionControls = !hub || hubPhase === 'section';
+
+    const musicSection = useMemo(() => ({
+        items: displayItems,
+        simple,
+        tvMixes,
+        portfolio,
+        richText,
+        bottomAction,
+    }), [displayItems, simple, tvMixes, portfolio, richText, bottomAction]);
+
+    const mixesItems = useMemo(() => {
+        const source = (mixes || []).length ? mixes : [{
+            id: 'mixes-empty',
+            title: 'MIXES',
+            description: 'Add mixes in the admin panel.',
+            youtubeUrl: HUB_DEFAULT_YOUTUBE,
+        }];
+        return [...source]
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .map((mix) => ({
+                ...mix,
+                artists: mix.artists || 'MUVS',
+                releaseDate: mix.releaseDate || mix.recordDate || mix.date || '',
+                coverImage: mix.coverImage || mix.backgroundImage || '',
+                youtubeUrl: mix.youtubeUrl || HUB_DEFAULT_YOUTUBE,
+            }));
+    }, [mixes]);
+
+    const codeItems = useMemo(() => {
+        const source = (projects || []).length ? projects : [{
+            id: 'code-empty',
+            title: 'CODE',
+            type: 'PROJECTS',
+            description: 'Add websites, AI work and projects in the admin panel.',
+        }];
+        return [...source]
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .map((project) => ({
+                ...project,
+                artists: project.artists || project.type || 'PROJECT',
+                releaseDate: project.releaseDate || project.date || '',
+                coverImage: project.coverImage || project.thumbnail || '',
+                description: project.fullDescription || project.description || '',
+            }));
+    }, [projects]);
+
+    const requestUrl = siteSettings?.socialLinks?.telegram || 'https://t.me/muvs';
+    const hubSections = useMemo(() => ({
+        music: musicSection,
+        mixes: {
+            items: mixesItems,
+            simple: true,
+            tvMixes: mixesItems,
+            portfolio: null,
+            richText: true,
+            bottomAction: null,
+        },
+        code: {
+            items: codeItems,
+            simple: true,
+            tvMixes: null,
+            portfolio: null,
+            richText: true,
+            bottomAction: { label: 'MAKE REQUEST', href: requestUrl },
+        },
+    }), [musicSection, mixesItems, codeItems, requestUrl]);
+    const activeSection = hub ? (hubSections[activeKey] || musicSection) : musicSection;
+    const effectiveItems = activeSection.items;
 
     const startTravelBack = useCallback(() => {
         const st = hubStateRef.current;
@@ -1863,11 +1953,16 @@ export const Scene3DShell = ({
         onOverscrollUp: hub ? startTravelBack : undefined,
     });
     const releaseSwitcher = useReleaseSwitcher(
-        displayItems.length,
+        effectiveItems.length,
         useCallback(() => goTo(0), [goTo]),
         { enabled: sectionControls },
     );
-    const currentRelease = displayItems[releaseSwitcher.current];
+    const currentRelease = effectiveItems[Math.min(releaseSwitcher.current, effectiveItems.length - 1)];
+
+    useEffect(() => {
+        releaseSwitcher.goTo(0);
+        goTo(0);
+    }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const startTravelIn = useCallback(() => {
         const st = hubStateRef.current;
@@ -1893,31 +1988,36 @@ export const Scene3DShell = ({
     const hubEnter = useCallback(() => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        const item = HUB_ITEMS[st.menuIndex];
-        if (item.key === 'music') startTravelIn();
-        else startForeign(item);
+        const item = HUB_ITEMS[hubMod(st.menuIndex)];
+        if (HUB_IN_CANVAS.has(item.key)) {
+            setActiveKey(item.key);
+            startTravelIn();
+        } else {
+            startForeign(item);
+        }
     }, [startTravelIn, startForeign]);
 
     const hubRotateBy = useCallback((d) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        const next = Math.max(0, Math.min(HUB_ITEMS.length - 1, st.menuIndex + d));
-        if (next === st.menuIndex) return;
-        st.menuIndex = next;
-        setRingIndex(next);
+        st.menuIndex += d;
+        setRingIndex(hubMod(st.menuIndex));
     }, []);
 
     const hubSelect = useCallback((index) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        const d = index - st.menuIndex;
+        const current = hubMod(st.menuIndex);
+        let d = index - current;
+        if (d > HUB_ITEMS.length / 2) d -= HUB_ITEMS.length;
+        if (d < -HUB_ITEMS.length / 2) d += HUB_ITEMS.length;
         if (d === 0) hubEnter();
         else hubRotateBy(d);
     }, [hubEnter, hubRotateBy]);
 
     const hubForeignLeft = useCallback(() => {
         const st = hubStateRef.current;
-        const item = HUB_ITEMS.find((m) => m.key === st?.foreignKey) || HUB_ITEMS[st?.menuIndex ?? 0];
+        const item = HUB_ITEMS.find((m) => m.key === st?.foreignKey) || HUB_ITEMS[hubMod(st?.menuIndex ?? 0)];
         try {
             sessionStorage.setItem(HUB_RETURN_KEY, JSON.stringify({ key: item.key, ts: Date.now() }));
         } catch { /* ignore */ }
@@ -2043,25 +2143,30 @@ export const Scene3DShell = ({
     // Deep link: read hash on first data load, navigate to matching release
     const hashNavigatedRef = useRef(false);
     useEffect(() => {
-        if (hashNavigatedRef.current || !displayItems.length) return;
+        if (hashNavigatedRef.current || !effectiveItems.length) return;
         hashNavigatedRef.current = true;
         const hash = window.location.hash.replace('#', '');
         if (!hash) return;
-        const idx = displayItems.findIndex((r) => toSlug(r) === hash);
+        const idx = effectiveItems.findIndex((r) => toSlug(r) === hash);
         if (idx >= 0) releaseSwitcher.goTo(idx);
-    }, [displayItems, releaseSwitcher]);
+    }, [effectiveItems, releaseSwitcher]);
 
     // Deep link: update hash when current release changes
     useEffect(() => {
-        const slug = toSlug(displayItems[releaseSwitcher.current]);
+        const slug = toSlug(effectiveItems[releaseSwitcher.current]);
         if (!slug) return;
         const next = '#' + slug;
         if (window.location.hash !== next) window.history.replaceState(null, '', next);
-    }, [releaseSwitcher.current, displayItems]);
+    }, [releaseSwitcher.current, effectiveItems]);
 
     const [mixIndex, setMixIndex] = useState(0);
     const [mixPlaying, setMixPlaying] = useState(false);
-    const currentMix = tvMixes?.[mixIndex] || null;
+    const effectiveMixes = activeSection.tvMixes;
+    const currentMix = effectiveMixes?.[mixIndex] || null;
+    useEffect(() => {
+        setMixIndex(0);
+        setMixPlaying(false);
+    }, [activeKey]);
     useEffect(() => { setMixPlaying(false); }, [mixIndex]);
 
     // Camera dolly toward TV when playing — reads rest z from current cfg.
@@ -2093,7 +2198,7 @@ export const Scene3DShell = ({
 
     return (
         <div className="home-new-page">
-            {(hub || displayItems.length > 0) && (
+            {(hub || effectiveItems.length > 0) && (
                 <div className="home-new-canvas">
                     <Canvas
                         camera={hub
@@ -2103,7 +2208,7 @@ export const Scene3DShell = ({
                         dpr={[1, 2]}
                     >
                         <Scene
-                            releases={displayItems}
+                            releases={effectiveItems}
                             hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
@@ -2113,13 +2218,13 @@ export const Scene3DShell = ({
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
-                            simple={simple}
-                            portfolio={portfolio}
-                            richText={richText}
+                            simple={activeSection.simple}
+                            portfolio={activeSection.portfolio}
+                            richText={activeSection.richText}
                             tvMix={currentMix}
                             tvPlaying={mixPlaying}
                             tv={cfg.tv}
-                            dollyEnabled={!!tvMixes}
+                            dollyEnabled={!!effectiveMixes}
                             dollyRestZRef={dollyRestZRef}
                             dollyPlayZ={cfg.tv.playStop0Z ?? 5.6}
                         />
@@ -2139,13 +2244,13 @@ export const Scene3DShell = ({
                         {String(ringIndex + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
                     </div>
                     <div className="mp3d-ui">
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} disabled={ringIndex === 0} aria-label="Previous section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(-1)} aria-label="Previous section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
                         </button>
                         <button className="mp3d-pill" onClick={hubEnter}>{`OPEN ${HUB_ITEMS[ringIndex].label}`}</button>
-                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} disabled={ringIndex === HUB_ITEMS.length - 1} aria-label="Next section">
+                        <button className="mp3d-nav" onClick={() => hubRotateBy(1)} aria-label="Next section">
                             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                                 <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </svg>
@@ -2158,27 +2263,27 @@ export const Scene3DShell = ({
                 <button className="mp3d-back" onClick={startTravelBack}>↑ menu</button>
             )}
 
-            {sectionControls && tvMixes && tvMixes.length > 0 ? (
+            {sectionControls && effectiveMixes && effectiveMixes.length > 0 ? (
                 <MixSwitcher
-                    mixes={tvMixes}
+                    mixes={effectiveMixes}
                     currentIndex={mixIndex}
                     onIndex={setMixIndex}
                     playing={mixPlaying}
                     onTogglePlay={() => setMixPlaying((p) => !p)}
                 />
-            ) : sectionControls && bottomAction ? (
+            ) : sectionControls && activeSection.bottomAction ? (
                 <BottomAction
-                    label={bottomAction.label}
-                    href={bottomAction.href}
+                    label={activeSection.bottomAction.label}
+                    href={activeSection.bottomAction.href}
                     onPrev={releaseSwitcher.prev}
                     onNext={releaseSwitcher.next}
                     canPrev={releaseSwitcher.current > 0}
-                    canNext={releaseSwitcher.current < displayItems.length - 1}
+                    canNext={releaseSwitcher.current < effectiveItems.length - 1}
                 />
             ) : (!simple && currentRelease && sectionControls && (
                 <AlbumPlayer
                     release={currentRelease}
-                    releases={displayItems}
+                    releases={effectiveItems}
                     currentReleaseIndex={releaseSwitcher.current}
                     onReleaseSelect={releaseSwitcher.goTo}
                 />
@@ -2207,10 +2312,13 @@ const HomeNewPage = () => (
     <Scene3DShell serverCfgKey="homeNewConfig" hub />
 );
 
-// '/music' — the standalone music page (direct links, burger menu).
-export const MusicNewPage = () => {
+const HubSectionPage = ({ initialKey }) => {
     const showDebug = /[?&](?:debug|cam)=1\b/.test(window.location.search);
-    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} />;
+    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} />;
 };
+
+export const MusicNewPage = () => <HubSectionPage initialKey="music" />;
+export const MixesHubPage = () => <HubSectionPage initialKey="mixes" />;
+export const CodeHubPage = () => <HubSectionPage initialKey="code" />;
 
 export default HomeNewPage;

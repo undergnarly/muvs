@@ -9,7 +9,6 @@ const menuItems = [
     { label: 'MUSIC', path: ROUTES.MUSIC },
     { label: 'MIXES', path: ROUTES.MIXES },
     { label: 'CODE', path: ROUTES.CODE },
-    { label: 'NEWS', path: ROUTES.NEWS },
     { label: 'ABOUT', path: ROUTES.ABOUT },
 ];
 
