@@ -833,13 +833,30 @@ const SupportFloorText = ({ x, support }) => (
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 
-const useDeviceTilt = () => {
-    const tiltRef = useRef({ targetX: 0, targetY: 0, x: 0, y: 0 });
+const DEVICE_TILT_DEFAULTS = {
+    enabled: true,
+    horizontalStrength: 0.22,
+    verticalStrength: 0.14,
+    maxTiltDeg: 18,
+    smoothing: 7,
+    invertHorizontal: true,
+    invertVertical: true,
+};
+
+const useDeviceTilt = (settings) => {
+    const tiltRef = useRef({
+        targetX: 0,
+        targetY: 0,
+        x: 0,
+        y: 0,
+        config: DEVICE_TILT_DEFAULTS,
+    });
+    tiltRef.current.config = { ...DEVICE_TILT_DEFAULTS, ...(settings || {}) };
 
     useEffect(() => {
         const OrientationEvent = window.DeviceOrientationEvent;
         const isMobile = window.matchMedia('(pointer: coarse)').matches;
-        if (!OrientationEvent || !isMobile) return undefined;
+        if (!OrientationEvent || !isMobile || !tiltRef.current.config.enabled) return undefined;
 
         let baseline = null;
         let listening = false;
@@ -847,8 +864,9 @@ const useDeviceTilt = () => {
         const onOrientation = (event) => {
             if (!Number.isFinite(event.gamma) || !Number.isFinite(event.beta)) return;
             if (!baseline) baseline = { gamma: event.gamma, beta: event.beta };
-            tiltRef.current.targetX = THREE.MathUtils.clamp((event.gamma - baseline.gamma) / 18, -1, 1);
-            tiltRef.current.targetY = THREE.MathUtils.clamp((event.beta - baseline.beta) / 18, -1, 1);
+            const maxTiltDeg = Math.max(1, Number(tiltRef.current.config.maxTiltDeg) || 18);
+            tiltRef.current.targetX = THREE.MathUtils.clamp((event.gamma - baseline.gamma) / maxTiltDeg, -1, 1);
+            tiltRef.current.targetY = THREE.MathUtils.clamp((event.beta - baseline.beta) / maxTiltDeg, -1, 1);
         };
         const startListening = () => {
             if (listening) return;
@@ -875,9 +893,12 @@ const useDeviceTilt = () => {
                 window.removeEventListener('deviceorientation', onOrientation, true);
                 window.removeEventListener('orientationchange', resetBaseline);
             }
-            tiltRef.current = { targetX: 0, targetY: 0, x: 0, y: 0 };
+            tiltRef.current.targetX = 0;
+            tiltRef.current.targetY = 0;
+            tiltRef.current.x = 0;
+            tiltRef.current.y = 0;
         };
-    }, []);
+    }, [settings?.enabled]);
 
     return tiltRef;
 };
@@ -885,11 +906,16 @@ const useDeviceTilt = () => {
 const applyDeviceTilt = (camera, tiltRef, delta) => {
     if (!tiltRef) return;
     const tilt = tiltRef.current;
-    const damping = 1 - Math.exp(-Math.min(delta, 0.1) * 7);
+    const config = tilt.config || DEVICE_TILT_DEFAULTS;
+    if (!config.enabled) return;
+    const smoothing = Math.max(0.1, Number(config.smoothing) || DEVICE_TILT_DEFAULTS.smoothing);
+    const damping = 1 - Math.exp(-Math.min(delta, 0.1) * smoothing);
     tilt.x = THREE.MathUtils.lerp(tilt.x, tilt.targetX, damping);
     tilt.y = THREE.MathUtils.lerp(tilt.y, tilt.targetY, damping);
-    camera.translateX(tilt.x * 0.22);
-    camera.translateY(-tilt.y * 0.14);
+    const horizontalDirection = config.invertHorizontal ? -1 : 1;
+    const verticalDirection = config.invertVertical ? 1 : -1;
+    camera.translateX(tilt.x * Number(config.horizontalStrength) * horizontalDirection);
+    camera.translateY(tilt.y * Number(config.verticalStrength) * verticalDirection);
 };
 
 // Interpolated camera pose along the section stops at progress p (0..1).
@@ -2051,7 +2077,7 @@ export const Scene3DShell = ({
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
-    const deviceTiltRef = useDeviceTilt();
+    const deviceTiltRef = useDeviceTilt(siteSettings?.deviceTilt);
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;

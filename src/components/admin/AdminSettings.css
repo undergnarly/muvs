@@ -53,6 +53,20 @@
     gap: 16px;
 }
 
+.admin-device-tilt-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.admin-setting-hint {
+    display: block;
+    margin-top: 5px;
+    color: #7f7f7f;
+    font-size: 11px;
+}
+
 @media (max-width: 720px) {
-    .admin-setting-toggle-grid { grid-template-columns: 1fr; }
+    .admin-setting-toggle-grid,
+    .admin-device-tilt-grid { grid-template-columns: 1fr; }
 }

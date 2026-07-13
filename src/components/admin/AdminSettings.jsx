@@ -26,6 +26,16 @@ const MENU_PARTICLE_DEFAULTS = {
     mixes: true,
 };
 
+const DEVICE_TILT_DEFAULTS = {
+    enabled: true,
+    horizontalStrength: 0.22,
+    verticalStrength: 0.14,
+    maxTiltDeg: 18,
+    smoothing: 7,
+    invertHorizontal: true,
+    invertVertical: true,
+};
+
 const AdminSettings = () => {
     const { adminSettings, updatePin, siteSettings, updateSiteSettings, isLoaded } = useData();
     const [currentPin, setCurrentPin] = useState('');
@@ -43,6 +53,7 @@ const AdminSettings = () => {
         siteName: siteSettings?.siteName || 'MUVS',
         siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
         cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
+        deviceTilt: { ...DEVICE_TILT_DEFAULTS, ...(siteSettings?.deviceTilt || {}) },
         menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
         menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
         socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
@@ -80,6 +91,7 @@ const AdminSettings = () => {
             ...prev,
             ...siteSettings,
             cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
+            deviceTilt: { ...DEVICE_TILT_DEFAULTS, ...(siteSettings?.deviceTilt || {}) },
             menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
             menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
             socialLinks: { ...prev.socialLinks, ...(siteSettings?.socialLinks || {}) },
@@ -230,6 +242,120 @@ const AdminSettings = () => {
                             <small>Show camera controls on all 3D pages.</small>
                         </span>
                     </label>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Mobile Gyroscope Parallax</h3>
+                    <label className="admin-setting-toggle" style={{ marginBottom: '16px' }}>
+                        <input
+                            type="checkbox"
+                            checked={siteFormData.deviceTilt.enabled !== false}
+                            onChange={e => setSiteFormData({
+                                ...siteFormData,
+                                deviceTilt: { ...siteFormData.deviceTilt, enabled: e.target.checked }
+                            })}
+                        />
+                        <span className="admin-setting-toggle-control" aria-hidden="true" />
+                        <span>
+                            <strong>Enable gyroscope parallax</strong>
+                            <small>Move the 3D camera when a phone is tilted.</small>
+                        </span>
+                    </label>
+
+                    {siteFormData.deviceTilt.enabled !== false && (
+                        <>
+                            <div className="admin-device-tilt-grid">
+                                <div>
+                                    <label style={labelStyle}>Horizontal strength</label>
+                                    <input
+                                        type="number"
+                                        value={siteFormData.deviceTilt.horizontalStrength}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, horizontalStrength: Number(e.target.value) }
+                                        })}
+                                        style={inputStyle}
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Vertical strength</label>
+                                    <input
+                                        type="number"
+                                        value={siteFormData.deviceTilt.verticalStrength}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, verticalStrength: Number(e.target.value) }
+                                        })}
+                                        style={inputStyle}
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Full movement angle (degrees)</label>
+                                    <input
+                                        type="number"
+                                        value={siteFormData.deviceTilt.maxTiltDeg}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, maxTiltDeg: Number(e.target.value) }
+                                        })}
+                                        style={inputStyle}
+                                        min="5"
+                                        max="45"
+                                        step="1"
+                                    />
+                                    <small className="admin-setting-hint">Lower values make the camera more sensitive.</small>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Smoothing</label>
+                                    <input
+                                        type="number"
+                                        value={siteFormData.deviceTilt.smoothing}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, smoothing: Number(e.target.value) }
+                                        })}
+                                        style={inputStyle}
+                                        min="0.5"
+                                        max="20"
+                                        step="0.5"
+                                    />
+                                    <small className="admin-setting-hint">Higher values react faster; lower values feel softer.</small>
+                                </div>
+                            </div>
+                            <div className="admin-setting-toggle-grid" style={{ marginTop: '16px' }}>
+                                <label className="admin-setting-toggle">
+                                    <input
+                                        type="checkbox"
+                                        checked={siteFormData.deviceTilt.invertHorizontal === true}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, invertHorizontal: e.target.checked }
+                                        })}
+                                    />
+                                    <span className="admin-setting-toggle-control" aria-hidden="true" />
+                                    <span><strong>Mirror horizontal axis</strong></span>
+                                </label>
+                                <label className="admin-setting-toggle">
+                                    <input
+                                        type="checkbox"
+                                        checked={siteFormData.deviceTilt.invertVertical === true}
+                                        onChange={e => setSiteFormData({
+                                            ...siteFormData,
+                                            deviceTilt: { ...siteFormData.deviceTilt, invertVertical: e.target.checked }
+                                        })}
+                                    />
+                                    <span className="admin-setting-toggle-control" aria-hidden="true" />
+                                    <span><strong>Mirror vertical axis</strong></span>
+                                </label>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* 3D menu captions */}
