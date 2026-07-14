@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 
 // Public Pages - Static Import for maximum speed and smooth transitions
 import AboutPage from './components/pages/AboutPage';
@@ -41,8 +41,26 @@ const LoadingFallback = () => (
     <div style={{ height: '100vh', width: '100vw', background: 'var(--color-bg-dark)' }} />
 );
 
+const normalizeReleaseSlug = (value) => (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const ReleasePermalinkRoute = () => {
+    const { releaseSlug = '' } = useParams();
+    const { releases, isLoaded } = useData();
+    const slug = normalizeReleaseSlug(releaseSlug);
+    const releaseExists = (releases || []).some((release) => (
+        release.active !== false
+        && normalizeReleaseSlug(release.slug || release.title) === slug
+    ));
+
+    if (isLoaded && !releaseExists) return <Navigate to={ROUTES.HOME} replace />;
+    return <MusicNewPage releaseSlug={slug} />;
+};
+
 function AppRoot() {
-    const { trackVisit, siteSettings } = useData();
+    const { trackVisit, siteSettings, releases } = useData();
     const location = useLocation();
 
 
@@ -104,7 +122,12 @@ function AppRoot() {
         ROUTES.LECTURE_TEXT,
         ROUTES.THREE_D,
     ];
-    const hideOverlays = scene3DPaths.includes(location.pathname);
+    const currentPathSlug = normalizeReleaseSlug(location.pathname.replace(/^\//, ''));
+    const isReleasePermalink = !location.pathname.slice(1).includes('/') && (releases || []).some((release) => (
+        release.active !== false
+        && normalizeReleaseSlug(release.slug || release.title) === currentPathSlug
+    ));
+    const hideOverlays = scene3DPaths.includes(location.pathname) || isReleasePermalink;
     const hideTopBlur = hideOverlays || location.pathname.startsWith('/projects');
 
     return (
@@ -162,6 +185,7 @@ function AppRoot() {
                     <Route path="messages" element={<MessagesManager />} />
                     <Route path="settings" element={<AdminSettings />} />
                 </Route>
+                <Route path="/:releaseSlug" element={<ReleasePermalinkRoute />} />
                 <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
             </Routes>
         </>

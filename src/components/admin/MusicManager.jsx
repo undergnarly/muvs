@@ -312,7 +312,7 @@ const MusicManager = () => {
                                     </div>
                                     <small>
                                         {formData.slug
-                                            ? `${window.location.origin}/music#${normalizeReleaseSlug(formData.slug)}`
+                                            ? `${window.location.origin}/${normalizeReleaseSlug(formData.slug)}`
                                             : 'Leave empty to generate the link from the release title.'}
                                     </small>
                                 </label>
@@ -1002,7 +1002,7 @@ const MusicManager = () => {
                                         <span>{item.tracks?.length || 0} tracks</span>
                                         <span>Order {item.order || 0}</span>
                                         {releaseSlug && (
-                                            <a href={`/music#${releaseSlug}`} target="_blank" rel="noreferrer">#{releaseSlug}</a>
+                                            <a href={`/${releaseSlug}`} target="_blank" rel="noreferrer">/{releaseSlug}</a>
                                         )}
                                     </div>
                                 </div>

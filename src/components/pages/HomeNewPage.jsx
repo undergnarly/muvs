@@ -2194,6 +2194,7 @@ export const Scene3DShell = ({
     initialStop = 0,
     defaultStopOffset = 0,
     returnToHubKey = null,
+    initialReleaseSlug = null,
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
@@ -2615,26 +2616,29 @@ export const Scene3DShell = ({
         onForeignLeft: hubForeignLeft,
     } : null;
 
-    // Deep link: read hash on first data load, navigate to matching release
+    // Deep link: prefer the clean /:slug route, but keep legacy #slug links.
     const hashNavigatedRef = useRef(false);
     useEffect(() => {
         if (hashNavigatedRef.current || !effectiveItems.length) return;
         hashNavigatedRef.current = true;
-        let hashValue = window.location.hash.replace(/^#/, '');
-        try { hashValue = decodeURIComponent(hashValue); } catch { /* use the raw hash */ }
-        const hash = toSlug({ slug: hashValue });
-        if (!hash) return;
-        const idx = effectiveItems.findIndex((r) => toSlug(r) === hash);
+        let requestedSlug = initialReleaseSlug || window.location.hash.replace(/^#/, '');
+        try { requestedSlug = decodeURIComponent(requestedSlug); } catch { /* use the raw value */ }
+        const slug = toSlug({ slug: requestedSlug });
+        if (!slug) return;
+        const idx = effectiveItems.findIndex((r) => toSlug(r) === slug);
         if (idx >= 0) releaseSwitcher.goTo(idx);
-    }, [effectiveItems, releaseSwitcher]);
+    }, [effectiveItems, initialReleaseSlug, releaseSwitcher]);
 
-    // Deep link: update hash when current release changes
+    // Keep the selected music release as a canonical root-level permalink.
     useEffect(() => {
+        if (activeKey !== 'music' || (hub && hubPhase !== 'section')) return;
         const slug = toSlug(effectiveItems[releaseSwitcher.current]);
         if (!slug) return;
-        const next = '#' + slug;
-        if (window.location.hash !== next) window.history.replaceState(null, '', next);
-    }, [releaseSwitcher.current, effectiveItems]);
+        const next = `/${encodeURIComponent(slug)}${window.location.search}`;
+        if (`${window.location.pathname}${window.location.search}` !== next || window.location.hash) {
+            window.history.replaceState(null, '', next);
+        }
+    }, [activeKey, effectiveItems, hub, hubPhase, releaseSwitcher.current]);
 
     useEffect(() => {
         setMixIndex(0);
@@ -2864,12 +2868,12 @@ const HomeNewPage = () => (
     <Scene3DShell serverCfgKey="homeNewConfig" showDebug={debugQueryEnabled()} hub />
 );
 
-const HubSectionPage = ({ initialKey }) => {
+const HubSectionPage = ({ initialKey, initialReleaseSlug = null }) => {
     const showDebug = debugQueryEnabled();
-    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} />;
+    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} initialReleaseSlug={initialReleaseSlug} />;
 };
 
-export const MusicNewPage = () => <HubSectionPage initialKey="music" />;
+export const MusicNewPage = ({ releaseSlug = null }) => <HubSectionPage initialKey="music" initialReleaseSlug={releaseSlug} />;
 export const MixesHubPage = () => <HubSectionPage initialKey="mixes" />;
 export const CodeHubPage = () => <HubSectionPage initialKey="code" />;
 export const AboutHubPage = () => <HubSectionPage initialKey="about" />;
