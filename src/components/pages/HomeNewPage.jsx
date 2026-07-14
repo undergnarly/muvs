@@ -1872,6 +1872,7 @@ const DebugPanel = ({
     hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
     simple = false, hasTv = false, hideBillboard = false,
     tunerItems = [], tunerItemIndex = 0, tunerScope = 'item', onTunerItem,
+    visibleStopCount = null,
 }) => {
     const [open, setOpen] = useState(true);
     const [editIdx, setEditIdx] = useState(currentIndex);
@@ -1884,6 +1885,7 @@ const DebugPanel = ({
     const inMenu = hubMode && hubPhase === 'menu';
     const inTransition = hubMode && hubPhase === 'travel';
     const inSection = !hubMode || hubPhase === 'section';
+    const tunerStopCount = visibleStopCount ?? cfg.stops.length;
 
     useEffect(() => { setEditIdx(currentIndex); }, [currentIndex]);
 
@@ -1903,7 +1905,7 @@ const DebugPanel = ({
             cancelAnimationFrame(frameId);
             observer.disconnect();
         };
-    }, [open, inMenu, inTransition, inSection, editIdx, sectionKey, hasTv, simple, hideBillboard, tunerScope, tunerItemIndex]);
+    }, [open, inMenu, inTransition, inSection, editIdx, sectionKey, hasTv, simple, hideBillboard, tunerScope, tunerItemIndex, tunerStopCount]);
 
     useEffect(() => {
         const viewport = pageViewportRef.current;
@@ -2013,7 +2015,7 @@ const DebugPanel = ({
             )}
 
             {inSection && <div className="dbg-stops">
-                {cfg.stops.map((_, i) => i >= sectionEntryStop && (
+                {cfg.stops.map((_, i) => i >= sectionEntryStop && i < tunerStopCount && (
                     <button
                         key={i}
                         onClick={() => { goTo(i); setEditIdx(i); }}
@@ -2120,7 +2122,7 @@ const DebugPanel = ({
                 <Row label="photo z"     value={cfg.photoZ}     min={-15} max={20} onChange={(v) => setCfg({ ...cfg, photoZ: v })} />
             </div>}
 
-            {inSection && editIdx === cfg.stops.length - 1 && <div className="dbg-block">
+            {inSection && editIdx === tunerStopCount - 1 && <div className="dbg-block">
                 <div className="dbg-title">scene depth</div>
                 <Row label="fog near"    value={cfg.fogNear}    min={0}   max={50} step={0.5} onChange={(v) => setCfg({ ...cfg, fogNear: v })} />
                 <Row label="fog far"     value={cfg.fogFar}     min={5}   max={120} step={1} onChange={(v) => setCfg({ ...cfg, fogFar: v })} />
@@ -2216,7 +2218,6 @@ export const Scene3DShell = ({
     const [cfg, setCfg] = useState(initialCfg);
     const [cfgReady, setCfgReady] = useState(false);
     const cfgRef = useRef(cfg);
-    useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
     // ---- hub (3D ring menu) state ----
     // Returning from a foreign section: the initializer only READS (StrictMode
@@ -2255,6 +2256,10 @@ export const Scene3DShell = ({
     const [hubPhase, setHubPhase] = useState(() => (hub ? hubStateRef.current.phase : 'section'));
     const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
     const [activeKey, setActiveKey] = useState(hubInit?.entered || 'music');
+    const activeStopCount = hub && activeKey === 'music' ? Math.min(3, stopCount) : stopCount;
+    useLayoutEffect(() => {
+        cfgRef.current = { ...cfg, stops: cfg.stops.slice(0, activeStopCount) };
+    }, [activeStopCount, cfg]);
     const sectionControls = !hub || hubPhase === 'section';
     const cfgContext = hub && hubPhase === 'menu' ? 'menu' : activeKey;
     const activeServerCfgKey = cfgContext === 'menu'
@@ -2367,7 +2372,7 @@ export const Scene3DShell = ({
         navigate(ROUTES.HOME);
     }, [navigate, returnToHubKey]);
 
-    const { progressRef, currentIndex, goTo } = useSnapScroll(stopCount, {
+    const { progressRef, currentIndex, goTo } = useSnapScroll(activeStopCount, {
         enabled: sectionControls,
         onOverscrollUp: hub ? startTravelBack : (returnToHubKey ? returnToHub : undefined),
         initialIndex: hub && hubInit?.entered ? sectionEntryStop : initialStop,
@@ -2766,7 +2771,7 @@ export const Scene3DShell = ({
                 showSwipeUpHint={hub && hubPhase === 'section'}
             />
             {sectionControls && (
-                <StopIndicator count={cfg.stops.length} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
+                <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}
 
             {hub && hubPhase === 'menu' && (
@@ -2842,6 +2847,7 @@ export const Scene3DShell = ({
                     tunerItems={effectiveItems}
                     tunerItemIndex={tunerItemIndex}
                     tunerScope={tunerScope}
+                    visibleStopCount={activeStopCount}
                     onTunerItem={(value) => {
                         if (value === 'section') {
                             setTunerScope('section');
