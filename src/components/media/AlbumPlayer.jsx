@@ -50,7 +50,7 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
     const audioRef = useRef(null);
     const playOnLoadRef = useRef(false);
 
-    const tracks = release?.tracks || [];
+    const tracks = (release?.tracks || []).filter((track) => Boolean(getTrackUrl(track)));
     const cover = release?.coverImage || release?.cover || '';
     const releaseId = release?.id ?? release?.title ?? '';
 
