@@ -273,6 +273,34 @@ body.home-new-active {
     transform: scale(1.3);
 }
 
+.hn-release-edge-nav {
+    position: fixed;
+    inset: auto 0 40% 0;
+    z-index: 7;
+    pointer-events: none;
+}
+
+.hn-release-edge-button {
+    position: absolute;
+    top: 0;
+    width: 48px;
+    height: 48px;
+    border-color: rgba(90, 90, 90, 0.58);
+    color: rgba(90, 90, 90, 0.72);
+    pointer-events: auto;
+}
+
+.hn-release-edge-button-left { left: clamp(14px, 3vw, 44px); }
+.hn-release-edge-button-right { right: clamp(14px, 3vw, 44px); }
+
+.hn-release-edge-button:hover:not(:disabled) {
+    border-color: rgba(65, 65, 65, 0.82);
+    background: rgba(120, 120, 120, 0.08);
+    color: rgba(65, 65, 65, 0.9);
+}
+
+.hn-release-edge-button:disabled { opacity: 0.25; }
+
 /* ---- bottom player ---- */
 .hn-player {
     position: fixed;

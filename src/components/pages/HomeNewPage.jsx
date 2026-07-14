@@ -1358,7 +1358,10 @@ const PortfolioItems = ({ items, tiltRef }) => (
     </>
 );
 
-const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+    const visibleReleaseEntries = releases
+        .map((release, index) => ({ release, index }))
+        .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
     const sectionContent = (
         <>
             {!simple && (
@@ -1366,22 +1369,22 @@ const Scene = ({ releases, cfgRef, progressRef, releaseOffsetRef, tiltRef, floor
                     <RigidBody type="fixed" colliders={false}>
                         <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
                     </RigidBody>
-                    {releases.map((r, i) => (
-                        <PlatformStack key={`stack-${r.id ?? i}`} release={r} x={i * RELEASE_SPACING} stackCfg={stack} />
+                    {visibleReleaseEntries.map(({ release, index }) => (
+                        <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
                     ))}
                 </Physics>
             )}
-            {releases.map((r, i) => (
-                <React.Fragment key={r.id ?? i}>
+            {visibleReleaseEntries.map(({ release, index }) => (
+                <React.Fragment key={release.id ?? index}>
                     {!hideBillboard && (
                         <Suspense fallback={null}>
-                            <Billboard release={r} x={i * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} tiltRef={tiltRef} />
+                            <Billboard release={release} x={index * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} tiltRef={tiltRef} />
                         </Suspense>
                     )}
-                    <FloorPhotoSheets x={i * RELEASE_SPACING} z={photoZ} seed={i * 7} gallery={r.gallery} tiltRef={tiltRef} />
-                    <FloorText release={r} x={i * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} tiltRef={tiltRef} />
-                    {showCodeCaption && <CodeShortDescription release={r} x={i * RELEASE_SPACING} tiltRef={tiltRef} />}
-                    {!simple && <SupportFloorText x={i * RELEASE_SPACING} support={support} tiltRef={tiltRef} />}
+                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} tiltRef={tiltRef} />
+                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} tiltRef={tiltRef} />
+                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} tiltRef={tiltRef} />}
+                    {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} tiltRef={tiltRef} />}
                 </React.Fragment>
             ))}
             {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} tiltRef={tiltRef} />}
@@ -2734,6 +2737,8 @@ export const Scene3DShell = ({
                     >
                         <Scene
                             releases={effectiveItems}
+                            activeItemIndex={releaseSwitcher.current}
+                            activeItemOnly={activeKey === 'music'}
                             hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
@@ -2772,6 +2777,33 @@ export const Scene3DShell = ({
             />
             {sectionControls && (
                 <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
+            )}
+
+            {sectionControls && activeKey === 'music' && currentIndex === 0 && effectiveItems.length > 1 && (
+                <div className="hn-release-edge-nav" aria-label="Release navigation">
+                    <button
+                        type="button"
+                        className="mp3d-nav hn-release-edge-button hn-release-edge-button-left"
+                        onClick={releaseSwitcher.prev}
+                        disabled={releaseSwitcher.current === 0}
+                        aria-label="Previous release"
+                    >
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                            <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        className="mp3d-nav hn-release-edge-button hn-release-edge-button-right"
+                        onClick={releaseSwitcher.next}
+                        disabled={releaseSwitcher.current >= effectiveItems.length - 1}
+                        aria-label="Next release"
+                    >
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                            <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
+                    </button>
+                </div>
             )}
 
             {hub && hubPhase === 'menu' && (
