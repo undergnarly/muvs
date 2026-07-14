@@ -96,6 +96,18 @@ const DEFAULT_TV = {
     playStop0Z: 5.6,
 };
 
+const DEFAULT_CODE_CAPTION = {
+    pos: { x: 0, y: 0.025, z: -1.5 },
+    tilt: 12,
+    rotation: 0,
+    scale: 5,
+    width: 360,
+    fontSize: 14,
+    lineHeight: 1.25,
+    letterSpacing: 0.08,
+    maxHeight: 5,
+};
+
 const DEFAULT_CFG = {
     stops: DEFAULT_STOPS,
     floorTextZ: 7.3,
@@ -106,6 +118,7 @@ const DEFAULT_CFG = {
     stack: DEFAULT_STACK,
     support: DEFAULT_SUPPORT,
     tv: DEFAULT_TV,
+    codeCaption: DEFAULT_CODE_CAPTION,
     hub: DEFAULT_HUB,
 };
 
@@ -204,6 +217,11 @@ const hydrateCfg = (cfg, expectedStops) => {
             pos: { ...DEFAULT_TV.pos, ...(cfg.tv?.pos || {}) },
             screen: { ...DEFAULT_TV.screen, ...(cfg.tv?.screen || {}) },
             iframeShift: { ...DEFAULT_TV.iframeShift, ...(cfg.tv?.iframeShift || {}) },
+        },
+        codeCaption: {
+            ...DEFAULT_CODE_CAPTION,
+            ...(cfg.codeCaption || {}),
+            pos: { ...DEFAULT_CODE_CAPTION.pos, ...(cfg.codeCaption?.pos || {}) },
         },
         hub: { ...DEFAULT_HUB, ...(cfg.hub || {}) },
     };
@@ -534,21 +552,34 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
     );
 };
 
-const CodeShortDescription = ({ release, x, tiltRef }) => {
+const CodeShortDescription = ({ release, x, tiltRef, codeCaption = DEFAULT_CODE_CAPTION }) => {
     if (!release.description) return null;
+    const caption = {
+        ...DEFAULT_CODE_CAPTION,
+        ...codeCaption,
+        pos: { ...DEFAULT_CODE_CAPTION.pos, ...(codeCaption?.pos || {}) },
+    };
     return (
         <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionFloorText">
-        <group position={[x, 0.025, -1.5]}>
-            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(12), 0, 0]}>
+        <group position={[x + caption.pos.x, caption.pos.y, caption.pos.z]}>
+            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(caption.tilt), 0, THREE.MathUtils.degToRad(caption.rotation)]}>
                 <Html
                     transform
                     center
-                    distanceFactor={5}
+                    distanceFactor={caption.scale}
                     pointerEvents="none"
                     zIndexRange={[5, 0]}
                 >
                     <div
                         className="mp3d-rich-caption hn-code-short"
+                        style={{
+                            width: `${caption.width}px`,
+                            maxWidth: 'none',
+                            maxHeight: `${caption.maxHeight}em`,
+                            fontSize: `${caption.fontSize}px`,
+                            lineHeight: caption.lineHeight,
+                            letterSpacing: `${caption.letterSpacing}em`,
+                        }}
                         dangerouslySetInnerHTML={{ __html: sanitizeCaptionHtml(release.description) }}
                     />
                 </Html>
@@ -1358,7 +1389,7 @@ const PortfolioItems = ({ items, tiltRef }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1383,7 +1414,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                     )}
                     <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} tiltRef={tiltRef} />
                     <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} tiltRef={tiltRef} />
-                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} tiltRef={tiltRef} />}
+                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} tiltRef={tiltRef} codeCaption={codeCaption} />}
                     {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} tiltRef={tiltRef} />}
                 </React.Fragment>
             ))}
@@ -1873,7 +1904,7 @@ const Vec3Block = ({ title, vec, setVec }) => (
 const DebugPanel = ({
     cfg, setCfg, currentIndex, goTo, progressRef, onSaveToServer, onResetServer,
     hubMode = false, hubPhase = 'section', sectionKey = 'music', sectionEntryStop = 0,
-    simple = false, hasTv = false, hideBillboard = false,
+    simple = false, hasTv = false, hideBillboard = false, showCodeCaption = false,
     tunerItems = [], tunerItemIndex = 0, tunerScope = 'item', onTunerItem,
     visibleStopCount = null,
 }) => {
@@ -1908,7 +1939,7 @@ const DebugPanel = ({
             cancelAnimationFrame(frameId);
             observer.disconnect();
         };
-    }, [open, inMenu, inTransition, inSection, editIdx, sectionKey, hasTv, simple, hideBillboard, tunerScope, tunerItemIndex, tunerStopCount]);
+    }, [open, inMenu, inTransition, inSection, editIdx, sectionKey, hasTv, simple, hideBillboard, showCodeCaption, tunerScope, tunerItemIndex, tunerStopCount]);
 
     useEffect(() => {
         const viewport = pageViewportRef.current;
@@ -2082,6 +2113,21 @@ const DebugPanel = ({
                 <Row label="art z"  value={cfg.billboard.artistZ}    min={-3}  max={3}  step={0.05} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistZ: v } })} />
                 <Row label="art sz" value={cfg.billboard.artistSize} min={0.1} max={2}  step={0.02} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistSize: v } })} />
                 <SelectRow label="artist font" value={cfg.billboard.artistFont} options={RELEASE_FONT_OPTIONS} onChange={(v) => setCfg({ ...cfg, billboard: { ...cfg.billboard, artistFont: v } })} />
+            </div>}
+
+            {inSection && editIdx === sectionEntryStop && showCodeCaption && <div className="dbg-block">
+                <div className="dbg-title">code short description</div>
+                <Row label="x" value={cfg.codeCaption.pos.x} min={-15} max={15} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, x: v } } })} />
+                <Row label="y" value={cfg.codeCaption.pos.y} min={-2} max={8} step={0.01} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, y: v } } })} />
+                <Row label="z" value={cfg.codeCaption.pos.z} min={-15} max={20} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, z: v } } })} />
+                <Row label="tilt" value={cfg.codeCaption.tilt} min={-90} max={90} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, tilt: v } })} />
+                <Row label="turn" value={cfg.codeCaption.rotation} min={-180} max={180} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, rotation: v } })} />
+                <Row label="scale" value={cfg.codeCaption.scale} min={0.5} max={15} step={0.1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, scale: v } })} />
+                <Row label="width" value={cfg.codeCaption.width} min={160} max={900} step={10} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, width: v } })} />
+                <Row label="font" value={cfg.codeCaption.fontSize} min={8} max={40} step={1} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, fontSize: v } })} />
+                <Row label="line" value={cfg.codeCaption.lineHeight} min={0.8} max={2.5} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, lineHeight: v } })} />
+                <Row label="space" value={cfg.codeCaption.letterSpacing} min={0} max={0.5} step={0.01} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, letterSpacing: v } })} />
+                <Row label="height" value={cfg.codeCaption.maxHeight} min={1} max={30} step={0.5} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, maxHeight: v } })} />
             </div>}
 
             {inSection && editIdx === 2 && !simple && <div className="dbg-block">
@@ -2749,6 +2795,7 @@ export const Scene3DShell = ({
                             billboard={cfg.billboard}
                             stack={cfg.stack}
                             support={cfg.support}
+                            codeCaption={cfg.codeCaption}
                             showCodeCaption={!!activeSection.showCodeCaption}
                             fullDescriptionOnly={!!activeSection.fullDescriptionOnly}
                             simple={activeSection.simple}
@@ -2876,6 +2923,7 @@ export const Scene3DShell = ({
                     simple={activeSection.simple}
                     hasTv={!!effectiveMixes}
                     hideBillboard={!!activeSection.hideBillboard}
+                    showCodeCaption={!!activeSection.showCodeCaption}
                     tunerItems={effectiveItems}
                     tunerItemIndex={tunerItemIndex}
                     tunerScope={tunerScope}
