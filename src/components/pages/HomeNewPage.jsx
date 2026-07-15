@@ -2773,7 +2773,7 @@ export const Scene3DShell = ({
     return (
         <div className="home-new-page">
             {(hub || effectiveItems.length > 0) && (
-                <div className="home-new-canvas">
+                <div className={`home-new-canvas${hub ? ' is-hub' : ''}`}>
                     <Canvas
                         camera={hub
                             ? { position: [0, (cfg.hub || DEFAULT_HUB).camY, -((cfg.hub || DEFAULT_HUB).ringRadius + hubCameraDistance(cfg.hub || DEFAULT_HUB))], fov: (cfg.hub || DEFAULT_HUB).fov }

@@ -123,11 +123,24 @@
     opacity: 0;
 }
 
-@media (max-width: 600px) {
-    .mp3d-ui { bottom: 24px; gap: 10px; }
+@media (max-width: 768px) {
+    /* Canvas is 70dvh on mobile; keep controls inside that zone */
+    .mp3d-ui {
+        bottom: calc(30vh + 16px);
+        bottom: calc(30dvh + 16px);
+        gap: 10px;
+    }
+    .mp3d-swipe-arrow {
+        bottom: calc(30vh + 72px);
+        bottom: calc(30dvh + 72px);
+    }
+    .mp3d-counter {
+        right: 14px;
+        font-size: 11px;
+        top: 35vh;
+        top: 35dvh;
+    }
+    .mp3d-hint { display: none; }
     .mp3d-nav { width: 48px; height: 48px; }
     .mp3d-pill { height: 48px; min-width: 0; padding: 0 20px; font-size: 12px; }
-    .mp3d-counter { right: 14px; font-size: 11px; }
-    .mp3d-hint { display: none; }
-    .mp3d-swipe-arrow { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
 }

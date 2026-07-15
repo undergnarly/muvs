@@ -24,6 +24,15 @@ body.home-new-active {
     z-index: 2;
 }
 
+/* On mobile, hub canvas takes 70dvh so content below can scroll/paginate */
+@media (max-width: 768px) {
+    .home-new-canvas.is-hub {
+        height: 70vh;
+        height: 70dvh;
+        bottom: auto;
+    }
+}
+
 .home-new-gradient {
     position: absolute;
     inset: 0;
