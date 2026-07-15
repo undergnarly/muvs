@@ -1,7 +1,7 @@
 export const DEVICE_TILT_LAYER_DEFAULTS = {
-    menuImage: 0.6,
+    menuImage: 0,
     menuHeading: 0.35,
-    menuCaption: 0.6,
+    menuCaption: 1,
     menuParticles: 0.65,
     sectionImage: 0,
     sectionHeading: 0.3,
