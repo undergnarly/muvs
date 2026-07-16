@@ -72,15 +72,39 @@ function AppRoot() {
     // Remove Splash Screen on Mount
     React.useEffect(() => {
         const splash = document.getElementById('splash-screen');
-        if (splash) {
-            // Small delay to ensure smooth visual transition
-            setTimeout(() => {
-                splash.classList.add('hidden');
-                // Optional: Remove from DOM after transition
-                setTimeout(() => splash.remove(), 1000);
-            }, 500);
+        if (!splash) return undefined;
+
+        let removed = false;
+        const hideSplash = () => {
+            if (removed) return;
+            removed = true;
+            splash.classList.add('hidden');
+            setTimeout(() => splash.remove(), 1000);
+        };
+        if (/^\/(?:admin|login|projects)(?:\/|$)/.test(location.pathname)) {
+            const timer = setTimeout(hideSplash, 500);
+            return () => clearTimeout(timer);
         }
-    }, []);
+        const menuImages = [
+            '/images/menu/music2.webp',
+            '/images/menu/mixes-trans.webp',
+            '/images/menu/code2.webp',
+        ];
+        const imageReady = (src) => new Promise((resolve) => {
+            const image = new Image();
+            image.decoding = 'async';
+            image.onload = resolve;
+            image.onerror = resolve;
+            image.src = src;
+        });
+        const fallbackTimer = setTimeout(hideSplash, 8000);
+        Promise.all(menuImages.map(imageReady)).then(() => {
+            clearTimeout(fallbackTimer);
+            setTimeout(hideSplash, 250);
+        });
+
+        return () => clearTimeout(fallbackTimer);
+    }, [location.pathname]);
 
     // Update favicon dynamically
     React.useEffect(() => {

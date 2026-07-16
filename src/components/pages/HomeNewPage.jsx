@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
@@ -12,6 +11,7 @@ import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { DEVICE_TILT_DEFAULTS, mergeDeviceTiltSettings } from '../../utils/deviceParallax';
+import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import GyroParallaxLayer from './GyroParallaxLayer';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
@@ -184,6 +184,17 @@ const toSlug = (r) => (r?.slug || r?.title || '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const sceneItemKey = (item, index = 0) => String(item?.id ?? item?.slug ?? (toSlug(item) || index));
+
+const itemImageUrls = (item) => {
+    if (!item) return [];
+    const gallery = Array.isArray(item.gallery)
+        ? item.gallery.map((entry) => (typeof entry === 'string' ? entry : entry?.image))
+        : [];
+    return [item.coverImage, item.thumbnail, item.backgroundImage, ...gallery]
+        .filter((url, index, urls) => url && urls.indexOf(url) === index);
+};
+
+const primaryItemImage = (item) => item?.coverImage || item?.thumbnail || item?.backgroundImage || '';
 
 const buildDefaultStops = (count) => {
     const out = [];
@@ -437,14 +448,8 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, tiltRef }) => {
-    const tex = useTexture(release.coverImage || FALLBACK_COVER);
-    useEffect(() => {
-        if (tex) {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.needsUpdate = true;
-        }
-    }, [tex]);
+const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull = true }) => {
+    const tex = useProgressiveTexture(release.coverImage || FALLBACK_COVER, { loadFull });
 
     const { width, height } = useMemo(() => {
         const img = tex?.image;
@@ -489,7 +494,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, tiltRef }) => {
                 <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionImage">
                     <mesh position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
-                        <meshBasicMaterial map={tex} transparent toneMapped={false} />
+                        <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
                     </mesh>
                 </GyroParallaxLayer>
             )}
@@ -634,8 +639,8 @@ const generateFloorSheets = (gallery, seed) => {
         return {
             ...candidate,
             r: base.r + (rand() - 0.5) * 0.5,
-            image: item?.image || '',
-            caption: item?.text || item?.caption || '',
+            image: typeof item === 'string' ? item : (item?.image || ''),
+            caption: typeof item === 'string' ? '' : (item?.text || item?.caption || ''),
             seed: seed + i,
         };
     });
@@ -643,13 +648,12 @@ const generateFloorSheets = (gallery, seed) => {
 
 const tmpVec = new THREE.Vector3();
 
-const PolaroidPhoto = ({ image }) => {
-    const tex = useTexture(image);
-    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+const PolaroidPhoto = ({ image, loadFull }) => {
+    const tex = useProgressiveTexture(image, { loadFull, previewWidth: 160 });
     return (
         <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
             <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
-            <meshBasicMaterial map={tex} toneMapped={false} />
+            <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} toneMapped={false} />
         </mesh>
     );
 };
@@ -672,7 +676,7 @@ const PaperCard = () => {
     );
 };
 
-const FloorPhotoSheet = ({ sheet, index }) => {
+const FloorPhotoSheet = ({ sheet, index, loadFull }) => {
     const groupRef = useRef(null);
     const [active, setActive] = useState(false);
     const { camera } = useThree();
@@ -718,14 +722,7 @@ const FloorPhotoSheet = ({ sheet, index }) => {
             </Suspense>
             {/* photo (or placeholder) */}
             {sheet.image ? (
-                <Suspense fallback={
-                    <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
-                        <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
-                        <meshStandardMaterial color="#d8dcde" roughness={0.86} metalness={0} />
-                    </mesh>
-                }>
-                    <PolaroidPhoto image={sheet.image} />
-                </Suspense>
+                <PolaroidPhoto image={sheet.image} loadFull={loadFull} />
             ) : (
                 <mesh position={[0, POLAROID_PHOTO_OFFSET_Y, 0.008]}>
                     <planeGeometry args={[POLAROID_PHOTO_W, POLAROID_PHOTO_H]} />
@@ -752,13 +749,13 @@ const FloorPhotoSheet = ({ sheet, index }) => {
     );
 };
 
-const FloorPhotoSheets = ({ x, z, seed, gallery, tiltRef }) => {
+const FloorPhotoSheets = ({ x, z, seed, gallery, tiltRef, loadFull }) => {
     const sheets = useMemo(() => generateFloorSheets(gallery, seed), [gallery, seed]);
     return (
         <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionPhotos">
         <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
             {sheets.map((sheet, index) => (
-                <FloorPhotoSheet key={index} sheet={sheet} index={index} />
+                <FloorPhotoSheet key={index} sheet={sheet} index={index} loadFull={loadFull} />
             ))}
         </group>
         </GyroParallaxLayer>
@@ -774,42 +771,18 @@ const Floor = ({ big = false }) => (
 );
 
 const PlatformBox = ({ pos, size, platformKey, color, url }) => {
-    const ref = useRef(null);
-    const { camera } = useThree();
-    const half = size / 2;
     const tex = useMemo(() => buildLogoTexture(platformKey, color), [platformKey, color]);
-    const rotX = useMemo(() => (Math.random() - 0.5) * (Math.PI / 9), []);
 
     const onClick = (e) => {
         e.stopPropagation();
-        if (!ref.current) return;
-        const hit = e.point.clone();
-        const dir = hit.clone().sub(camera.position).normalize();
-        ref.current.applyImpulse({ x: dir.x * 7, y: 3, z: dir.z * 7 }, true);
-        ref.current.applyTorqueImpulse({ x: (Math.random() - 0.5) * 1.5, y: (Math.random() - 0.5) * 1.5, z: (Math.random() - 0.5) * 1.5 }, true);
-        if (url) {
-            setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), 360);
-        }
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     return (
-        <RigidBody
-            ref={ref}
-            position={pos}
-            rotation={[rotX, 0, 0]}
-            restitution={0.18}
-            friction={0.7}
-            mass={1}
-            linearDamping={0.4}
-            angularDamping={0.4}
-            colliders={false}
-        >
-            <CuboidCollider args={[half, half, half]} />
-            <mesh onClick={onClick}>
-                <boxGeometry args={[size, size, size]} />
-                <meshStandardMaterial map={tex} roughness={0.45} metalness={0.05} />
-            </mesh>
-        </RigidBody>
+        <mesh position={pos} onClick={onClick}>
+            <boxGeometry args={[size, size, size]} />
+            <meshStandardMaterial map={tex} roughness={0.45} metalness={0.05} />
+        </mesh>
     );
 };
 
@@ -1306,12 +1279,11 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false, comingSoon = false })
 };
 
 const PortfolioImage = ({ image, w, h }) => {
-    const tex = useTexture(image);
-    useEffect(() => { if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; } }, [tex]);
+    const tex = useProgressiveTexture(image, { loadFull: true });
     return (
         <mesh>
             <planeGeometry args={[w, h]} />
-            <meshBasicMaterial map={tex} toneMapped={false} />
+            <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} toneMapped={false} />
         </mesh>
     );
 };
@@ -1395,24 +1367,22 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
     const sectionContent = (
         <>
-            {!simple && (
-                <Physics gravity={[0, -9.81, 0]}>
-                    <RigidBody type="fixed" colliders={false}>
-                        <CuboidCollider args={[80, 0.5, 40]} position={[0, -0.5, 0]} />
-                    </RigidBody>
-                    {visibleReleaseEntries.map(({ release, index }) => (
-                        <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
-                    ))}
-                </Physics>
-            )}
+            {!simple && visibleReleaseEntries.map(({ release, index }) => (
+                <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
+            ))}
             {visibleReleaseEntries.map(({ release, index }) => (
                 <React.Fragment key={release.id ?? index}>
                     {!hideBillboard && (
-                        <Suspense fallback={null}>
-                            <Billboard release={release} x={index * RELEASE_SPACING} billboard={billboard} hideCover={!!tvMix} tiltRef={tiltRef} />
-                        </Suspense>
+                        <Billboard
+                            release={release}
+                            x={index * RELEASE_SPACING}
+                            billboard={billboard}
+                            hideCover={!!tvMix}
+                            tiltRef={tiltRef}
+                            loadFull={Math.abs(index - activeItemIndex) <= 1}
+                        />
                     )}
-                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} tiltRef={tiltRef} />
+                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} tiltRef={tiltRef} loadFull={Math.abs(index - activeItemIndex) <= 1} />
                     <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} tiltRef={tiltRef} />
                     {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} tiltRef={tiltRef} codeCaption={codeCaption} />}
                     {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} tiltRef={tiltRef} />}
@@ -2642,9 +2612,9 @@ export const Scene3DShell = ({
     const hubCovers = useMemo(() => {
         if (!hub) return null;
         const menuCovers = {
-            music: '/images/menu/music2.png',
+            music: '/images/menu/music2.webp',
             mixes: '/images/menu/mixes-trans.webp',
-            code: '/images/menu/code2.png',
+            code: '/images/menu/code2.webp',
             about: null,
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
@@ -2656,6 +2626,27 @@ export const Scene3DShell = ({
             return releaseCovers[i];
         });
     }, [hub, displayItems]);
+
+    useEffect(() => {
+        (hubCovers || []).filter(Boolean).forEach((url) => {
+            preloadImage(url, 'high');
+        });
+    }, [hubCovers]);
+
+    useEffect(() => {
+        [displayItems[0], mixesItems[0], codeItems[0], aboutItems[0]]
+            .map(primaryItemImage)
+            .filter(Boolean)
+            .forEach((url) => preloadImage(url, 'low'));
+    }, [aboutItems, codeItems, displayItems, mixesItems]);
+
+    useEffect(() => {
+        const center = effectiveMixes ? mixIndex : releaseSwitcher.current;
+        [center - 1, center, center + 1]
+            .filter((index) => index >= 0 && index < effectiveItems.length)
+            .flatMap((index) => itemImageUrls(effectiveItems[index]))
+            .forEach((url) => preloadImage(url, 'auto'));
+    }, [effectiveItems, effectiveMixes, mixIndex, releaseSwitcher.current]);
 
     const hubProps = hub ? {
         cfg: cfg.hub || DEFAULT_HUB,

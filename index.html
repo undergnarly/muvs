@@ -9,6 +9,18 @@
   <title>Muvs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <script>
+    if (!/^\/(?:admin|login|projects)(?:\/|$)/.test(location.pathname)) {
+      ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp'].forEach(function (href) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = href;
+        link.fetchPriority = 'high';
+        document.head.appendChild(link);
+      });
+    }
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 </head>
 

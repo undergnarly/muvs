@@ -34,6 +34,8 @@ const DB_FILE = path.join(DATA_DIR, "db.json");
 const BACKUP_DIR = path.join(DATA_DIR, "backups");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const AUDIO_UPLOADS_DIR = path.join(DATA_DIR, "uploads", "audio");
+const IMAGE_PREVIEW_DIR = path.join(DATA_DIR, "image-previews");
+const PUBLIC_DIR = path.resolve(__dirname, "../public");
 const MEDITATION_PROGRESS_FILE = path.join(
   DATA_DIR,
   "meditation-progress.json",
@@ -46,6 +48,65 @@ if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(AUDIO_UPLOADS_DIR))
   fs.mkdirSync(AUDIO_UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(IMAGE_PREVIEW_DIR))
+  fs.mkdirSync(IMAGE_PREVIEW_DIR, { recursive: true });
+
+const previewJobs = new Map();
+const previewExtensions = new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"]);
+
+const nearestAllowedNumber = (value, fallback, allowed) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return allowed.reduce((nearest, candidate) => (
+    Math.abs(candidate - parsed) < Math.abs(nearest - parsed)
+      ? candidate
+      : nearest
+  ), fallback);
+};
+
+const resolvePreviewSource = (rawSource) => {
+  try {
+    const pathname = decodeURIComponent(
+      new URL(String(rawSource || ""), "http://localhost").pathname,
+    );
+    const roots = [
+      { prefix: "/uploads/", root: UPLOADS_DIR },
+      { prefix: "/images/", root: path.join(PUBLIC_DIR, "images") },
+    ];
+    const match = roots.find(({ prefix }) => pathname.startsWith(prefix));
+    if (!match || pathname.startsWith("/uploads/audio/")) return null;
+
+    const relativePath = pathname.slice(match.prefix.length);
+    const root = path.resolve(match.root);
+    const sourcePath = path.resolve(root, relativePath);
+    if (!relativePath || !sourcePath.startsWith(`${root}${path.sep}`)) return null;
+    if (!previewExtensions.has(path.extname(sourcePath).toLowerCase())) return null;
+    return { sourcePath, identity: pathname };
+  } catch {
+    return null;
+  }
+};
+
+const ensureImagePreview = async (sourcePath, identity, width = 192, quality = 35) => {
+  const stats = fs.statSync(sourcePath);
+  const cacheKey = crypto
+    .createHash("sha256")
+    .update(`${identity}:${stats.size}:${stats.mtimeMs}:${width}:${quality}`)
+    .digest("hex");
+  const previewPath = path.join(IMAGE_PREVIEW_DIR, `${cacheKey}.webp`);
+  if (fs.existsSync(previewPath)) return previewPath;
+  if (previewJobs.has(previewPath)) return previewJobs.get(previewPath);
+
+  const job = sharp(sourcePath, { failOn: "none" })
+    .rotate()
+    .resize(width, width, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality, effort: 4 })
+    .toFile(previewPath)
+    .then(() => previewPath)
+    .finally(() => previewJobs.delete(previewPath));
+  previewJobs.set(previewPath, job);
+  return job;
+};
 
 // Initialize DB if empty
 if (!fs.existsSync(DB_FILE)) {
@@ -144,6 +205,30 @@ const saveDb = (data) => {
 };
 
 // --- Routes ---
+
+app.get("/api/image-preview.webp", async (req, res) => {
+  const source = resolvePreviewSource(req.query.src);
+  if (!source || !fs.existsSync(source.sourcePath)) {
+    return res.status(404).json({ error: "Image not found" });
+  }
+
+  const width = nearestAllowedNumber(req.query.w, 192, [96, 160, 192, 256, 384, 512]);
+  const quality = nearestAllowedNumber(req.query.q, 35, [25, 35, 50, 70]);
+  try {
+    const previewPath = await ensureImagePreview(
+      source.sourcePath,
+      source.identity,
+      width,
+      quality,
+    );
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    return res.sendFile(previewPath);
+  } catch (error) {
+    console.error("Image preview error:", error);
+    return res.status(500).json({ error: "Failed to create image preview" });
+  }
+});
 
 app.get("/api/projects/meditation/auth", (req, res) => {
   if (!MEDITATION_PASSWORD || !MEDITATION_AUTH_SECRET) {
@@ -330,6 +415,10 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 90 })
       .toFile(webpPath);
+
+    await ensureImagePreview(webpPath, `/uploads/${webpFilename}`).catch(
+      (previewError) => console.error("Initial image preview error:", previewError),
+    );
 
     // Delete the original large file to save space (optional, but good for cleanup)
     // fs.unlinkSync(originalPath);

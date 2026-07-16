@@ -1,9 +1,10 @@
-import React, { Suspense, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Html, Text, useTexture } from '@react-three/drei';
+import { Html, Text } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
+import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import GyroParallaxLayer from './GyroParallaxLayer';
 import './RingMenu.css';
 
@@ -153,13 +154,10 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
 };
 
 const RingCover = ({ url, size, onClick }) => {
-    const tex = useTexture(url || FALLBACK_COVER);
-    useEffect(() => {
-        if (tex) {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.needsUpdate = true;
-        }
-    }, [tex]);
+    const tex = useProgressiveTexture(url || FALLBACK_COVER, {
+        loadFull: true,
+        usePreview: false,
+    });
 
     const imgW = tex?.image?.naturalWidth || tex?.image?.width || 1;
     const imgH = tex?.image?.naturalHeight || tex?.image?.height || 1;
@@ -172,7 +170,7 @@ const RingCover = ({ url, size, onClick }) => {
     return (
         <mesh onClick={onClick}>
             <planeGeometry args={[width, height]} />
-            <meshBasicMaterial map={tex} transparent toneMapped={false} />
+            <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} transparent opacity={tex ? 1 : 0} toneMapped={false} />
         </mesh>
     );
 };
@@ -213,9 +211,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 </GyroParallaxLayer>
                 {cover && (
                     <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuImage">
-                    <Suspense fallback={null}>
-                        <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
-                    </Suspense>
+                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
                     </GyroParallaxLayer>
                 )}
                 <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuParticles">

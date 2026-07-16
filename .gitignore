@@ -26,3 +26,4 @@ dist-ssr
 # Database and Uploads
 data/db.json
 data/uploads/
+data/image-previews/
