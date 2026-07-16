@@ -206,7 +206,7 @@ const saveDb = (data) => {
 
 // --- Routes ---
 
-app.get("/api/image-preview.webp", async (req, res) => {
+app.get("/api/image-preview", async (req, res) => {
   const source = resolvePreviewSource(req.query.src);
   if (!source || !fs.existsSync(source.sourcePath)) {
     return res.status(404).json({ error: "Image not found" });

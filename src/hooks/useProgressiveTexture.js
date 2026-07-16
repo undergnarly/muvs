@@ -45,7 +45,7 @@ export const imagePreviewUrl = (source, width = 192, quality = 35) => {
     const pathname = source.split(/[?#]/, 1)[0];
     if (!/^\/(?:uploads|images)\//.test(pathname)) return source;
     if (!/\.(?:avif|gif|jpe?g|png|webp)$/i.test(pathname)) return source;
-    return `/api/image-preview.webp?src=${encodeURIComponent(pathname)}&w=${width}&q=${quality}`;
+    return `/api/image-preview?src=${encodeURIComponent(pathname)}&w=${width}&q=${quality}`;
 };
 
 export const preloadImage = (source, priority = 'low') => {
