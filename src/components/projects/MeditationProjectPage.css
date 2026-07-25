@@ -175,6 +175,41 @@
   line-height: 1.7;
   max-width: 620px;
 }
+.med-reuse {
+  margin: 0 clamp(22px, 7vw, 110px) 72px;
+  padding: clamp(26px, 4vw, 48px);
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) 1.2fr;
+  gap: clamp(28px, 5vw, 72px);
+  background: #17201d;
+  color: #f5f4ed;
+}
+.med-reuse h2 {
+  margin: 10px 0 14px;
+  font-size: clamp(30px, 4vw, 50px);
+  letter-spacing: -0.05em;
+}
+.med-reuse p {
+  margin: 0;
+  color: #abb5b0;
+  line-height: 1.65;
+}
+.med-reuse-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.med-reuse-columns article {
+  padding-top: 14px;
+  border-top: 1px solid #4b5651;
+}
+.med-reuse-columns small {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--lime);
+  font: 10px DM Mono;
+  letter-spacing: 0.1em;
+}
 .med-phases {
   padding: 0 clamp(22px, 7vw, 110px) 90px;
 }
@@ -680,6 +715,13 @@
   }
   .med-intro h2 {
     font-size: 40px;
+  }
+  .med-reuse {
+    margin: 0 22px 48px;
+    grid-template-columns: 1fr;
+  }
+  .med-reuse-columns {
+    grid-template-columns: 1fr;
   }
   .med-phases {
     padding: 0 22px 60px;
