@@ -18,16 +18,14 @@ const phases = [
     id: "01",
     title: "Исследование и архитектура",
     subtitle: "Фундамент продукта",
-    hours: 24,
+    hours: 16,
     status: "active",
-    deadline: "8 августа",
+    deadline: "6 августа",
     tasks: [
-      ["Анализ рынка, ЦА и сценариев использования", 3],
-      ["Продуктовые требования и user flow", 3],
-      ["Политики безопасного контента", 3],
-      ["Выбор AI, TTS, storage и платежных сервисов", 3],
-      ["Архитектура, схема данных и расчет себестоимости", 4],
-      ["Аудит существующей кодовой базы Zhanym Soul", 8],
+      ["Аудит существующей кодовой базы Zhanym Soul", 6],
+      ["Карта переиспользуемых модулей и зависимостей", 3],
+      ["Gap-анализ генератора, аудио, TTS и safety", 3],
+      ["Целевая архитектура и план интеграции", 4],
     ],
   },
   {
@@ -36,7 +34,7 @@ const phases = [
     subtitle: "Органический канал привлечения",
     hours: 28,
     status: "planned",
-    deadline: "15 августа",
+    deadline: "13 августа",
     tasks: [
       ["Генератор тем, сценариев и SEO-метаданных", 5],
       ["TTS и подготовка фонового аудио", 5],
@@ -52,7 +50,7 @@ const phases = [
     subtitle: "Основной MVP",
     hours: 48,
     status: "planned",
-    deadline: "27 августа",
+    deadline: "25 августа",
     tasks: [
       ["UX/UI лендинга и пошаговой формы", 6],
       ["Аккаунты и профиль пользователя", 5],
@@ -70,7 +68,7 @@ const phases = [
     subtitle: "Платные пакеты и аналитика",
     hours: 20,
     status: "planned",
-    deadline: "1 сентября",
+    deadline: "30 августа",
     tasks: [
       ["Разовые платежи и тарифы", 6],
       ["Бесплатный лимит и система кредитов", 3],
@@ -85,7 +83,7 @@ const phases = [
     subtitle: "Повторное использование",
     hours: 24,
     status: "planned",
-    deadline: "7 сентября",
+    deadline: "5 сентября",
     tasks: [
       ["Личная библиотека и аудиоплеер", 6],
       ["Избранное и история прослушивания", 3],
@@ -101,7 +99,7 @@ const phases = [
     subtitle: "Выход на новые рынки",
     hours: 24,
     status: "planned",
-    deadline: "13 сентября",
+    deadline: "11 сентября",
     tasks: [
       ["i18n интерфейса и контентных шаблонов", 5],
       ["Локализация первых трех языков", 7],
@@ -116,7 +114,7 @@ const phases = [
     subtitle: "iOS и Android",
     hours: 72,
     status: "planned",
-    deadline: "1 октября",
+    deadline: "29 сентября",
     tasks: [
       ["Мобильный UX/UI и дизайн-система", 10],
       ["Приложение и интеграция с API", 22],
@@ -132,7 +130,7 @@ const phases = [
     subtitle: "Масштабирование платформы",
     hours: 112,
     status: "planned",
-    deadline: "29 октября",
+    deadline: "27 октября",
     tasks: [
       ["Корпоративные аккаунты и роли", 16],
       ["HR-панель и обезличенная аналитика", 12],
@@ -162,10 +160,10 @@ const phaseGuides = {
     approach:
       "Интервью, анализ пользовательских сценариев, расчет unit-экономики и фиксация технических ограничений до начала реализации.",
     deliverables: [
-      "Product requirements document",
-      "Карта пользовательских сценариев",
-      "Архитектурная схема и risk register",
-      "Аудит переиспользования генератора Zhanym Soul",
+      "Отчёт об архитектуре и качестве Zhanym Soul",
+      "Карта модулей: используем / адаптируем / заменяем",
+      "Gap-анализ meditation generator и audio pipeline",
+      "Целевая схема интеграции и технический backlog",
     ],
   },
   "02": {
@@ -371,14 +369,14 @@ function Roadmap() {
           <span>Полный проект</span>
           <strong>{totalHours.toLocaleString("ru-RU")} ч</strong>
           <small>
-            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 29 октября
+            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 27 октября
           </small>
         </article>
         <article>
           <span>Production Web MVP</span>
           <strong>{mvpHours} ч</strong>
           <small>
-            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 7 сентября
+            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 5 сентября
           </small>
         </article>
         <article>
