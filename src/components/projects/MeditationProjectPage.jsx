@@ -20,7 +20,7 @@ const phases = [
     subtitle: "Фундамент продукта",
     hours: 24,
     status: "active",
-    deadline: "18 июля",
+    deadline: "8 августа",
     tasks: [
       ["Анализ рынка, ЦА и сценариев использования", 3],
       ["Продуктовые требования и user flow", 3],
@@ -36,7 +36,7 @@ const phases = [
     subtitle: "Органический канал привлечения",
     hours: 28,
     status: "planned",
-    deadline: "25 июля",
+    deadline: "15 августа",
     tasks: [
       ["Генератор тем, сценариев и SEO-метаданных", 5],
       ["TTS и подготовка фонового аудио", 5],
@@ -52,7 +52,7 @@ const phases = [
     subtitle: "Основной MVP",
     hours: 48,
     status: "planned",
-    deadline: "6 августа",
+    deadline: "27 августа",
     tasks: [
       ["UX/UI лендинга и пошаговой формы", 6],
       ["Аккаунты и профиль пользователя", 5],
@@ -70,7 +70,7 @@ const phases = [
     subtitle: "Платные пакеты и аналитика",
     hours: 20,
     status: "planned",
-    deadline: "11 августа",
+    deadline: "1 сентября",
     tasks: [
       ["Разовые платежи и тарифы", 6],
       ["Бесплатный лимит и система кредитов", 3],
@@ -85,7 +85,7 @@ const phases = [
     subtitle: "Повторное использование",
     hours: 24,
     status: "planned",
-    deadline: "17 августа",
+    deadline: "7 сентября",
     tasks: [
       ["Личная библиотека и аудиоплеер", 6],
       ["Избранное и история прослушивания", 3],
@@ -101,7 +101,7 @@ const phases = [
     subtitle: "Выход на новые рынки",
     hours: 24,
     status: "planned",
-    deadline: "23 августа",
+    deadline: "13 сентября",
     tasks: [
       ["i18n интерфейса и контентных шаблонов", 5],
       ["Локализация первых трех языков", 7],
@@ -116,7 +116,7 @@ const phases = [
     subtitle: "iOS и Android",
     hours: 72,
     status: "planned",
-    deadline: "10 сентября",
+    deadline: "1 октября",
     tasks: [
       ["Мобильный UX/UI и дизайн-система", 10],
       ["Приложение и интеграция с API", 22],
@@ -132,7 +132,7 @@ const phases = [
     subtitle: "Масштабирование платформы",
     hours: 112,
     status: "planned",
-    deadline: "8 октября",
+    deadline: "29 октября",
     tasks: [
       ["Корпоративные аккаунты и роли", 16],
       ["HR-панель и обезличенная аналитика", 12],
@@ -371,22 +371,22 @@ function Roadmap() {
           <span>Полный проект</span>
           <strong>{totalHours.toLocaleString("ru-RU")} ч</strong>
           <small>
-            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 8 октября
+            ${(totalHours * HOURLY_RATE).toLocaleString("en-US")} · до 29 октября
           </small>
         </article>
         <article>
           <span>Production Web MVP</span>
           <strong>{mvpHours} ч</strong>
           <small>
-            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 17 августа
+            ${(mvpHours * HOURLY_RATE).toLocaleString("en-US")} · до 7 сентября
           </small>
         </article>
         <article>
           <span>Прототип</span>
           <strong>{PROTOTYPE_HOURS} ч</strong>
           <small>
-            ${(PROTOTYPE_HOURS * HOURLY_RATE).toLocaleString("en-US")} · быстрый
-            запуск
+            ${(PROTOTYPE_HOURS * HOURLY_RATE).toLocaleString("en-US")} · до 12
+            августа
           </small>
         </article>
       </section>
@@ -397,7 +397,8 @@ function Roadmap() {
         </div>
         <p>
           Оценка рассчитана для одного разработчика с AI-агентами при загрузке 4
-          часа каждый календарный день и ставке $30/ч. Старт — 13 июля 2026.
+          часа каждый календарный день и ставке $30/ч. Старт основной
+          разработки — 3 августа 2026.
           Включает разработку, интеграции, тестирование и исправления.
         </p>
       </section>

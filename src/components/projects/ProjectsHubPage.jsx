@@ -10,7 +10,7 @@ const projects = [
       "Персональные медитации, YouTube-конвейер и подписочная wellness-платформа.",
     status: "В работе",
     progress: 2,
-    hours: 462,
+    hours: 352,
     href: "/projects/meditation",
     tone: "sage",
     private: true,
