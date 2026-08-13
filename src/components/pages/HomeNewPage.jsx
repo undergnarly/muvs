@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Text, useTexture } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
@@ -2222,6 +2222,7 @@ export const Scene3DShell = ({
     defaultStopOffset = 0,
     returnToHubKey = null,
     initialReleaseSlug = null,
+    initialItemSlug = null,
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
@@ -2671,17 +2672,19 @@ export const Scene3DShell = ({
         : null;
 
     // Deep link: prefer the clean /:slug route, but keep legacy #slug links.
-    const hashNavigatedRef = useRef(false);
+    const itemNavigatedRef = useRef('');
     useEffect(() => {
-        if (hashNavigatedRef.current || !effectiveItems.length) return;
-        hashNavigatedRef.current = true;
-        let requestedSlug = initialReleaseSlug || window.location.hash.replace(/^#/, '');
+        if (!effectiveItems.length || activeKey === 'mixes') return;
+        let requestedSlug = initialReleaseSlug || initialItemSlug || window.location.hash.replace(/^#/, '');
         try { requestedSlug = decodeURIComponent(requestedSlug); } catch { /* use the raw value */ }
         const slug = toSlug({ slug: requestedSlug });
         if (!slug) return;
+        const requestKey = `${activeKey}:${slug}`;
+        if (itemNavigatedRef.current === requestKey) return;
+        itemNavigatedRef.current = requestKey;
         const idx = effectiveItems.findIndex((r) => toSlug(r) === slug);
         if (idx >= 0) releaseSwitcher.goTo(idx);
-    }, [effectiveItems, initialReleaseSlug, releaseSwitcher]);
+    }, [activeKey, effectiveItems, initialItemSlug, initialReleaseSlug, releaseSwitcher]);
 
     // Keep the selected music release as a canonical root-level permalink.
     useEffect(() => {
@@ -2695,9 +2698,13 @@ export const Scene3DShell = ({
     }, [activeKey, effectiveItems, hub, hubPhase, releaseSwitcher.current]);
 
     useEffect(() => {
-        setMixIndex(0);
+        const requestedSlug = toSlug({ slug: initialItemSlug });
+        const requestedIndex = activeKey === 'mixes' && requestedSlug
+            ? effectiveItems.findIndex((item) => toSlug(item) === requestedSlug)
+            : -1;
+        setMixIndex(requestedIndex >= 0 ? requestedIndex : 0);
         setMixPlaying(false);
-    }, [activeKey]);
+    }, [activeKey, effectiveItems, initialItemSlug]);
     useEffect(() => { setMixPlaying(false); }, [mixIndex]);
 
     // Camera dolly toward TV when playing — reads rest z from current cfg.
@@ -2876,6 +2883,27 @@ export const Scene3DShell = ({
                             </svg>
                         </button>
                     </div>
+                    <div className="mp3d-mobile-gestures" aria-hidden="true">
+                        <span className="mp3d-mobile-gesture-arrow is-left">
+                            <svg viewBox="0 0 24 24" width="21" height="21">
+                                <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </span>
+                        <span className="mp3d-mobile-gesture-copy">
+                            <span>SWIPE TO CHOOSE</span>
+                            <span>DOWN TO DIVE IN</span>
+                        </span>
+                        <span className="mp3d-mobile-gesture-arrow is-right">
+                            <svg viewBox="0 0 24 24" width="21" height="21">
+                                <path d="M9 6 L15 12 L9 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </span>
+                        <span className="mp3d-mobile-gesture-arrow is-down">
+                            <svg viewBox="0 0 24 24" width="21" height="21">
+                                <path d="M6 9 L12 15 L18 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </span>
+                    </div>
                     <div className="mp3d-hint" aria-hidden="true">scroll down to enter · swipe to switch</div>
                 </>
             )}
@@ -2956,7 +2984,9 @@ const HomeNewPage = () => (
 
 const HubSectionPage = ({ initialKey, initialReleaseSlug = null }) => {
     const showDebug = debugQueryEnabled();
-    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} initialReleaseSlug={initialReleaseSlug} />;
+    const location = useLocation();
+    const initialItemSlug = new URLSearchParams(location.search).get('item');
+    return <Scene3DShell serverCfgKey="homeNewConfig" showDebug={showDebug} hub initialKey={initialKey} initialReleaseSlug={initialReleaseSlug} initialItemSlug={initialItemSlug} />;
 };
 
 export const MusicNewPage = ({ releaseSlug = null }) => <HubSectionPage initialKey="music" initialReleaseSlug={releaseSlug} />;

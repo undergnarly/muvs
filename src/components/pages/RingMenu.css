@@ -114,6 +114,10 @@
     pointer-events: none;
 }
 
+.mp3d-mobile-gestures {
+    display: none;
+}
+
 .mp3d-fade {
     position: fixed;
     inset: 0;
@@ -124,10 +128,83 @@
 }
 
 @media (max-width: 600px) {
-    .mp3d-ui { bottom: 24px; gap: 10px; }
+    .mp3d-ui { display: none; }
     .mp3d-nav { width: 48px; height: 48px; }
     .mp3d-pill { height: 48px; min-width: 0; padding: 0 20px; font-size: 12px; }
     .mp3d-counter { right: 14px; font-size: 11px; }
     .mp3d-hint { display: none; }
-    .mp3d-swipe-arrow { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+    .mp3d-swipe-arrow { display: none; }
+
+    .mp3d-mobile-gestures {
+        position: fixed;
+        left: 50%;
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        z-index: 6;
+        display: grid;
+        grid-template-columns: 30px auto 30px;
+        grid-template-rows: auto 21px;
+        align-items: center;
+        justify-items: center;
+        column-gap: 6px;
+        transform: translateX(-50%);
+        color: #111111;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .mp3d-mobile-gesture-copy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        font-family: Urbanist, sans-serif;
+        font-size: 9px;
+        font-weight: 650;
+        line-height: 1.05;
+        letter-spacing: 0.15em;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .mp3d-mobile-gesture-copy > span:last-child {
+        color: rgba(17, 17, 17, 0.54);
+        font-size: 8px;
+    }
+
+    .mp3d-mobile-gesture-arrow {
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        opacity: 0.72;
+    }
+
+    .mp3d-mobile-gesture-arrow.is-left {
+        animation: mp3d-gesture-left 1.7s ease-in-out infinite;
+    }
+
+    .mp3d-mobile-gesture-arrow.is-right {
+        animation: mp3d-gesture-right 1.7s ease-in-out infinite;
+    }
+
+    .mp3d-mobile-gesture-arrow.is-down {
+        grid-column: 2;
+        grid-row: 2;
+        animation: mp3d-gesture-down 1.7s ease-in-out 0.18s infinite;
+    }
+}
+
+@keyframes mp3d-gesture-left {
+    0%, 100% { transform: translateX(2px); opacity: 0.42; }
+    50% { transform: translateX(-3px); opacity: 1; }
+}
+
+@keyframes mp3d-gesture-right {
+    0%, 100% { transform: translateX(-2px); opacity: 0.42; }
+    50% { transform: translateX(3px); opacity: 1; }
+}
+
+@keyframes mp3d-gesture-down {
+    0%, 100% { transform: translateY(-2px); opacity: 0.42; }
+    50% { transform: translateY(3px); opacity: 1; }
 }
