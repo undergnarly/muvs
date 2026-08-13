@@ -161,8 +161,15 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.22 }}
                             >
-                                <span>SWIPE UP</span>
-                                <span>{`TO ${swipeHintTarget}`}</span>
+                                <span className="sm-swipe-label-arrow" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" width="17" height="17">
+                                        <path d="M12 19 V5 M6.5 10.5 L12 5 L17.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                    </svg>
+                                </span>
+                                <span className="sm-swipe-label-copy">
+                                    <span>SWIPE UP</span>
+                                    <span>{`TO ${swipeHintTarget}`}</span>
+                                </span>
                             </motion.span>
                         )}
                     </AnimatePresence>

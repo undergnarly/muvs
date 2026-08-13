@@ -94,19 +94,38 @@
 }
 
 .sm-swipe-label {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 17px auto;
     align-items: center;
+    column-gap: 5px;
     color: #ffffff;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: 0.14em;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
     user-select: none;
     pointer-events: none;
     mix-blend-mode: difference;
+}
+
+.sm-swipe-label-arrow {
+    display: grid;
+    width: 17px;
+    height: 100%;
+    place-items: center;
+    animation: sm-swipe-label-arrow 1.5s ease-in-out infinite;
+}
+
+.sm-swipe-label-copy {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes sm-swipe-label-arrow {
+    0%, 100% { transform: translateY(2px); opacity: 0.5; }
+    50% { transform: translateY(-2px); opacity: 1; }
 }
 
 .sm-toggle-textWrap {
