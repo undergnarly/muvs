@@ -98,7 +98,11 @@
     grid-template-columns: 17px auto;
     align-items: center;
     column-gap: 5px;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #ffffff;
+    font-family: inherit;
     font-size: 9px;
     font-weight: 600;
     line-height: 1.25;
@@ -108,6 +112,16 @@
     user-select: none;
     pointer-events: none;
     mix-blend-mode: difference;
+}
+
+.sm-swipe-label.is-clickable {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.sm-swipe-label.is-clickable:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
 }
 
 .sm-swipe-label-arrow {

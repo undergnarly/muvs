@@ -208,10 +208,13 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                     </motion.button>
                     <AnimatePresence mode="wait" initial={false}>
                         {swipeHintTarget && !open && (
-                            <motion.span
+                            <motion.button
                                 key={swipeHintTarget}
-                                className="sm-swipe-label"
-                                role="status"
+                                className={`sm-swipe-label${swipeHintTarget === 'MENU' ? ' is-clickable' : ''}`}
+                                type="button"
+                                aria-label={swipeHintTarget === 'MENU' ? 'Open menu' : undefined}
+                                disabled={swipeHintTarget !== 'MENU'}
+                                onClick={swipeHintTarget === 'MENU' ? toggleMenu : undefined}
                                 aria-live="polite"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -227,7 +230,7 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                     <span>SWIPE UP</span>
                                     <span>{`TO ${swipeHintTarget}`}</span>
                                 </span>
-                            </motion.span>
+                            </motion.button>
                         )}
                     </AnimatePresence>
                 </div>
