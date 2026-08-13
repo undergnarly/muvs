@@ -454,6 +454,74 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
+const LivingCoverMaterial = ({ texture }) => {
+    const shaderRef = useRef(null);
+    const reducedMotionRef = useRef(false);
+
+    const material = useMemo(() => {
+        const nextMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            color: '#ffffff',
+            transparent: true,
+            toneMapped: false,
+        });
+
+        nextMaterial.onBeforeCompile = (shader) => {
+            shader.uniforms.livingTime = { value: 0 };
+            shader.uniforms.livingMotion = { value: reducedMotionRef.current ? 0 : 1 };
+            shader.fragmentShader = shader.fragmentShader
+                .replace(
+                    '#include <map_fragment>',
+                    `#ifdef USE_MAP
+                        vec2 livingUv = vMapUv;
+                        float livingPulse = sin(livingTime * 0.55) * 0.5 + 0.5;
+
+                        // Keep the physical plane still and animate only the pixels inside it.
+                        // The slight inset prevents the UV displacement from exposing an edge.
+                        livingUv = (livingUv - 0.5) * (0.992 - livingPulse * 0.002 * livingMotion) + 0.5;
+                        livingUv.x += sin(livingUv.y * 8.0 + livingTime * 0.34) * 0.0017 * livingMotion;
+                        livingUv.y += sin(livingUv.x * 6.0 - livingTime * 0.27) * 0.0012 * livingMotion;
+
+                        vec4 sampledDiffuseColor = texture2D(map, livingUv);
+                        #ifdef DECODE_VIDEO_TEXTURE
+                            sampledDiffuseColor = sRGBTransferEOTF(sampledDiffuseColor);
+                        #endif
+                        diffuseColor *= sampledDiffuseColor;
+
+                        float lightPosition = fract(livingTime * 0.025);
+                        float lightBand = 1.0 - smoothstep(0.0, 0.24, abs((livingUv.x + livingUv.y) * 0.5 - lightPosition));
+                        float grain = fract(sin(dot(gl_FragCoord.xy + livingTime * 0.25, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+                        diffuseColor.rgb *= 1.0 + lightBand * 0.035 * livingMotion + grain * 0.012 * livingMotion;
+                    #endif`,
+                );
+            shaderRef.current = shader;
+        };
+        nextMaterial.customProgramCacheKey = () => 'muvs-living-cover-v1';
+        return nextMaterial;
+    }, [texture]);
+
+    useEffect(() => {
+        const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const syncPreference = () => {
+            reducedMotionRef.current = media.matches;
+            if (shaderRef.current) shaderRef.current.uniforms.livingMotion.value = media.matches ? 0 : 1;
+        };
+        syncPreference();
+        media.addEventListener('change', syncPreference);
+        return () => media.removeEventListener('change', syncPreference);
+    }, []);
+
+    useEffect(() => () => material.dispose(), [material]);
+
+    useFrame(({ clock }) => {
+        if (shaderRef.current && !reducedMotionRef.current) {
+            shaderRef.current.uniforms.livingTime.value = clock.getElapsedTime();
+        }
+    });
+
+    return <primitive object={material} attach="material" />;
+};
+
 const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull = true }) => {
     const tex = useProgressiveTexture(release.coverImage || FALLBACK_COVER, { loadFull });
 
@@ -500,7 +568,11 @@ const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull
                 <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionImage">
                     <mesh position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
-                        <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
+                        {tex ? (
+                            <LivingCoverMaterial key={tex.uuid} texture={tex} />
+                        ) : (
+                            <meshBasicMaterial color="#d8dcde" transparent toneMapped={false} />
+                        )}
                     </mesh>
                 </GyroParallaxLayer>
             )}
