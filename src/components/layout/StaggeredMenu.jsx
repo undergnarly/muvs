@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
 import { useData } from '../../context/DataContext';
@@ -15,7 +15,7 @@ const menuItems = [
 
 let logoAccentUntil = 0;
 
-export const StaggeredMenu = ({ theme = 'light' }) => {
+export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
     const location = useLocation();
     const { siteSettings } = useData();
     const [open, setOpen] = useState(false);
@@ -111,43 +111,62 @@ export const StaggeredMenu = ({ theme = 'light' }) => {
                 >
                     <div className="sm-logo-img" />
                 </a>
-                <motion.button
-                    className="sm-toggle"
-                    aria-label={open ? 'Close menu' : 'Open menu'}
-                    aria-expanded={open}
-                    onClick={toggleMenu}
-                    type="button"
-                    animate={{ color: open ? openMenuButtonColor : menuButtonColor }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <span className="sm-toggle-textWrap" aria-hidden="true">
-                        <motion.span
-                            className="sm-toggle-textInner"
-                            animate={{ y: open ? '-50%' : '0%' }}
-                            transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
-                        >
-                            <span className="sm-toggle-line">Menu</span>
-                            <span className="sm-toggle-line">Close</span>
-                        </motion.span>
-                    </span>
-                    <motion.span
-                        className="sm-icon"
-                        aria-hidden="true"
-                        animate={{ rotate: open ? 90 : 0 }}
-                        transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                <div className="sm-menu-control">
+                    <motion.button
+                        className="sm-toggle"
+                        aria-label={open ? 'Close menu' : 'Open menu'}
+                        aria-expanded={open}
+                        onClick={toggleMenu}
+                        type="button"
+                        animate={{ color: open ? openMenuButtonColor : menuButtonColor }}
+                        transition={{ duration: 0.3 }}
                     >
+                        <span className="sm-toggle-textWrap" aria-hidden="true">
+                            <motion.span
+                                className="sm-toggle-textInner"
+                                animate={{ y: open ? '-50%' : '0%' }}
+                                transition={{ duration: 0.5, ease: [0.76, 0, 0.24, 1] }}
+                            >
+                                <span className="sm-toggle-line">Menu</span>
+                                <span className="sm-toggle-line">Close</span>
+                            </motion.span>
+                        </span>
                         <motion.span
-                            className="sm-icon-line"
-                            animate={{ rotate: open ? 45 : 0 }}
+                            className="sm-icon"
+                            aria-hidden="true"
+                            animate={{ rotate: open ? 90 : 0 }}
                             transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-                        />
-                        <motion.span
-                            className="sm-icon-line sm-icon-line-v"
-                            animate={{ rotate: open ? 135 : 90 }}
-                            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-                        />
-                    </motion.span>
-                </motion.button>
+                        >
+                            <motion.span
+                                className="sm-icon-line"
+                                animate={{ rotate: open ? 45 : 0 }}
+                                transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                            />
+                            <motion.span
+                                className="sm-icon-line sm-icon-line-v"
+                                animate={{ rotate: open ? 135 : 90 }}
+                                transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+                            />
+                        </motion.span>
+                    </motion.button>
+                    <AnimatePresence mode="wait" initial={false}>
+                        {swipeHintTarget && !open && (
+                            <motion.span
+                                key={swipeHintTarget}
+                                className="sm-swipe-label"
+                                role="status"
+                                aria-live="polite"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.22 }}
+                            >
+                                <span>SWIPE UP</span>
+                                <span>{`TO ${swipeHintTarget}`}</span>
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </div>
             </header>
 
             <motion.aside

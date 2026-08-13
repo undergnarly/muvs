@@ -178,11 +178,11 @@ const HUB_SECTION_CONFIG_KEYS = {
     code: 'codeNewConfig',
     about: 'aboutNewConfig',
 };
-const HUB_SWIPE_TARGETS = {
+const SECTION_SWIPE_TARGETS = {
     music: 'RELEASE',
     about: 'ABOUT',
-    code: 'CODE',
-    mixes: 'MIXES',
+    code: 'PROJECT',
+    mixes: 'MIX',
 };
 const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
@@ -2666,9 +2666,9 @@ export const Scene3DShell = ({
         onPhase: hubOnPhase,
         onForeignLeft: hubForeignLeft,
     } : null;
-    const swipeHintTarget = hubPhase === 'menu'
-        ? HUB_SWIPE_TARGETS[HUB_ITEMS[ringIndex]?.key]
-        : (hub && hubPhase === 'section' ? 'MENU' : null);
+    const swipeHintTarget = hub && hubPhase === 'section'
+        ? (currentIndex <= sectionEntryStop ? 'MENU' : SECTION_SWIPE_TARGETS[activeKey])
+        : null;
 
     // Deep link: prefer the clean /:slug route, but keep legacy #slug links.
     const hashNavigatedRef = useRef(false);
@@ -2820,28 +2820,8 @@ export const Scene3DShell = ({
             />
             <Header
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
+                swipeHintTarget={swipeHintTarget}
             />
-            <AnimatePresence mode="wait" initial={false}>
-                {swipeHintTarget && (
-                    <motion.div
-                        key={swipeHintTarget}
-                        className="hn-swipe-destination"
-                        role="status"
-                        aria-live="polite"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.24, ease: 'easeOut' }}
-                    >
-                        <span className="hn-swipe-destination-arrow" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="20" height="20">
-                                <path d="M12 19 V5 M6.5 10.5 L12 5 L17.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                            </svg>
-                        </span>
-                        <span>{`SWIPE UP TO ${swipeHintTarget}`}</span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
             {sectionControls && (
                 <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}
@@ -2877,6 +2857,11 @@ export const Scene3DShell = ({
                 <>
                     <div className="mp3d-counter" aria-hidden="true">
                         {String(hubDisplayIndex(ringIndex) + 1).padStart(2, '0')} / {String(HUB_ITEMS.length).padStart(2, '0')}
+                    </div>
+                    <div className="mp3d-swipe-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22">
+                            <path d="M6 9 L12 15 L18 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
                     </div>
                     <div className="mp3d-ui">
                         <button className="mp3d-nav" onClick={() => hubRotateByButton(1)} aria-label={window.matchMedia('(min-width: 769px)').matches ? 'Previous section' : 'Next section'}>
