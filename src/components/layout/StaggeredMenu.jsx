@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
 import { useData } from '../../context/DataContext';
@@ -15,7 +15,7 @@ const menuItems = [
 
 let logoAccentUntil = 0;
 
-export const StaggeredMenu = ({ theme = 'light', showSwipeUpHint = false }) => {
+export const StaggeredMenu = ({ theme = 'light' }) => {
     const location = useLocation();
     const { siteSettings } = useData();
     const [open, setOpen] = useState(false);
@@ -120,20 +120,6 @@ export const StaggeredMenu = ({ theme = 'light', showSwipeUpHint = false }) => {
                     animate={{ color: open ? openMenuButtonColor : menuButtonColor }}
                     transition={{ duration: 0.3 }}
                 >
-                    <AnimatePresence>
-                        {showSwipeUpHint && !open && (
-                            <motion.span
-                                className="sm-swipe-up-hint"
-                                aria-hidden="true"
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 5 }}
-                                transition={{ duration: 0.25 }}
-                            >
-                                <span>↑</span>
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
                     <span className="sm-toggle-textWrap" aria-hidden="true">
                         <motion.span
                             className="sm-toggle-textInner"
