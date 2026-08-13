@@ -41,7 +41,7 @@ const PARALLAX_LAYER_FIELDS = [
 ];
 
 const AdminSettings = () => {
-    const { adminSettings, updatePin, siteSettings, updateSiteSettings, isLoaded } = useData();
+    const { siteSettings, updateSiteSettings, isLoaded } = useData();
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -103,20 +103,13 @@ const AdminSettings = () => {
         setFaviconPreview(siteSettings?.favicon || null);
     }, [isLoaded, siteSettings]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess(false);
 
-        // Validate current PIN
-        if (currentPin !== adminSettings.pin) {
-            setError('Current PIN is incorrect');
-            return;
-        }
-
-        // Validate new PIN
-        if (newPin.length < 4) {
-            setError('New PIN must be at least 4 characters');
+        if (newPin.length < 8) {
+            setError('New PIN must be at least 8 characters');
             return;
         }
 
@@ -125,8 +118,16 @@ const AdminSettings = () => {
             return;
         }
 
-        // Update PIN
-        updatePin(newPin);
+        const response = await fetch('/api/auth/change-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPin, newPin }),
+        });
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            setError(result.error || 'PIN update failed');
+            return;
+        }
         setSuccess(true);
         setCurrentPin('');
         setNewPin('');

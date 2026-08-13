@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
 
 const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -34,8 +32,7 @@ const LoginPage = () => {
                 throw new Error(`PIN validation failed with ${response.status}`);
             }
 
-            sessionStorage.setItem('isAdmin', 'true');
-            navigate('/admin');
+            window.location.assign('/admin');
         } catch (err) {
             console.error('Admin login failed:', err);
             setError('Login service unavailable');

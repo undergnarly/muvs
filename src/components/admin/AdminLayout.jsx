@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
     FaBars, FaCode, FaCog, FaCompactDisc, FaEnvelope, FaExternalLinkAlt,
@@ -21,13 +21,20 @@ const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const isAdmin = typeof window !== 'undefined' && sessionStorage.getItem('isAdmin');
-    if (!isAdmin) {
+    const [sessionState, setSessionState] = useState('checking');
+    useEffect(() => {
+        fetch('/api/auth/session')
+            .then((response) => response.ok ? response.json() : { authenticated: false })
+            .then((result) => setSessionState(result.authenticated ? 'authenticated' : 'anonymous'))
+            .catch(() => setSessionState('anonymous'));
+    }, []);
+    if (sessionState === 'checking') return null;
+    if (sessionState !== 'authenticated') {
         return <Navigate to="/login" replace state={{ from: location.pathname }} />;
     }
 
-    const handleLogout = () => {
-        sessionStorage.removeItem('isAdmin');
+    const handleLogout = async () => {
+        await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
         navigate('/login');
     };
 

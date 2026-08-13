@@ -18,7 +18,6 @@ export const DataProvider = ({ children }) => {
     const [siteSettings, setSiteSettings] = useState({});
     const [stats, setStats] = useState({});
     const [messages, setMessages] = useState([]);
-    const [adminSettings, setAdminSettings] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
     // Track whether user/admin made changes (not initial load)
     const userChangedRef = React.useRef(new Set());
@@ -38,7 +37,6 @@ export const DataProvider = ({ children }) => {
                     if (data.about) setAbout(data.about);
                     if (data.siteSettings) setSiteSettings(data.siteSettings);
                     if (data.messages) setMessages(data.messages);
-                    if (data.adminSettings) setAdminSettings(data.adminSettings);
                     if (data.stats) setStats(data.stats);
                 }
             } catch (error) {
@@ -68,7 +66,6 @@ export const DataProvider = ({ children }) => {
     useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('news', news); }, [news, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('about', about); }, [about, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('adminSettings', adminSettings); }, [adminSettings, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
     useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
 
@@ -148,11 +145,6 @@ export const DataProvider = ({ children }) => {
         setStats(prev => ({ ...prev, detailViews: (prev.detailViews || 0) + 1 }));
     };
 
-    const updatePin = (newPin) => {
-        userChangedRef.current.add('adminSettings');
-        setAdminSettings({ pin: newPin });
-    };
-
     const addMessage = (msg) => {
         userChangedRef.current.add('messages');
         const newMessage = { id: Date.now(), timestamp: new Date().toLocaleString(), ...msg };
@@ -183,13 +175,11 @@ export const DataProvider = ({ children }) => {
         siteSettings,
         stats,
         messages,
-        adminSettings,
         isLoaded,
         updateData,
         updateSiteSettings,
         trackVisit,
         trackDetailView,
-        updatePin,
         addMessage,
         deleteMessage,
         resetData

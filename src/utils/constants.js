@@ -9,7 +9,6 @@ export const ROUTES = {
     LECTURE: '/lecture',
     LECTURE_TEXT: '/lecture-text',
     TEST: '/test',
-    THREE_D: '/3d',
 
     // Pre-3D versions kept for reference. The new 3D pages live on the
     // canonical paths above; the old DOM versions hang off /*-old.

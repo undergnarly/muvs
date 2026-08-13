@@ -11,7 +11,6 @@ import LecturePage from './components/pages/LecturePage';
 import LectureTextPage from './components/pages/LectureTextPage';
 import CVPage from './components/pages/CVPage';
 import TestPage from './components/pages/TestPage';
-import ThreeDPage from './components/pages/ThreeDPage';
 import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage, AboutHubPage } from './components/pages/HomeNewPage';
 import NewsPage3D from './components/pages/NewsPage3D';
 import CVPage3D from './components/pages/CVPage3D';
@@ -144,7 +143,6 @@ function AppRoot() {
         ROUTES.CV,
         ROUTES.LECTURE,
         ROUTES.LECTURE_TEXT,
-        ROUTES.THREE_D,
     ];
     const currentPathSlug = normalizeReleaseSlug(location.pathname.replace(/^\//, ''));
     const isReleasePermalink = !location.pathname.slice(1).includes('/') && (releases || []).some((release) => (
@@ -178,7 +176,6 @@ function AppRoot() {
                 <Route path={ROUTES.LECTURE_TEXT_OLD} element={<LectureTextPage />} />
                 <Route path={ROUTES.CV_OLD} element={<CVPage />} />
                 <Route path={ROUTES.TEST} element={<TestPage />} />
-                <Route path={ROUTES.THREE_D} element={<ThreeDPage />} />
                 <Route path="/projects/meditation" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <MeditationProjectPage />

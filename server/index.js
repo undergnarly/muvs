@@ -1,14 +1,13 @@
 const express = require("express");
-const cors = require("cors");
 const compression = require("compression");
 const multer = require("multer");
-const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const crypto = require("crypto");
 
 const app = express();
+app.set("trust proxy", "loopback");
 const PORT = 3001;
 const MEDITATION_PASSWORD = process.env.MEDITATION_PROJECT_PASSWORD;
 const MEDITATION_AUTH_SECRET =
@@ -41,6 +40,64 @@ const MEDITATION_PROGRESS_FILE = path.join(
   "meditation-progress.json",
 );
 const MEDITATION_PROGRESS_TOKEN = process.env.MEDITATION_PROGRESS_TOKEN;
+const ADMIN_COOKIE = "muvs_admin";
+const ADMIN_SESSION_TTL = 12 * 60 * 60 * 1000;
+const loginAttempts = new Map();
+
+const hashPin = (pin, salt = crypto.randomBytes(16).toString("hex")) => ({
+  pinSalt: salt,
+  pinHash: crypto.scryptSync(String(pin), salt, 64).toString("hex"),
+});
+
+const verifyPin = (pin, settings = {}) => {
+  if (settings.pinHash && settings.pinSalt) {
+    const supplied = crypto.scryptSync(String(pin), settings.pinSalt, 64);
+    const expected = Buffer.from(settings.pinHash, "hex");
+    return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+  }
+  return typeof settings.pin === "string" && settings.pin.length >= 4
+    && String(pin) === settings.pin;
+};
+
+const sessionSecret = (db) => process.env.ADMIN_SESSION_SECRET
+  || db.adminSettings?.pinHash
+  || crypto.createHash("sha256").update(String(db.adminSettings?.pin || "disabled")).digest("hex");
+
+const createAdminToken = (db) => {
+  const expires = Date.now() + ADMIN_SESSION_TTL;
+  const signature = crypto.createHmac("sha256", sessionSecret(db)).update(String(expires)).digest("hex");
+  return `${expires}.${signature}`;
+};
+
+const hasAdminSession = (req, db = getDb()) => {
+  const token = parseCookies(req.headers.cookie)[ADMIN_COOKIE];
+  if (!token) return false;
+  const [expiresRaw, signature = ""] = token.split(".");
+  const expires = Number(expiresRaw);
+  if (!Number.isFinite(expires) || expires < Date.now()) return false;
+  const expected = crypto.createHmac("sha256", sessionSecret(db)).update(expiresRaw).digest();
+  const supplied = Buffer.from(signature, "hex");
+  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+};
+
+const requireAdmin = (req, res, next) => {
+  if (!hasAdminSession(req)) return res.status(401).json({ error: "Unauthorized" });
+  const origin = req.get("origin");
+  if (origin && origin !== `${req.protocol}://${req.get("host")}`) {
+    return res.status(403).json({ error: "Invalid origin" });
+  }
+  next();
+};
+
+const publicData = (db) => ({
+  releases: (db.releases || []).filter((item) => item.active !== false),
+  mixes: (db.mixes || []).filter((item) => item.active !== false),
+  projects: (db.projects || []).filter((item) => item.active !== false),
+  news: (db.news || []).filter((item) => item.active !== false),
+  newsSettings: db.newsSettings || {},
+  about: db.about || {},
+  siteSettings: db.siteSettings || {},
+});
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -115,16 +172,27 @@ if (!fs.existsSync(DB_FILE)) {
     mixes: [],
     projects: [],
     news: [],
-    adminSettings: { pin: "1234" }, // Default PIN
+    adminSettings: process.env.ADMIN_INITIAL_PIN
+      ? hashPin(process.env.ADMIN_INITIAL_PIN)
+      : {},
     stats: { visits: [], detailViews: [] },
   };
   fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
 }
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json({ limit: "100mb" })); // Support large payloads
-app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
+app.disable("x-powered-by");
+app.use(compression());
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; frame-src https://www.youtube-nocookie.com https://w.soundcloud.com; connect-src 'self' https://ipapi.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+  next();
+});
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ limit: "2mb", extended: true }));
 
 // Image Storage Engine
 const storage = multer.diskStorage({
@@ -139,7 +207,11 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + name);
   },
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 12 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.mimetype)),
+});
 
 // Audio Storage Engine
 const audioStorage = multer.diskStorage({
@@ -322,15 +394,17 @@ app.put("/api/projects/meditation/progress", (req, res) => {
 // Get Data (All or Specific key)
 app.get("/api/data", (req, res) => {
   const db = getDb();
-  res.json(db);
+  res.json(hasAdminSession(req, db) ? { ...db, adminSettings: {} } : publicData(db));
 });
 
 // Update Data (Full update of a key)
-app.post("/api/data", (req, res) => {
+app.post("/api/data", requireAdmin, (req, res) => {
   const { key, value } = req.body;
   if (!key || value === undefined) {
     return res.status(400).json({ error: "Missing key or value" });
   }
+  const editableKeys = new Set(["releases", "mixes", "projects", "news", "newsSettings", "about", "siteSettings", "messages"]);
+  if (!editableKeys.has(key)) return res.status(400).json({ error: "Unsupported data key" });
 
   const db = getDb();
   let nextValue = value;
@@ -357,21 +431,49 @@ app.post("/api/data", (req, res) => {
   }
 });
 
-// Validate PIN (Server-side check)
 app.post("/api/auth/validate-pin", (req, res) => {
   const { pin } = req.body;
   const db = getDb();
-  const correctPin = db.adminSettings?.pin || "1234";
-
-  if (pin === correctPin) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ success: false, error: "Invalid PIN" });
+  const client = req.ip;
+  const attempt = loginAttempts.get(client) || { count: 0, resetAt: 0 };
+  if (attempt.resetAt > Date.now() && attempt.count >= 8) {
+    return res.status(429).json({ success: false, error: "Too many attempts" });
   }
+  if (!verifyPin(pin, db.adminSettings)) {
+    loginAttempts.set(client, { count: attempt.resetAt > Date.now() ? attempt.count + 1 : 1, resetAt: Date.now() + 15 * 60 * 1000 });
+    return res.status(401).json({ success: false, error: "Invalid PIN" });
+  }
+  if (!db.adminSettings.pinHash) {
+    db.adminSettings = hashPin(pin);
+    saveDb(db);
+  }
+  loginAttempts.delete(client);
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${createAdminToken(db)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200`);
+  res.json({ success: true });
+});
+
+app.get("/api/auth/session", (req, res) => {
+  res.json({ authenticated: hasAdminSession(req) });
+});
+
+app.delete("/api/auth/session", (req, res) => {
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+  res.json({ success: true });
+});
+
+app.post("/api/auth/change-pin", requireAdmin, (req, res) => {
+  const { currentPin, newPin } = req.body || {};
+  const db = getDb();
+  if (!verifyPin(currentPin, db.adminSettings)) return res.status(401).json({ error: "Current PIN is incorrect" });
+  if (typeof newPin !== "string" || newPin.length < 8) return res.status(400).json({ error: "New PIN must be at least 8 characters" });
+  db.adminSettings = hashPin(newPin);
+  if (!saveDb(db)) return res.status(500).json({ error: "Failed to save PIN" });
+  res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=${createAdminToken(db)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200`);
+  res.json({ success: true });
 });
 
 // List all uploaded images
-app.get("/api/uploads", (req, res) => {
+app.get("/api/uploads", requireAdmin, (req, res) => {
   try {
     const imageExts = [".webp", ".jpg", ".jpeg", ".png", ".gif"];
     const files = fs
@@ -399,7 +501,7 @@ app.get("/api/uploads", (req, res) => {
 });
 
 // Upload File with Optimization
-app.post("/api/upload", upload.single("image"), async (req, res) => {
+app.post("/api/upload", requireAdmin, upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -421,7 +523,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
     );
 
     // Delete the original large file to save space (optional, but good for cleanup)
-    // fs.unlinkSync(originalPath);
+    fs.unlinkSync(originalPath);
 
     // Return URL for the optimized WebP and its size
     const fileUrl = `/uploads/${webpFilename}`;
@@ -437,7 +539,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
 });
 
 // Upload Audio File
-app.post("/api/upload-audio", audioUpload.single("audio"), (req, res) => {
+app.post("/api/upload-audio", requireAdmin, audioUpload.single("audio"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No audio file uploaded" });
   }
