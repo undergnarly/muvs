@@ -4,7 +4,7 @@ const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
-const ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
+const ffmpegStatic = require("ffmpeg-static");
 
 const jobs = new Map();
 
@@ -58,7 +58,7 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
   const router = express.Router();
   const mediaDir = path.join(dataDir, "sampleflow-media");
   const ytDlp = process.env.YT_DLP_PATH || path.join(__dirname, "tools", "yt-dlp");
-  const ffmpeg = process.env.FFMPEG_PATH || ffmpegInstaller.path;
+  const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic;
   fs.mkdirSync(mediaDir, { recursive: true });
 
   router.use((req, res, next) => {
