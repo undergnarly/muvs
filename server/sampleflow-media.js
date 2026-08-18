@@ -7,6 +7,7 @@ const { spawn } = require("child_process");
 const ffmpegStatic = require("ffmpeg-static");
 
 const jobs = new Map();
+const failures = new Map();
 
 const isAllowedYoutubeUrl = (value) => {
   try {
@@ -120,9 +121,14 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
     if (fs.existsSync(finalPath)) {
       return res.json({ id, assetUrl: `${publicBase}/media/${id}.mp4`, title: "Cached YouTube sample", duration: clipStart === null ? 0 : clipEnd - clipStart, sourceUrl: url, kind: "video", cached: true });
     }
+    if (failures.has(id)) {
+      const message = failures.get(id);
+      failures.delete(id);
+      return res.status(500).json({ error: message });
+    }
+    if (jobs.has(id)) return res.status(202).json({ id, status: "processing", retryAfter: 3 });
     try {
-      if (!jobs.has(id)) {
-        jobs.set(id, (async () => {
+      const job = (async () => {
           const common = ["--js-runtimes", `node:${process.execPath}`, "--extractor-args", "youtube:player_client=default,-android_vr", "--no-playlist", "--no-warnings"];
           const probe = await run(ytDlp, [...common, "--dump-single-json", "--skip-download", url], 60_000);
           const metadata = JSON.parse(probe.stdout);
@@ -132,7 +138,6 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
             await fsp.rm(path.join(mediaDir, stale), { force: true });
           }
           const downloadArgs = [...common];
-          if (clipStart !== null && clipEnd !== null) downloadArgs.push("--download-sections", `*${clipStart}-${clipEnd}`, "--force-keyframes-at-cuts");
           downloadArgs.push("--max-filesize", "1G", "--ffmpeg-location", ffmpeg, "-f", "b[height<=720][ext=mp4]/bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080]", "--merge-output-format", "mp4", "-o", template, url);
           await run(ytDlp, downloadArgs);
           const sourceName = (await fsp.readdir(mediaDir)).find((name) => name.startsWith(`${id}.source.`));
@@ -141,6 +146,7 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
           const tempPath = path.join(mediaDir, `${id}.processing.mp4`);
           try {
             const args = ["-y"];
+            if (clipStart !== null && clipEnd !== null) args.push("-ss", String(clipStart), "-t", String(clipEnd - clipStart));
             args.push("-i", sourcePath, "-map", "0:v:0?", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tempPath);
             await run(ffmpeg, args);
             await fsp.rename(tempPath, finalPath);
@@ -149,9 +155,13 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
             await fsp.rm(tempPath, { force: true });
           }
           return { id, assetUrl: `${publicBase}/media/${id}.mp4`, title: String(metadata.title || "YouTube sample").slice(0, 160), duration: clipStart === null ? Number(metadata.duration || 0) : clipEnd - clipStart, thumbnail: metadata.thumbnail || null, sourceUrl: url, kind: "video", cached: false };
-        })().finally(() => jobs.delete(id)));
-      }
-      return res.status(201).json(await jobs.get(id));
+        })();
+      jobs.set(id, job);
+      job.catch((error) => {
+        failures.set(id, error instanceof Error ? error.message : "Media import failed");
+        setTimeout(() => failures.delete(id), 5 * 60_000);
+      }).finally(() => jobs.delete(id));
+      return res.status(202).json({ id, status: "processing", retryAfter: 3 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Media import failed";
       return res.status(/too large|longer/.test(message) ? 413 : 500).json({ error: message });
