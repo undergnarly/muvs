@@ -131,14 +131,16 @@ module.exports = function createSampleflowMediaRouter({ dataDir }) {
           for (const stale of (await fsp.readdir(mediaDir)).filter((name) => name.startsWith(`${id}.source.`))) {
             await fsp.rm(path.join(mediaDir, stale), { force: true });
           }
-          await run(ytDlp, [...common, "--max-filesize", "1G", "--ffmpeg-location", ffmpeg, "-f", "b[height<=720][ext=mp4]/bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080]", "--merge-output-format", "mp4", "-o", template, url]);
+          const downloadArgs = [...common];
+          if (clipStart !== null && clipEnd !== null) downloadArgs.push("--download-sections", `*${clipStart}-${clipEnd}`, "--force-keyframes-at-cuts");
+          downloadArgs.push("--max-filesize", "1G", "--ffmpeg-location", ffmpeg, "-f", "b[height<=720][ext=mp4]/bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080]", "--merge-output-format", "mp4", "-o", template, url);
+          await run(ytDlp, downloadArgs);
           const sourceName = (await fsp.readdir(mediaDir)).find((name) => name.startsWith(`${id}.source.`));
           if (!sourceName) throw new Error("yt-dlp finished without a media file");
           const sourcePath = path.join(mediaDir, sourceName);
           const tempPath = path.join(mediaDir, `${id}.processing.mp4`);
           try {
             const args = ["-y"];
-            if (clipStart !== null && clipEnd !== null) args.push("-ss", String(clipStart), "-t", String(clipEnd - clipStart));
             args.push("-i", sourcePath, "-map", "0:v:0?", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tempPath);
             await run(ffmpeg, args);
             await fsp.rename(tempPath, finalPath);
