@@ -1,0 +1,6 @@
+{
+  "mode": "autonomous",
+  "scope": "dubplates",
+  "atomic_commits": true,
+  "verification": ["node-tests", "build", "browser-desktop", "browser-mobile", "api-smoke"]
+}
