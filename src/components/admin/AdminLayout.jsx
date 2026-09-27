@@ -10,6 +10,7 @@ const NAV_ITEMS = [
     { path: '/admin', label: 'Dashboard', icon: FaHome },
     { path: '/admin/news', label: 'News', icon: FaNewspaper },
     { path: '/admin/music', label: 'Music', icon: FaCompactDisc },
+    { path: '/admin/dubplates', label: 'Dubplates', icon: FaCompactDisc },
     { path: '/admin/mixes', label: 'Mixes', icon: FaMusic },
     { path: '/admin/projects', label: 'Projects', icon: FaCode },
     { path: '/admin/about', label: 'About', icon: FaUser },

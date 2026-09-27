@@ -27,3 +27,6 @@ dist-ssr
 data/db.json
 data/uploads/
 data/image-previews/
+data/dubplates/
+output/
+.playwright-cli/

@@ -30,6 +30,8 @@ const MessagesManager = React.lazy(() => import('./components/admin/MessagesMana
 const AdminSettings = React.lazy(() => import('./components/admin/AdminSettings'));
 const MeditationProjectPage = React.lazy(() => import('./components/projects/MeditationProjectPage'));
 const ProjectsHubPage = React.lazy(() => import('./components/projects/ProjectsHubPage'));
+const DubplatesPage = React.lazy(() => import('./components/pages/DubplatesPage'));
+const DubplatesManager = React.lazy(() => import('./components/admin/DubplatesManager'));
 
 import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
@@ -65,7 +67,7 @@ function AppRoot() {
 
     React.useEffect(() => {
         // Track visit with current path and referrer
-        trackVisit(location.pathname, document.referrer);
+        if (!location.pathname.startsWith('/dubplates')) trackVisit(location.pathname, document.referrer);
     }, [location.pathname]);
 
     // Remove Splash Screen on Mount
@@ -80,7 +82,7 @@ function AppRoot() {
             splash.classList.add('hidden');
             setTimeout(() => splash.remove(), 1000);
         };
-        if (/^\/(?:admin|login|projects)(?:\/|$)/.test(location.pathname)) {
+        if (/^\/(?:admin|login|projects|dubplates)(?:\/|$)/.test(location.pathname)) {
             const timer = setTimeout(hideSplash, 500);
             return () => clearTimeout(timer);
         }
@@ -123,6 +125,7 @@ function AppRoot() {
 
     // Update document title and meta description
     React.useEffect(() => {
+        if (location.pathname.startsWith('/dubplates')) return;
         if (siteSettings?.siteName) {
             document.title = `${siteSettings.siteName} | ${siteSettings.siteDescription || 'Audio • Visual • Code'}`;
         }
@@ -131,7 +134,7 @@ function AppRoot() {
         if (metaDescription && siteSettings?.siteDescription) {
             metaDescription.content = siteSettings.siteDescription;
         }
-    }, [siteSettings?.siteName, siteSettings?.siteDescription]);
+    }, [siteSettings?.siteName, siteSettings?.siteDescription, location.pathname]);
 
     const scene3DPaths = [
         ROUTES.HOME,
@@ -149,7 +152,7 @@ function AppRoot() {
         release.active !== false
         && normalizeReleaseSlug(release.slug || release.title) === currentPathSlug
     ));
-    const hideOverlays = scene3DPaths.includes(location.pathname) || isReleasePermalink;
+    const hideOverlays = scene3DPaths.includes(location.pathname) || isReleasePermalink || location.pathname.startsWith('/dubplates');
     const hideTopBlur = hideOverlays || location.pathname.startsWith('/projects');
 
     return (
@@ -157,6 +160,7 @@ function AppRoot() {
             {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <Routes>
+                <Route path="/dubplates" element={<Suspense fallback={<LoadingFallback />}><DubplatesPage /></Suspense>} />
                 <Route path={ROUTES.HOME} element={<HomeNewPage />} />
                 <Route path={ROUTES.MUSIC} element={<MusicNewPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutHubPage />} />
@@ -200,6 +204,7 @@ function AppRoot() {
                     <Route index element={<Dashboard />} />
                     <Route path="news" element={<NewsManager />} />
                     <Route path="music" element={<MusicManager />} />
+                    <Route path="dubplates" element={<DubplatesManager />} />
                     <Route path="mixes" element={<MixesManager />} />
                     <Route path="projects" element={<ProjectsManager />} />
                     <Route path="about" element={<AboutManager />} />

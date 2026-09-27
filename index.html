@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <script>
-    if (!/^\/(?:admin|login|projects)(?:\/|$)/.test(location.pathname)) {
+    if (!/^\/(?:admin|login|projects|dubplates)(?:\/|$)/.test(location.pathname)) {
       ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp'].forEach(function (href) {
         var link = document.createElement('link');
         link.rel = 'preload';
@@ -19,6 +19,12 @@
         link.fetchPriority = 'high';
         document.head.appendChild(link);
       });
+    }
+    if (/^\/dubplates\/?$/.test(location.pathname)) {
+      var robots = document.createElement('meta');
+      robots.name = 'robots';
+      robots.content = 'noindex, nofollow, noarchive';
+      document.head.appendChild(robots);
     }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
