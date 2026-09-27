@@ -10,7 +10,8 @@ const { spawn } = require("node:child_process");
 const ffmpegStatic = require("ffmpeg-static");
 
 const ID = /^[a-f0-9]{32}$/;
-const MAX_UPLOAD = 200 * 1024 * 1024;
+// Leave multipart headroom below Cloudflare's baseline 100 MB request limit.
+const MAX_UPLOAD = 95 * 1024 * 1024;
 const MAX_DURATION = 30 * 60;
 const MAX_EXPORT = 1024 * 1024 * 1024;
 const MAX_STORAGE = 10 * 1024 * 1024 * 1024;
@@ -274,7 +275,7 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
   router.post("/admin/assets", requireAdmin, (req, res, next) => {
     try {
       rate(req, "upload", 30, 60 * 60_000);
-      if (Number(req.get("content-length")) > MAX_UPLOAD + 1024 * 1024) throw fail(413, "Audio must be 200 MB or smaller.");
+      if (Number(req.get("content-length")) > MAX_UPLOAD + 1024 * 1024) throw fail(413, "Audio must be 95 MB or smaller.");
       if (uploadCount >= 2 || ipUploads.has(req.ip) || queue.length >= 4
           || Object.keys(catalog.assets).length >= MAX_ASSETS) throw fail(429, "Audio queue is full. Please try again later.");
       if (diskUsage(root) + (uploadCount + 1) * MAX_UPLOAD * 2 > MAX_STORAGE) throw fail(507, "Audio storage is full. Contact the site owner.");
@@ -429,7 +430,7 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
   router.use((error, _req, res, _next) => {
     if (res.headersSent) return res.destroy();
     if (error instanceof multer.MulterError) {
-      return res.status(error.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: error.code === "LIMIT_FILE_SIZE" ? "Audio must be 200 MB or smaller." : "Upload exactly one WAV or MP3 file." });
+      return res.status(error.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: error.code === "LIMIT_FILE_SIZE" ? "Audio must be 95 MB or smaller." : "Upload exactly one WAV or MP3 file." });
     }
     const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599 ? error.status : 500;
     if (status === 429) res.set("Retry-After", "60");

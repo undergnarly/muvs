@@ -5,7 +5,7 @@ import { validateImageFile } from '../../utils/imageCompression';
 import './DubplatesManager.css';
 
 const DRAFT_KEY = 'muvs-dubplates-editor-v1';
-const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 95 * 1024 * 1024;
 const EMPTY_FORM = {
     title: '', artist: 'MUVS', genre: '', bpm: '', musicalKey: '', releaseTitle: '',
     type: 'dubplate', releaseDate: '', coverImage: '', notes: '', published: false, assetId: null,
@@ -231,7 +231,7 @@ const DubplatesManager = () => {
         if (!file) return;
         setAudioError('');
         if (!/\.(wav|mp3)$/i.test(file.name) || !file.size || file.size > MAX_AUDIO_BYTES) {
-            setAudioError('Choose a WAV or MP3 file, up to 200 MB.');
+            setAudioError('Choose a WAV or MP3 file, up to 95 MB.');
             return;
         }
         setUploadingAudio(true);
@@ -387,7 +387,7 @@ const DubplatesManager = () => {
                 <form onSubmit={saveTrack}>
                     <fieldset disabled={saving} className="dpa-form-fields">
                         <section className="dpa-form-section" aria-labelledby="dpa-audio-title">
-                            <div className="dpa-section-heading"><h3 id="dpa-audio-title">Audio</h3><p>Upload WAV to offer WAV and MP3 downloads. MP3 uploads stay MP3. Up to 200 MB.</p></div>
+                            <div className="dpa-section-heading"><h3 id="dpa-audio-title">Audio</h3><p>Upload WAV to offer WAV and MP3 downloads. MP3 uploads stay MP3. Up to 95 MB.</p></div>
                             <div className="dpa-audio-upload">
                                 <FaCompactDisc className="dpa-audio-icon" aria-hidden="true" />
                                 <div className="dpa-audio-info" aria-live="polite">
