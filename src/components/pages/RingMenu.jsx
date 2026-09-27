@@ -5,7 +5,6 @@ import { Html, Text } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
-import GyroParallaxLayer from './GyroParallaxLayer';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -175,7 +174,7 @@ const RingCover = ({ url, size, onClick }) => {
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, tiltRef }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -183,7 +182,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
     return (
         <group position={[index * HUB_SPACING, 0, 0]}>
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
-                <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuHeading">
+                <group>
                 <Text
                     position={[0, 2.25, -1.2]}
                     fontSize={0.92}
@@ -208,23 +207,23 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 >
                     {`0${displayIndex + 1}`}
                 </Text>
-                </GyroParallaxLayer>
+                </group>
                 {cover && (
-                    <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuImage">
+                    <group>
                     <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
-                    </GyroParallaxLayer>
+                    </group>
                 )}
-                <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuParticles">
+                <group>
                     {particlesVisible && item.key === 'music' && particleSettings?.music !== false && (
                         <MusicInsectParticles seed={index * 13} />
                     )}
                     {particlesVisible && item.key === 'mixes' && particleSettings?.mixes !== false && (
                         <MixesBronzeParticles seed={index * 17} />
                     )}
-                </GyroParallaxLayer>
+                </group>
             </group>
             {/* Floor caption between the camera and the item. */}
-            <GyroParallaxLayer tiltRef={tiltRef} layerKey="menuCaption">
+            <group>
             <group position={[0, hub.captionY ?? DEFAULT_HUB.captionY, -(hub.ringRadius + (hub.captionOffset ?? DEFAULT_HUB.captionOffset))]} rotation={[0, Math.PI, 0]}>
                 <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(hub.captionTilt ?? DEFAULT_HUB.captionTilt), 0, 0]}>
                     <Html
@@ -246,14 +245,14 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                     </Html>
                 </group>
             </group>
-            </GyroParallaxLayer>
+            </group>
         </group>
     );
 };
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, tiltRef }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -269,7 +268,6 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 captionsVisible={captionsVisible}
                 particlesVisible={particlesVisible}
                 particleSettings={particleSettings}
-                tiltRef={tiltRef}
             />
         )))}
     </>

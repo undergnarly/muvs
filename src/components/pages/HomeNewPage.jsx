@@ -10,9 +10,7 @@ import AlbumPlayer from '../media/AlbumPlayer';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
-import { DEVICE_TILT_DEFAULTS, mergeDeviceTiltSettings } from '../../utils/deviceParallax';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
-import GyroParallaxLayer from './GyroParallaxLayer';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -454,7 +452,7 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull = true }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true }) => {
     const tex = useProgressiveTexture(release.coverImage || FALLBACK_COVER, { loadFull });
 
     const { width, height } = useMemo(() => {
@@ -468,7 +466,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull
 
     return (
         <group position={[x, 2.6, 0]}>
-            <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionHeading">
+            <group>
                 <Text
                     position={[0, billboard.titleY, billboard.titleZ]}
                     fontSize={releaseTextSize(release.title3dSize, billboard.titleSize)}
@@ -494,21 +492,21 @@ const Billboard = ({ release, x, billboard, hideCover = false, tiltRef, loadFull
                 >
                     {release.artists || ''}
                 </Text>
-            </GyroParallaxLayer>
+            </group>
 
             {!hideCover && (
-                <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionImage">
+                <group>
                     <mesh position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
                         <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
                     </mesh>
-                </GyroParallaxLayer>
+                </group>
             )}
         </group>
     );
 };
 
-const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = false, tiltRef }) => {
+const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = false }) => {
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
     const html = richText
         ? (fullDescriptionOnly ? (release.fullDescription || '') : (release.fullDescription || release.description || ''))
@@ -516,7 +514,7 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
     const plain = richText ? '' : stripHtml(release.description);
 
     return (
-        <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionFloorText">
+        <group>
         <group position={[x, 0.01, z]} rotation={[-Math.PI / 2, 0, 0]}>
             <Text
                 position={[0, 0, 0]}
@@ -559,11 +557,11 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
                 </Text>
             ) : null}
         </group>
-        </GyroParallaxLayer>
+        </group>
     );
 };
 
-const CodeShortDescription = ({ release, x, tiltRef, codeCaption = DEFAULT_CODE_CAPTION }) => {
+const CodeShortDescription = ({ release, x, codeCaption = DEFAULT_CODE_CAPTION }) => {
     if (!release.description) return null;
     const caption = {
         ...DEFAULT_CODE_CAPTION,
@@ -571,7 +569,7 @@ const CodeShortDescription = ({ release, x, tiltRef, codeCaption = DEFAULT_CODE_
         pos: { ...DEFAULT_CODE_CAPTION.pos, ...(codeCaption?.pos || {}) },
     };
     return (
-        <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionFloorText">
+        <group>
         <group position={[x + caption.pos.x, caption.pos.y, caption.pos.z]}>
             <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(caption.tilt), 0, THREE.MathUtils.degToRad(caption.rotation)]}>
                 <Html
@@ -596,7 +594,7 @@ const CodeShortDescription = ({ release, x, tiltRef, codeCaption = DEFAULT_CODE_
                 </Html>
             </group>
         </group>
-        </GyroParallaxLayer>
+        </group>
     );
 };
 
@@ -755,16 +753,16 @@ const FloorPhotoSheet = ({ sheet, index, loadFull }) => {
     );
 };
 
-const FloorPhotoSheets = ({ x, z, seed, gallery, tiltRef, loadFull }) => {
+const FloorPhotoSheets = ({ x, z, seed, gallery, loadFull }) => {
     const sheets = useMemo(() => generateFloorSheets(gallery, seed), [gallery, seed]);
     return (
-        <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionPhotos">
+        <group>
         <group position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
             {sheets.map((sheet, index) => (
                 <FloorPhotoSheet key={index} sheet={sheet} index={index} loadFull={loadFull} />
             ))}
         </group>
-        </GyroParallaxLayer>
+        </group>
     );
 };
 
@@ -825,8 +823,8 @@ const PlatformStack = ({ release, x, stackCfg }) => {
     });
 };
 
-const SupportFloorText = ({ x, support, tiltRef }) => (
-    <GyroParallaxLayer tiltRef={tiltRef} layerKey="sectionSupport">
+const SupportFloorText = ({ x, support }) => (
+    <group>
     <group position={[x + support.pos.x, support.pos.y, support.pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <Text
             position={[0, 0, 0]}
@@ -851,115 +849,11 @@ const SupportFloorText = ({ x, support, tiltRef }) => (
             LISTEN
         </Text>
     </group>
-    </GyroParallaxLayer>
+    </group>
 );
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
-
-const useDeviceTilt = (settings) => {
-    const tiltRef = useRef({
-        targetX: 0,
-        targetY: 0,
-        x: 0,
-        y: 0,
-        config: DEVICE_TILT_DEFAULTS,
-    });
-    tiltRef.current.config = mergeDeviceTiltSettings(settings);
-
-    useEffect(() => {
-        const OrientationEvent = window.DeviceOrientationEvent;
-        const isMobile = window.matchMedia('(pointer: coarse)').matches;
-        if (!OrientationEvent || !isMobile || !tiltRef.current.config.enabled) return undefined;
-
-        let baseline = null;
-        let listening = false;
-        const resetBaseline = () => { baseline = null; };
-        const onOrientation = (event) => {
-            if (!Number.isFinite(event.gamma) || !Number.isFinite(event.beta)) return;
-            const screenAngle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
-            let horizontal = event.gamma;
-            let vertical = event.beta;
-            if (Math.abs(screenAngle) === 90) {
-                horizontal = screenAngle > 0 ? event.beta : -event.beta;
-                vertical = screenAngle > 0 ? -event.gamma : event.gamma;
-            }
-            if (!baseline) baseline = { horizontal, vertical };
-            const maxTiltDeg = Math.max(1, Number(tiltRef.current.config.maxTiltDeg) || 18);
-            tiltRef.current.targetX = THREE.MathUtils.clamp((horizontal - baseline.horizontal) / maxTiltDeg, -1, 1);
-            tiltRef.current.targetY = THREE.MathUtils.clamp((vertical - baseline.vertical) / maxTiltDeg, -1, 1);
-        };
-        const startListening = () => {
-            if (listening) return;
-            listening = true;
-            window.addEventListener('deviceorientation', onOrientation, true);
-            window.addEventListener('orientationchange', resetBaseline);
-        };
-
-        let requestOnTouch = null;
-        if (typeof OrientationEvent.requestPermission === 'function') {
-            requestOnTouch = async () => {
-                try {
-                    if (await OrientationEvent.requestPermission() === 'granted') startListening();
-                } catch { /* permission denied or unavailable */ }
-            };
-            window.addEventListener('pointerdown', requestOnTouch, { once: true, passive: true });
-        } else {
-            startListening();
-        }
-
-        return () => {
-            if (requestOnTouch) window.removeEventListener('pointerdown', requestOnTouch);
-            if (listening) {
-                window.removeEventListener('deviceorientation', onOrientation, true);
-                window.removeEventListener('orientationchange', resetBaseline);
-            }
-            tiltRef.current.targetX = 0;
-            tiltRef.current.targetY = 0;
-            tiltRef.current.x = 0;
-            tiltRef.current.y = 0;
-        };
-    }, [settings?.enabled]);
-
-    return tiltRef;
-};
-
-const TILT_ORBIT_OFFSET = new THREE.Vector3();
-const TILT_ORBIT_RIGHT = new THREE.Vector3();
-const TILT_ORBIT_UP = new THREE.Vector3();
-
-const applyDeviceTilt = (camera, tiltRef, delta, focalPoint) => {
-    if (!tiltRef) return;
-    const tilt = tiltRef.current;
-    const config = tilt.config || DEVICE_TILT_DEFAULTS;
-    if (!config.enabled) return;
-    const smoothing = Math.max(0.1, Number(config.smoothing) || DEVICE_TILT_DEFAULTS.smoothing);
-    const damping = 1 - Math.exp(-Math.min(delta, 0.1) * smoothing);
-    tilt.x = THREE.MathUtils.lerp(tilt.x, tilt.targetX, damping);
-    tilt.y = THREE.MathUtils.lerp(tilt.y, tilt.targetY, damping);
-    const horizontalDirection = config.invertHorizontal ? -1 : 1;
-    const verticalDirection = config.invertVertical ? 1 : -1;
-    if (!focalPoint) return;
-
-    // Orbit on a sphere around the framed object. Keeping the radius constant
-    // and finishing with lookAt makes the image center a true visual anchor.
-    TILT_ORBIT_OFFSET.copy(camera.position).sub(focalPoint);
-    TILT_ORBIT_RIGHT.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-    TILT_ORBIT_UP.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-
-    const yaw = THREE.MathUtils.degToRad(
-        tilt.x * Number(config.yawDeg || 0) * horizontalDirection,
-    );
-    const pitch = THREE.MathUtils.degToRad(
-        tilt.y * Number(config.pitchDeg || 0) * verticalDirection,
-    );
-    TILT_ORBIT_OFFSET.applyAxisAngle(TILT_ORBIT_UP, yaw);
-    TILT_ORBIT_RIGHT.applyAxisAngle(TILT_ORBIT_UP, yaw);
-    TILT_ORBIT_OFFSET.applyAxisAngle(TILT_ORBIT_RIGHT, pitch);
-    camera.position.copy(focalPoint).add(TILT_ORBIT_OFFSET);
-    camera.lookAt(focalPoint);
-    camera.updateMatrixWorld();
-};
 
 // Interpolated camera pose along the section stops at progress p (0..1).
 const sampleStops = (stops, p) => {
@@ -978,10 +872,10 @@ const sampleStops = (stops, p) => {
     };
 };
 
-const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, tiltRef }) => {
+const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
-    useFrame(({ camera }, delta) => {
+    useFrame(({ camera }) => {
         const c = cfgRef.current;
         const { pos, look, fov } = sampleStops(c.stops, progressRef.current);
         const offX = releaseOffsetRef.current;
@@ -989,7 +883,6 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, tiltRef }) => {
         camera.position.set(pos.x + offX, pos.y, pos.z);
         lookAt.current.set(look.x + offX, look.y, look.z);
         camera.lookAt(lookAt.current);
-        applyDeviceTilt(camera, tiltRef, delta, lookAt.current);
 
         if (Math.abs(camera.fov - fov) > 0.01) {
             camera.fov = fov;
@@ -1004,7 +897,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, tiltRef }) => {
 // ('travel'), stop-scroll inside the section ('section'), and fog-out toward
 // a section that still lives on its own route ('foreign'). The section world
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
-const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef, tiltRef }) => {
+const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
     const lookAt = useRef(new THREE.Vector3());
 
     useFrame(({ camera }, delta) => {
@@ -1087,7 +980,6 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         camera.position.set(pose.pos.x, pose.pos.y, pose.pos.z);
         lookAt.current.set(pose.look.x, pose.look.y, pose.look.z);
         camera.lookAt(lookAt.current);
-        applyDeviceTilt(camera, tiltRef, delta, lookAt.current);
         if (Math.abs(camera.fov - pose.fov) > 0.01) {
             camera.fov = pose.fov;
             camera.updateProjectionMatrix();
@@ -1253,7 +1145,7 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false, comingSoon = false })
                             key={src}
                             src={src}
                             title={mix?.title || 'mix'}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
                             allowFullScreen
                             style={{
                                 width: `${ifW}px`,
@@ -1351,10 +1243,10 @@ const DEFAULT_PORTFOLIO_LAYOUT = [
     { x:  6, z: 30 },
 ];
 
-const PortfolioItems = ({ items, tiltRef }) => (
+const PortfolioItems = ({ items }) => (
     <>
         {items.map((it, i) => (
-            <GyroParallaxLayer key={it.id ?? i} tiltRef={tiltRef} layerKey="sectionPortfolio">
+            <group key={it.id ?? i}>
             <PortfolioItem
                 pos={[it.x ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.x ?? 0, 0, it.z ?? DEFAULT_PORTFOLIO_LAYOUT[i]?.z ?? 0]}
                 image={it.image}
@@ -1362,12 +1254,12 @@ const PortfolioItems = ({ items, tiltRef }) => (
                 label={it.label}
                 description={it.description}
             />
-            </GyroParallaxLayer>
+            </group>
         ))}
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, tiltRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1384,17 +1276,16 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             x={index * RELEASE_SPACING}
                             billboard={billboard}
                             hideCover={!!tvMix}
-                            tiltRef={tiltRef}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                         />
                     )}
-                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} tiltRef={tiltRef} loadFull={Math.abs(index - activeItemIndex) <= 1} />
-                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} tiltRef={tiltRef} />
-                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} tiltRef={tiltRef} codeCaption={codeCaption} />}
-                    {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} tiltRef={tiltRef} />}
+                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} loadFull={Math.abs(index - activeItemIndex) <= 1} />
+                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} />
+                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} codeCaption={codeCaption} />}
+                    {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} />}
                 </React.Fragment>
             ))}
-            {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} tiltRef={tiltRef} />}
+            {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
             {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} comingSoon={tvComingSoon} />}
         </>
     );
@@ -1414,10 +1305,9 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                     onForeignLeft={hub.onForeignLeft}
                     ringRef={ringRef}
                     sectionRef={sectionRef}
-                    tiltRef={tiltRef}
                 />
             ) : (
-                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} tiltRef={tiltRef} />
+                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} />
             )}
             {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
             <FogSync cfgRef={cfgRef} />
@@ -1437,7 +1327,6 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         activeOnly={hub.phase !== 'menu'}
                         captionsVisible={hub.phase === 'menu'}
                         particlesVisible={hub.phase === 'menu'}
-                        tiltRef={tiltRef}
                     />
                 </group>
             )}
@@ -2226,7 +2115,6 @@ export const Scene3DShell = ({
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
-    const deviceTiltRef = useDeviceTilt(siteSettings?.deviceTilt);
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
@@ -2796,7 +2684,6 @@ export const Scene3DShell = ({
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}
-                            tiltRef={deviceTiltRef}
                             floorTextZ={cfg.floorTextZ}
                             photoZ={cfg.photoZ}
                             billboard={cfg.billboard}

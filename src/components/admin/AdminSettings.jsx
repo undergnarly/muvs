@@ -3,7 +3,6 @@ import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaCog, FaImages, FaLock, FaSave, FaTrash, FaUpload } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
-import { mergeDeviceTiltSettings } from '../../utils/deviceParallax';
 import MediaGallery from './MediaGallery';
 import RichTextEditor from './RichTextEditor';
 import './AdminSettings.css';
@@ -27,19 +26,6 @@ const MENU_PARTICLE_DEFAULTS = {
     mixes: true,
 };
 
-const PARALLAX_LAYER_FIELDS = [
-    { key: 'menuImage', label: 'Menu image' },
-    { key: 'menuHeading', label: 'Menu heading and number' },
-    { key: 'menuCaption', label: 'Menu floor caption' },
-    { key: 'menuParticles', label: 'Menu particles' },
-    { key: 'sectionImage', label: 'Section main image' },
-    { key: 'sectionHeading', label: 'Section heading and artist' },
-    { key: 'sectionFloorText', label: 'Section floor text' },
-    { key: 'sectionPhotos', label: 'Section floor photos' },
-    { key: 'sectionSupport', label: 'Section support text' },
-    { key: 'sectionPortfolio', label: 'Section portfolio objects' },
-];
-
 const AdminSettings = () => {
     const { siteSettings, updateSiteSettings, isLoaded } = useData();
     const [currentPin, setCurrentPin] = useState('');
@@ -57,7 +43,6 @@ const AdminSettings = () => {
         siteName: siteSettings?.siteName || 'MUVS',
         siteDescription: siteSettings?.siteDescription || 'Audio • Visual • Code',
         cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
-        deviceTilt: mergeDeviceTiltSettings(siteSettings?.deviceTilt),
         menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
         menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
         socialLinks: siteSettings?.socialLinks || { instagram: '', soundcloud: '', bandcamp: '', telegram: '' },
@@ -95,7 +80,6 @@ const AdminSettings = () => {
             ...prev,
             ...siteSettings,
             cameraTunerEnabled: siteSettings?.cameraTunerEnabled === true,
-            deviceTilt: mergeDeviceTiltSettings(siteSettings?.deviceTilt),
             menuCaptions: { ...MENU_CAPTION_DEFAULTS, ...(siteSettings?.menuCaptions || {}) },
             menuParticles: { ...MENU_PARTICLE_DEFAULTS, ...(siteSettings?.menuParticles || {}) },
             socialLinks: { ...prev.socialLinks, ...(siteSettings?.socialLinks || {}) },
@@ -247,163 +231,6 @@ const AdminSettings = () => {
                             <small>Show camera controls on all 3D pages.</small>
                         </span>
                     </label>
-                </div>
-
-                <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Mobile Gyroscope Parallax</h3>
-                    <label className="admin-setting-toggle" style={{ marginBottom: '16px' }}>
-                        <input
-                            type="checkbox"
-                            checked={siteFormData.deviceTilt.enabled !== false}
-                            onChange={e => setSiteFormData({
-                                ...siteFormData,
-                                deviceTilt: { ...siteFormData.deviceTilt, enabled: e.target.checked }
-                            })}
-                        />
-                        <span className="admin-setting-toggle-control" aria-hidden="true" />
-                        <span>
-                            <strong>Enable gyroscope parallax</strong>
-                            <small>Move the 3D camera when a phone is tilted.</small>
-                        </span>
-                    </label>
-
-                    {siteFormData.deviceTilt.enabled !== false && (
-                        <>
-                            <div className="admin-device-tilt-grid">
-                                <div>
-                                    <label style={labelStyle}>Full movement angle (degrees)</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.maxTiltDeg}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, maxTiltDeg: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="5"
-                                        max="45"
-                                        step="1"
-                                    />
-                                    <small className="admin-setting-hint">Lower values make the camera more sensitive.</small>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Smoothing</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.smoothing}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, smoothing: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="0.5"
-                                        max="20"
-                                        step="0.5"
-                                    />
-                                    <small className="admin-setting-hint">Higher values react faster; lower values feel softer.</small>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Horizontal orbit angle (deg)</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.yawDeg}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, yawDeg: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="-8"
-                                        max="8"
-                                        step="0.1"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Vertical orbit angle (deg)</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.pitchDeg}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, pitchDeg: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="-8"
-                                        max="8"
-                                        step="0.1"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Layer movement distance</label>
-                                    <input
-                                        type="number"
-                                        value={siteFormData.deviceTilt.layerTravel}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, layerTravel: Number(e.target.value) }
-                                        })}
-                                        style={inputStyle}
-                                        min="0"
-                                        max="2"
-                                        step="0.05"
-                                    />
-                                    <small className="admin-setting-hint">Global movement applied before each layer multiplier.</small>
-                                </div>
-                            </div>
-                            <div className="admin-setting-toggle-grid" style={{ marginTop: '16px' }}>
-                                <label className="admin-setting-toggle">
-                                    <input
-                                        type="checkbox"
-                                        checked={siteFormData.deviceTilt.invertHorizontal === true}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, invertHorizontal: e.target.checked }
-                                        })}
-                                    />
-                                    <span className="admin-setting-toggle-control" aria-hidden="true" />
-                                    <span><strong>Mirror horizontal axis</strong></span>
-                                </label>
-                                <label className="admin-setting-toggle">
-                                    <input
-                                        type="checkbox"
-                                        checked={siteFormData.deviceTilt.invertVertical === true}
-                                        onChange={e => setSiteFormData({
-                                            ...siteFormData,
-                                            deviceTilt: { ...siteFormData.deviceTilt, invertVertical: e.target.checked }
-                                        })}
-                                    />
-                                    <span className="admin-setting-toggle-control" aria-hidden="true" />
-                                    <span><strong>Mirror vertical axis</strong></span>
-                                </label>
-                            </div>
-                            <h4 className="admin-setting-subheading">Layer parallax strength</h4>
-                            <div className="admin-device-tilt-grid">
-                                {PARALLAX_LAYER_FIELDS.map(({ key, label }) => (
-                                    <div key={key}>
-                                        <label style={labelStyle}>{label}</label>
-                                        <input
-                                            type="number"
-                                            value={siteFormData.deviceTilt.layers[key]}
-                                            onChange={e => setSiteFormData({
-                                                ...siteFormData,
-                                                deviceTilt: {
-                                                    ...siteFormData.deviceTilt,
-                                                    layers: {
-                                                        ...siteFormData.deviceTilt.layers,
-                                                        [key]: Number(e.target.value)
-                                                    }
-                                                }
-                                            })}
-                                            style={inputStyle}
-                                            min="-3"
-                                            max="3"
-                                            step="0.05"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <small className="admin-setting-hint">0 fixes a layer in place; 1 is normal; values above 1 amplify it; negative values reverse it.</small>
-                        </>
-                    )}
                 </div>
 
                 {/* 3D menu captions */}
