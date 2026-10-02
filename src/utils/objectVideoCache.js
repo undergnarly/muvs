@@ -135,7 +135,7 @@ export function createObjectVideoCache({
                     fail(record);
                     return;
                 }
-                record.videoReady = video.readyState >= 2;
+                record.videoReady = !video.seeking && video.readyState >= 2;
                 markReady(record);
             };
             const error = () => {
@@ -143,10 +143,12 @@ export function createObjectVideoCache({
             };
             video.addEventListener('loadeddata', ready);
             video.addEventListener('canplay', ready);
+            video.addEventListener('seeked', ready);
             video.addEventListener('error', error);
             record.removeListeners = () => {
                 video.removeEventListener('loadeddata', ready);
                 video.removeEventListener('canplay', ready);
+                video.removeEventListener('seeked', ready);
                 video.removeEventListener('error', error);
             };
             armTimeout(record);
@@ -210,10 +212,24 @@ export function createObjectVideoCache({
             let released = false;
             record.owners.add(owner);
             owner.snapshot = Object.freeze({ status: record.status, texture: record.texture, alphaMap: record.alphaMap, active: false });
-            const setPlayback = ({ prepare = false, active = false }) => {
+            const setPlayback = ({ prepare = false, active = false, restartToken = null }) => {
                 active = Boolean(active);
                 prepare = Boolean(prepare || active);
-                if (released || (owner.active === active && owner.prepare === prepare)) return;
+                const restart = prepare && restartToken !== null && record.restartToken !== restartToken;
+                if (released || (!restart && owner.active === active && owner.prepare === prepare)) return;
+                if (restart) {
+                    record.restartToken = restartToken;
+                    if (record.video && record.status !== 'error') {
+                        pause(record);
+                        record.playSucceeded = false;
+                        record.videoReady = false;
+                        if (record.status !== 'blocked') record.status = 'loading';
+                        try {
+                            record.video.currentTime = 0;
+                            record.videoReady = !record.video.seeking && record.video.readyState >= 2;
+                        } catch { /* Initial metadata can still be loading; loadeddata supplies frame zero. */ }
+                    }
+                }
                 if ((active && !owner.active) || (prepare && !owner.prepare)) record.sequence = ++activationSequence;
                 owner.active = active;
                 owner.prepare = prepare;

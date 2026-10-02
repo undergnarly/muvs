@@ -7,12 +7,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
+import ArtworkEntrance from '../media/ArtworkEntrance';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
+import { createObjectEntranceTimeline, getObjectEntranceKind } from '../../utils/objectEntranceTimeline';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -454,11 +456,12 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, entranceTimeline, entranceKey }) => {
     const meshRef = useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, { loadFull });
-    const video = useObjectVideoTexture(release.coverImage, meshRef, {
+    const { video, entranceRef } = useObjectVideoTexture(release.coverImage, meshRef, {
         posterReady: isObjectPosterReady(tex, release.coverImage), enabled: motionEnabled && !hideCover, isSettled: isMotionSettled,
+        entranceTimeline, entranceKey,
     });
 
     const { width, height } = useMemo(() => {
@@ -504,7 +507,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
                 <group>
                     <mesh ref={meshRef} position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
-                        <meshBasicMaterial key={video?.texture.uuid || tex?.uuid || 'empty'} map={video?.texture || tex || null} alphaMap={video?.alphaMap || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
+                        <ArtworkEntrance poster={release.coverImage} posterTexture={tex} video={video} width={width} height={height} entranceRef={entranceRef} meshRef={meshRef} />
                     </mesh>
                 </group>
             )}
@@ -1265,7 +1268,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, entranceTimeline, entranceScope }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1284,6 +1287,8 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             hideCover={!!tvMix}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                             motionEnabled={artworkMotion && index === activeItemIndex}
+                            entranceTimeline={entranceTimeline}
+                            entranceKey={`${entranceScope}:${sceneItemKey(release, index)}`}
                             isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
                                 && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
@@ -1338,6 +1343,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         particlesVisible={hub.phase === 'menu'}
                         videosEnabled={hub.phase === 'menu'}
                         stateRef={hub.stateRef}
+                        entranceTimeline={entranceTimeline}
                     />
                 </group>
             )}
@@ -2533,6 +2539,17 @@ export const Scene3DShell = ({
         });
     }, [hub, displayItems]);
 
+    const [entranceTimeline] = useState(createObjectEntranceTimeline);
+    const entranceInMenu = Boolean(hub && hubPhase === 'menu');
+    const entranceInCode = Boolean(sectionControls && activeKey === 'code' && currentIndex === 0 && currentRelease);
+    const entranceSelectionKey = entranceInMenu
+        ? `menu:${HUB_ITEMS[ringIndex].key}`
+        : entranceInCode ? `section:code:${sceneItemKey(currentRelease, releaseSwitcher.current)}` : null;
+    const entrancePoster = entranceInMenu ? hubCovers?.[ringIndex] : entranceInCode ? currentRelease.coverImage : null;
+    useLayoutEffect(() => {
+        entranceTimeline.select(entranceSelectionKey, getObjectEntranceKind(entrancePoster));
+    }, [entranceTimeline, entranceSelectionKey, entrancePoster]);
+
     useEffect(() => {
         (hubCovers || []).filter(Boolean).forEach((url) => {
             preloadImage(url, 'high');
@@ -2692,6 +2709,8 @@ export const Scene3DShell = ({
                             activeItemIndex={releaseSwitcher.current}
                             activeItemOnly={activeKey === 'music'}
                             artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
+                            entranceTimeline={entranceTimeline}
+                            entranceScope={`section:${activeKey}`}
                             hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}

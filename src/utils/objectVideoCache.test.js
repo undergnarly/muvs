@@ -229,6 +229,76 @@ test('preparing a newly selected source pauses the old one and policy gates all 
     assert.equal(h.videos.every((video) => video.paused), true);
 });
 
+test('entrance restart rewinds shared source once per selection, never on visibility resume or duplicate owner', async () => {
+    const h = harness();
+    const first = h.cache.acquire(spec());
+    const copy = h.cache.acquire(spec());
+    first.setPlayback({ prepare: true, active: true, restartToken: 'first-arrival' });
+    h.ready();
+    await flush();
+    let seeks = 0;
+    let currentTime = 3;
+    Object.defineProperty(h.videos[0], 'currentTime', {
+        get: () => currentTime,
+        set: (value) => { currentTime = value; seeks += 1; },
+    });
+    first.setPlayback({ prepare: true, restartToken: 'second-arrival' });
+    copy.setPlayback({ prepare: true, restartToken: 'second-arrival' });
+    assert.equal(seeks, 1);
+    assert.equal(currentTime, 0);
+    assert.equal(h.videos[0].paused, true);
+    assert.equal(first.getSnapshot().texture, null);
+    first.setPlayback({ prepare: true, active: true, restartToken: 'second-arrival' });
+    await flush();
+    assert.equal(first.getSnapshot().status, 'ready');
+    currentTime = 1.5;
+    h.policy(false);
+    first.setPlayback({});
+    copy.setPlayback({});
+    h.policy(true);
+    first.setPlayback({ prepare: true, active: true, restartToken: 'second-arrival' });
+    await flush();
+    assert.equal(seeks, 1);
+    assert.equal(currentTime, 1.5);
+    assert.equal(h.videos.length, 1);
+});
+
+test('entrance rewind waits for seeked before exposing the old cached video frame', async () => {
+    const h = harness();
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    h.videos[0].seeking = true;
+    lease.setPlayback({ prepare: true, restartToken: 'arrival' });
+    lease.setPlayback({ prepare: true, active: true, restartToken: 'arrival' });
+    h.videos[0].emit('canplay');
+    await flush();
+    assert.equal(lease.getSnapshot().texture, null);
+    h.videos[0].seeking = false;
+    h.videos[0].emit('seeked');
+    assert.equal(lease.getSnapshot().status, 'ready');
+});
+
+test('new entrance may rewind a blocked source but never unlocks autoplay or decode errors', async () => {
+    const h = harness({ play: () => Promise.reject(autoplayBlocked()) });
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    h.videos[0].currentTime = 1.5;
+    lease.setPlayback({ prepare: true, restartToken: 'new-arrival' });
+    lease.setPlayback({ prepare: true, active: true, restartToken: 'new-arrival' });
+    await flush();
+    assert.equal(h.videos[0].currentTime, 0);
+    assert.equal(lease.getSnapshot().status, 'blocked');
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 1);
+    h.videos[0].emit('error');
+    lease.setPlayback({ prepare: true, active: true, restartToken: 'another-arrival' });
+    assert.equal(lease.getSnapshot().status, 'error');
+    assert.equal(h.videos.length, 1);
+});
+
 test('autoplay rejection shows the poster without retry loops; recovery is bounded and reuses the source', async () => {
     const h = harness({ play: () => Promise.reject(autoplayBlocked()) });
     const lease = h.cache.acquire(spec());

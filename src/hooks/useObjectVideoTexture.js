@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { getObjectLoop } from '../data/objectLoops';
 import { EMPTY_OBJECT_VIDEO } from '../utils/objectVideoCache';
 import { getArtworkMotionSnapshot, objectVideoCache, subscribeArtworkMotion } from '../utils/objectVideoRuntime';
+import { getObjectEntranceKind } from '../utils/objectEntranceTimeline';
 
 const canvasObservers = new WeakMap();
 function observeCanvas(canvas, context, listener) {
@@ -38,7 +39,7 @@ function observeCanvas(canvas, context, listener) {
     };
 }
 
-export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, isSettled } = {}) {
+export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, isSettled, entranceTimeline, entranceKey } = {}) {
     const spec = getObjectLoop(poster);
     const leaseRef = useRef(null);
     const canvasVisible = useRef(typeof IntersectionObserver === 'undefined');
@@ -47,6 +48,12 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
     const frustum = useMemo(() => new THREE.Frustum(), []);
     const projection = useMemo(() => new THREE.Matrix4(), []);
     const playbackState = useRef({ prepare: false, active: false });
+    const entranceFrame = useRef({ frame: 0, delta: 0, eligible: false, skip: false, mediaStatus: 'ready' });
+    const entranceRef = useRef({
+        kind: null, elapsed: 0, duration: 2.4, phase: 'cancelled', selectionToken: null, allowed: false,
+        assetsReady: getObjectEntranceKind(poster) !== 'code',
+        mediaStatus: getObjectEntranceKind(poster) === 'code' ? 'loading' : 'ready',
+    });
     const preferences = useSyncExternalStore(subscribeArtworkMotion, getArtworkMotionSnapshot, () => 4);
 
     const subscribe = useCallback((listener) => {
@@ -64,16 +71,21 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
 
     useEffect(() => observeCanvas(canvas, gl.getContext(), (visible) => {
         canvasVisible.current = visible;
-        if (!visible) leaseRef.current?.setPlayback({});
+        if (!visible) {
+            entranceRef.current.allowed = false;
+            leaseRef.current?.setPlayback({});
+        }
     }), [canvas, gl]);
 
     useEffect(() => {
-        if (!enabled || !posterReady || preferences) leaseRef.current?.setPlayback({});
+        if (!enabled || !posterReady || preferences) {
+            entranceRef.current.allowed = false;
+            leaseRef.current?.setPlayback({});
+        }
     }, [enabled, posterReady, preferences]);
 
-    useFrame(({ camera }) => {
+    useFrame(({ camera, clock }, delta) => {
         const lease = leaseRef.current;
-        if (!lease) return;
         const mesh = meshRef.current;
         let visible = Boolean(enabled && posterReady && mesh && canvasVisible.current && !preferences);
         if (visible) {
@@ -87,16 +99,32 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
             frustum.setFromProjectionMatrix(projection);
             visible = frustum.intersectsObject(mesh);
         }
+        const settled = !isSettled || isSettled();
+        const entrance = entranceRef.current;
+        if (entranceTimeline && entranceKey) {
+            const frame = entranceFrame.current;
+            frame.frame = clock.elapsedTime;
+            frame.delta = delta;
+            frame.eligible = visible && settled;
+            frame.skip = Boolean(preferences & 12);
+            frame.mediaStatus = entrance.mediaStatus === 'error' ? 'error' : entrance.assetsReady ? 'ready' : 'loading';
+            entranceTimeline.advance(entranceKey, frame);
+            entranceTimeline.sample(entranceKey, entrance);
+        }
+        entrance.allowed = visible && entrance.selectionToken !== null;
+        if (!lease) return;
         // No separate RAF and no React work per frame: leases notify only when
         // selected/visible status changes. Existing camera transforms are read only.
         // Prepare only the selected object once it enters the viewport, without
         // waiting for the camera to stop. Continuous playback waits for settle.
         playbackState.current.prepare = visible;
-        playbackState.current.active = visible && (!isSettled || isSettled());
+        playbackState.current.active = visible && settled && (!entrance.kind || entrance.phase === 'complete');
+        playbackState.current.restartToken = entrance.kind ? entrance.selectionToken : null;
         lease.setPlayback(playbackState.current);
     });
 
-    return spec && snapshot.active && snapshot.status === 'ready' && !preferences
+    const video = spec && snapshot.active && snapshot.status === 'ready' && !preferences
         ? { texture: snapshot.texture, alphaMap: snapshot.alphaMap }
         : null;
+    return { video, entranceRef };
 }

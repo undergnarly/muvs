@@ -7,6 +7,7 @@ import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
+import ArtworkEntrance from '../media/ArtworkEntrance';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -154,14 +155,15 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
     );
 };
 
-const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled }) => {
+const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, entranceTimeline, entranceKey }) => {
     const meshRef = React.useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(url) || FALLBACK_COVER, {
         loadFull: true,
         usePreview: false,
     });
-    const video = useObjectVideoTexture(url, meshRef, {
+    const { video, entranceRef } = useObjectVideoTexture(url, meshRef, {
         posterReady: isObjectPosterReady(tex, url), enabled: motionEnabled, isSettled: isMotionSettled,
+        entranceTimeline, entranceKey,
     });
 
     const imgW = tex?.image?.naturalWidth || tex?.image?.width || 1;
@@ -175,12 +177,12 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled 
     return (
         <mesh ref={meshRef} onClick={onClick}>
             <planeGeometry args={[width, height]} />
-            <meshBasicMaterial key={video?.texture.uuid || tex?.uuid || 'empty'} map={video?.texture || tex || null} alphaMap={video?.alphaMap || null} transparent opacity={tex ? 1 : 0} toneMapped={false} />
+            <ArtworkEntrance poster={url} posterTexture={tex} video={video} width={width} height={height} entranceRef={entranceRef} meshRef={meshRef} />
         </mesh>
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef, entranceTimeline }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -216,7 +218,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 </group>
                 {cover && (
                     <group>
-                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled} isMotionSettled={() => {
+                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled} entranceTimeline={entranceTimeline} entranceKey={`menu:${item.key}`} isMotionSettled={() => {
                         const state = stateRef?.current;
                         return state?.phase === 'menu' && state.menuIndex === index
                             && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
@@ -262,7 +264,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef, entranceTimeline }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -280,6 +282,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 particleSettings={particleSettings}
                 motionEnabled={videosEnabled && i === activeIndex}
                 stateRef={stateRef}
+                entranceTimeline={entranceTimeline}
             />
         )))}
     </>
