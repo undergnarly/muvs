@@ -15,3 +15,5 @@ Plan: `phases/01-dubplates/01-01-PLAN.md`.
 3. Verify desktop/mobile and failure behavior, then publish with the existing atomic deploy.
 
 Plan: `phases/02-object-loops/02-01-PLAN.md`.
+
+User review revision completed: `phases/02-object-loops/02-02-PLAN.md` — single-lizard Music cleanup, fixed-geometry statue lighting, no motion control, automatic selected playback and mobile verification. Summary: `phases/02-object-loops/02-02-SUMMARY.md`.
