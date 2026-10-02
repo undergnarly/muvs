@@ -7,13 +7,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
-import ObjectMotionControl from '../media/ObjectMotionControl';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
-import { isObjectPosterReady } from '../../data/objectLoops';
+import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -457,7 +456,7 @@ const FALLBACK_COVER = '/images/logo.png';
 
 const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled }) => {
     const meshRef = useRef(null);
-    const tex = useProgressiveTexture(release.coverImage || FALLBACK_COVER, { loadFull });
+    const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, { loadFull });
     const video = useObjectVideoTexture(release.coverImage, meshRef, {
         posterReady: isObjectPosterReady(tex, release.coverImage), enabled: motionEnabled && !hideCover, isSettled: isMotionSettled,
     });
@@ -2729,9 +2728,6 @@ export const Scene3DShell = ({
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
                 swipeHintTarget={swipeHintTarget}
             />
-            <ObjectMotionControl poster={hub && hubPhase === 'menu'
-                ? hubCovers?.[ringIndex]
-                : sectionControls && activeKey === 'code' && currentIndex === 0 ? currentRelease?.coverImage : null} />
             {sectionControls && (
                 <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}

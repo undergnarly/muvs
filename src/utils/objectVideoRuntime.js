@@ -1,36 +1,39 @@
 import * as THREE from 'three';
-import { createObjectVideoCache } from './objectVideoCache';
+import { createObjectVideoCache } from './objectVideoCache.js';
 
-const PAUSED_KEY = 'muvs:artwork-motion:paused';
 const listeners = new Set();
 const reducedMotion = typeof window !== 'undefined' ? window.matchMedia?.('(prefers-reduced-motion: reduce)') : null;
 let removeEnvironmentListeners;
-let manuallyPaused = false;
-try { manuallyPaused = sessionStorage.getItem(PAUSED_KEY) === 'true'; } catch { /* Optional preference storage. */ }
 
 // Primitive snapshots stay stable between changes, as useSyncExternalStore requires.
+// The removed manual-pause preference is intentionally never read from storage.
 export const getArtworkMotionSnapshot = () => (
-    (manuallyPaused ? 1 : 0)
-    | (typeof document !== 'undefined' && document.visibilityState === 'hidden' ? 2 : 0)
+    (typeof document !== 'undefined' && document.visibilityState === 'hidden' ? 2 : 0)
     | (reducedMotion?.matches ? 4 : 0)
     | (typeof navigator !== 'undefined' && navigator.connection?.saveData ? 8 : 0)
 );
 
+export function createArtworkVideo() {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    // Playback is automatic but cache-managed. The autoplay attribute would
+    // let a merely preloaded/offscreen source bypass the one-playing limit.
+    video.autoplay = false;
+    video.loop = true;
+    video.preload = 'auto';
+    video.crossOrigin = 'anonymous';
+    video.disableRemotePlayback = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('muted', '');
+    return video;
+}
+
 export const objectVideoCache = createObjectVideoCache({
     canPlay: () => getArtworkMotionSnapshot() === 0,
-    createVideo: () => {
-        const video = document.createElement('video');
-        video.muted = true;
-        video.defaultMuted = true;
-        video.playsInline = true;
-        video.loop = true;
-        video.preload = 'auto';
-        video.crossOrigin = 'anonymous';
-        video.disableRemotePlayback = true;
-        video.setAttribute('playsinline', '');
-        video.setAttribute('muted', '');
-        return video;
-    },
+    createVideo: createArtworkVideo,
     createTexture: (video) => {
         const texture = new THREE.VideoTexture(video);
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -68,11 +71,24 @@ export const subscribeArtworkMotion = (listener) => {
     listeners.add(listener);
     if (!removeEnvironmentListeners && typeof document !== 'undefined') {
         const connection = navigator.connection;
-        document.addEventListener('visibilitychange', notify);
+        const onVisible = () => {
+            notify();
+            if (document.visibilityState === 'visible') objectVideoCache.retryBlocked();
+        };
+        const onInteraction = (event) => {
+            if (event.isTrusted && !event.repeat) objectVideoCache.retryBlocked();
+        };
+        const interactions = typeof window.PointerEvent === 'function'
+            ? ['pointerup', 'keydown'] : ['touchend', 'mouseup', 'keydown'];
+        document.addEventListener('visibilitychange', onVisible);
+        // Capture keeps recovery working when navigation stops event bubbling.
+        // play() is called synchronously inside this trusted event when possible.
+        interactions.forEach((name) => document.addEventListener(name, onInteraction, { capture: true, passive: true }));
         reducedMotion?.addEventListener('change', notify);
         connection?.addEventListener?.('change', notify);
         removeEnvironmentListeners = () => {
-            document.removeEventListener('visibilitychange', notify);
+            document.removeEventListener('visibilitychange', onVisible);
+            interactions.forEach((name) => document.removeEventListener(name, onInteraction, true));
             reducedMotion?.removeEventListener('change', notify);
             connection?.removeEventListener?.('change', notify);
         };
@@ -81,10 +97,4 @@ export const subscribeArtworkMotion = (listener) => {
         listeners.delete(listener);
         if (!listeners.size) { removeEnvironmentListeners?.(); removeEnvironmentListeners = null; }
     };
-};
-
-export const setArtworkMotionPaused = (paused) => {
-    manuallyPaused = Boolean(paused);
-    try { sessionStorage.setItem(PAUSED_KEY, String(manuallyPaused)); } catch { /* Optional preference storage. */ }
-    notify();
 };

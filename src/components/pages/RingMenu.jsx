@@ -6,7 +6,7 @@ import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
-import { isObjectPosterReady } from '../../data/objectLoops';
+import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -156,7 +156,7 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
 
 const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled }) => {
     const meshRef = React.useRef(null);
-    const tex = useProgressiveTexture(url || FALLBACK_COVER, {
+    const tex = useProgressiveTexture(getObjectPosterSrc(url) || FALLBACK_COVER, {
         loadFull: true,
         usePreview: false,
     });

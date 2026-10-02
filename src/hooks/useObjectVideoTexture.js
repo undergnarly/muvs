@@ -46,6 +46,7 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
     const canvas = gl.domElement;
     const frustum = useMemo(() => new THREE.Frustum(), []);
     const projection = useMemo(() => new THREE.Matrix4(), []);
+    const playbackState = useRef({ prepare: false, active: false });
     const preferences = useSyncExternalStore(subscribeArtworkMotion, getArtworkMotionSnapshot, () => 4);
 
     const subscribe = useCallback((listener) => {
@@ -63,19 +64,18 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
 
     useEffect(() => observeCanvas(canvas, gl.getContext(), (visible) => {
         canvasVisible.current = visible;
-        if (!visible) leaseRef.current?.setActive(false);
+        if (!visible) leaseRef.current?.setPlayback({});
     }), [canvas, gl]);
 
     useEffect(() => {
-        if (!enabled || !posterReady || (preferences & 14)) leaseRef.current?.setActive(false);
+        if (!enabled || !posterReady || preferences) leaseRef.current?.setPlayback({});
     }, [enabled, posterReady, preferences]);
 
     useFrame(({ camera }) => {
         const lease = leaseRef.current;
         if (!lease) return;
         const mesh = meshRef.current;
-        let visible = Boolean(enabled && posterReady && mesh && canvasVisible.current && !(preferences & 14));
-        if (visible && isSettled && !isSettled()) visible = false;
+        let visible = Boolean(enabled && posterReady && mesh && canvasVisible.current && !preferences);
         if (visible) {
             for (let object = mesh; object; object = object.parent) {
                 if (!object.visible) { visible = false; break; }
@@ -89,10 +89,14 @@ export function useObjectVideoTexture(poster, meshRef, { posterReady, enabled, i
         }
         // No separate RAF and no React work per frame: leases notify only when
         // selected/visible status changes. Existing camera transforms are read only.
-        lease.setActive(visible);
+        // Prepare only the selected object once it enters the viewport, without
+        // waiting for the camera to stop. Continuous playback waits for settle.
+        playbackState.current.prepare = visible;
+        playbackState.current.active = visible && (!isSettled || isSettled());
+        lease.setPlayback(playbackState.current);
     });
 
-    return spec && snapshot.active && snapshot.status === 'ready' && !(preferences & 14)
+    return spec && snapshot.active && snapshot.status === 'ready' && !preferences
         ? { texture: snapshot.texture, alphaMap: snapshot.alphaMap }
         : null;
 }
