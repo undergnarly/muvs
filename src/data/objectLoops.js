@@ -13,7 +13,7 @@ export const OBJECT_LOOPS = Object.freeze({
         videoSrc: '/videos/objects/mixes-v2.mp4', alphaMaskSrc: '/videos/objects/mixes-alpha.png', width: 720, height: 720,
     }),
     '/images/menu/code2.webp': Object.freeze({
-        videoSrc: '/videos/objects/code-v2.mp4', alphaMaskSrc: '/videos/objects/code-alpha.png', width: 720, height: 720,
+        videoSrc: '/videos/objects/code-v3.mp4', alphaMaskSrc: '/videos/objects/code-alpha.png', width: 720, height: 720,
     }),
     '/uploads/1783951707737-ai-agents_trans.webp': Object.freeze({
         videoSrc: '/videos/objects/agents.mp4', alphaMaskSrc: '/videos/objects/agents-alpha.png', width: 720, height: 720,

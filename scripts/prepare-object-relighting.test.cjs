@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, PRESETS } = require('./prepare-object-relighting.cjs');
+const { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS } = require('./prepare-object-relighting.cjs');
 
 test('sRGB transfer round trips and does not use gamma-space addition', () => {
   for (const value of [0, 0.01, 0.04, 0.18, 0.5, 0.9, 1]) assert.ok(Math.abs(linearToSrgb(srgbToLinear(value)) - value) < 1e-10);
@@ -43,6 +43,24 @@ test('rendering preserves alpha, untouched pixels, shadow edges and channel limi
     assert.ok(difference >= 0 && difference <= PRESETS.code.maximumRgbLift[channel]);
   }
   assert.deepEqual(renderFrame(fields, 0), renderFrame(fields, 143));
+  assert.deepEqual(renderFrame(fields, 0), fields.base);
+});
+
+test('pale marble gains obvious cool light without a clipped or darkened face', () => {
+  const size = 100;
+  const rgba = Buffer.alloc(size * size * 4, 255);
+  for (let pixel = 0; pixel < size * size; pixel += 1) {
+    rgba.fill(200, pixel * 4, pixel * 4 + 3);
+  }
+  const fields = prepareFields(rgba, Buffer.alloc(size * size, 200), Buffer.alloc(size * size, 200), size, PRESETS.code);
+  const peak = renderFrame(fields, 36);
+  const face = (15 * size + 49) * 3;
+  assert.ok(peak[face + 2] - peak[face] > 25, 'face must read visibly cooler, not just brighter');
+  assert.ok(peak[face + 1] - 200 > 20, 'screen spill includes luminous white/cyan, not blue-only paint');
+  for (let channel = 0; channel < 3; channel += 1) assert.ok(peak[face + channel] >= 200 && peak[face + channel] < 255);
+  const delta = roiColorDelta(fields.base, peak, fields.alpha, PRESETS.code.roi, size);
+  assert.ok(delta.blueMinusRed > 15);
+  assert.deepEqual(peak.subarray(60 * size * 3), fields.base.subarray(60 * size * 3));
 });
 
 test('perceptual comparison finds actual minimum and peak instead of sampling equal phases', () => {

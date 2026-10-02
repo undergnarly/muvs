@@ -56,16 +56,23 @@ const PRESETS = {
     ],
   },
   code: {
-    original: 'public/images/menu/code2.webp', color: [0.36, 0.74, 1.24], maximumRgbLift: [24, 42, 58],
-    description: 'Screen-facing face, chin-hand, nearby chest and typing hand receive slowly varying white-blue screen light; sculpture and laptop remain fixed.',
+    original: 'public/images/menu/code2.webp', color: [0.22, 0.78, 1.8], maximumRgbLift: [24, 58, 84],
+    highlightRolloff: true,
+    description: 'Clearly visible white-blue screen spill on the face, chin-hand and typing hand; soft highlight rolloff preserves marble relief, with fixed sculpture/laptop geometry.',
     roi: { x: 0.491, y: 0.160, sx: 0.052, sy: 0.068 },
+    detailRois: {
+      chinHand: { x: 0.505, y: 0.217, sx: 0.04, sy: 0.034 },
+      typingHand: { x: 0.494, y: 0.417, sx: 0.054, sy: 0.031 },
+    },
     regions: [
-      region('screen-facing face', 0.492, 0.154, 0.036, 0.048, 0.255, 0),
-      region('chin and thinking hand', 0.505, 0.217, 0.037, 0.027, 0.155, 0.12),
-      region('near upper chest', 0.462, 0.292, 0.066, 0.064, 0.083, 0.12),
-      region('screen-facing forearm', 0.548, 0.318, 0.029, 0.070, 0.085, 0.04),
-      region('typing hand', 0.494, 0.417, 0.049, 0.024, 0.158, 0.1),
-      region('keyboard reflection', 0.544, 0.431, 0.068, 0.012, 0.075, 0.05),
+      // One screen is the light source: shared phase starts/ends at the exact
+      // original RGB, also providing a clean landing frame for a separate intro.
+      region('screen-facing face', 0.492, 0.154, 0.038, 0.050, 0.46),
+      region('chin and thinking hand', 0.505, 0.217, 0.039, 0.030, 0.32),
+      region('near upper chest', 0.462, 0.292, 0.064, 0.060, 0.105),
+      region('screen-facing forearm', 0.548, 0.318, 0.029, 0.064, 0.13),
+      region('typing hand', 0.494, 0.417, 0.049, 0.026, 0.29),
+      region('keyboard reflection', 0.544, 0.431, 0.068, 0.012, 0.12),
     ],
   },
 };
@@ -121,7 +128,13 @@ function renderFrame(fields, index, frames = FRAMES) {
     for (let channel = 0; channel < 3; channel += 1) {
       const position = pixel * 3 + channel;
       const initial = base[position];
-      const linear = clamp(linearLookup[initial] + illumination * preset.color[channel], 0, 1);
+      const energy = illumination * preset.color[channel];
+      const baseLinear = linearLookup[initial];
+      const headroom = 1 - baseLinear;
+      // Gradual shoulder instead of a hard blue-channel clip on pale marble.
+      // No darkening/tint layer: only bounded added screen-light energy.
+      const added = preset.highlightRolloff ? headroom * -Math.expm1(-energy / Math.max(0.2, headroom)) : energy;
+      const linear = clamp(baseLinear + added, 0, 1);
       output[position] = Math.min(initial + preset.maximumRgbLift[channel], srgbLookup[Math.round(linear * 65535)]);
     }
   }
@@ -183,6 +196,19 @@ function roiDelta(first, second, alpha, area, size) {
     total += weight * 3;
   }
   return difference / (total || 1);
+}
+
+function roiColorDelta(first, second, alpha, area, size) {
+  const sums = [0, 0, 0];
+  let total = 0;
+  for (let pixel = 0; pixel < alpha.length; pixel += 1) {
+    const weight = spatialWeight((pixel % size) / (size - 1), Math.floor(pixel / size) / (size - 1), area) * alpha[pixel] / 255;
+    if (weight < 0.01) continue;
+    for (let channel = 0; channel < 3; channel += 1) sums[channel] += (second[pixel * 3 + channel] - first[pixel * 3 + channel]) * weight;
+    total += weight;
+  }
+  const rgb = sums.map((value) => value / (total || 1));
+  return { rgb, blueMinusRed: rgb[2] - rgb[0] };
 }
 
 function roiExtremes(frames, alpha, area, size) {
@@ -256,11 +282,12 @@ async function prepare(name, directory, ffmpeg = 'ffmpeg') {
     await sharp({ create: { width: 1200, height: 330, channels: 3, background: '#bdbdbd' } }).composite(composites).png().toFile(path.join(temporary, 'contact.png'));
     const report = { object: name, original: source, description: preset.description, fps: FPS, frames: FRAMES, duration: FRAMES / FPS,
       dimensions: [SIZE, SIZE], audio: false, geometry: 'Exactly the same original RGB pixel positions; no generated pixels, warps, optical flow, scaling or mesh displacement per frame.',
-      colorProcessing: 'sRGB decode → additive illumination in linear RGB → sRGB encode; explicit BT.709 matrix/primaries and sRGB transfer tag.',
-      modulationHz: 1 / 3, maximumRgbLift: preset.maximumRgbLift, lightColor: preset.color, regions: preset.regions,
+      colorProcessing: 'sRGB decode → additive illumination in linear RGB (optional soft highlight rolloff) → sRGB encode; explicit BT.709 matrix/primaries and sRGB transfer tag.',
+      modulationHz: 1 / 3, maximumRgbLift: preset.maximumRgbLift, lightColor: preset.color, highlightRolloff: Boolean(preset.highlightRolloff), regions: preset.regions,
       alpha: 'Unmodified alpha from original resized once to 720; semi-transparent edges/shadows and 2px opaque rim receive no relighting.',
       rawFirstLastIdentical: snapshots.get(0).equals(snapshots.get(143)),
       featureRoi: preset.roi, featureRoiExtremes: extremes, featureRoiMeanDelta300px: roiDelta(displaySnapshots[0], displaySnapshots[1], alphaSmall, preset.roi, 300),
+      featureRoiColorDelta300px: roiColorDelta(displaySnapshots[0], displaySnapshots[1], alphaSmall, preset.roi, 300),
       detailRoiStats,
       encodedTemporalQa300px: encodedStats,
     };
@@ -289,4 +316,4 @@ if (require.main === module) {
   })().catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
 
-module.exports = { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, PRESETS, prepare };
+module.exports = { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS, prepare };
