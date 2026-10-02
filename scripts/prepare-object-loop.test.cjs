@@ -1,7 +1,27 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { interiorMask, seamWeight, estimateShift, temporalStats, parseLightLimit, parseArgs, prepare } = require('./prepare-object-loop.cjs');
+const { interiorMask, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare } = require('./prepare-object-loop.cjs');
+
+test('localized motion leaves every pixel outside the selected region untouched', () => {
+  const mask = Buffer.alloc(40 * 40, 255);
+  const restricted = restrictMotionRegion(mask, 40, 40, [10, 10, 20, 20], 4);
+  assert.equal(restricted[20 * 40 + 20], 255);
+  assert.equal(restricted[20 * 40 + 11], 40);
+  assert.equal(restricted[20 * 40 + 10], 0);
+  assert.equal(restricted[20 * 40 + 30], 0);
+  assert.equal(restricted[9 * 40 + 20], 0);
+  assert.equal(mask[20 * 40 + 10], 255);
+  assert.strictEqual(restrictMotionRegion(mask, 40, 40, null), mask);
+});
+
+test('motion region rejects invalid and out-of-frame rectangles', () => {
+  assert.equal(parseMotionRegion(), null);
+  assert.deepEqual(parseMotionRegion('430,480,100,150'), [430, 480, 100, 150]);
+  for (const value of ['0,0,721,20', '0,710,20,20', '-1,0,20,20', '0,0,1,20', '0,0,20', '0,0,20,NaN']) {
+    assert.throws(() => parseMotionRegion(value));
+  }
+});
 
 test('motion mask preserves translucent shadows, outer rim and interior holes', () => {
   const size = 21;

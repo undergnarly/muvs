@@ -11,6 +11,32 @@ const SIZE = 720;
 const FPS = 24;
 const QA_SIZE = 180;
 
+function parseMotionRegion(value) {
+  if (value == null) return null;
+  const region = String(value).split(',').map(Number);
+  const [x, y, width, height] = region;
+  if (region.length !== 4 || region.some((item) => !Number.isInteger(item))
+      || x < 0 || y < 0 || width < 16 || height < 16 || x + width > SIZE || y + height > SIZE) {
+    throw new Error('--motion-region must be x,y,width,height inside the 720-square output, at least 16px wide/high.');
+  }
+  return region;
+}
+
+function restrictMotionRegion(mask, width, height, region, feather = 8) {
+  if (!region) return mask;
+  if (mask.length !== width * height) throw new Error('Motion mask dimensions do not match.');
+  const [left, top, regionWidth, regionHeight] = region;
+  const result = Buffer.alloc(mask.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const distance = Math.min(x - left, y - top, left + regionWidth - 1 - x, top + regionHeight - 1 - y);
+      const index = y * width + x;
+      result[index] = Math.round(mask[index] * smoothstep(distance / feather));
+    }
+  }
+  return result;
+}
+
 function parseLightLimit(value = '8') {
   const limits = String(value).split(',').map(Number);
   if (![1, 3].includes(limits.length) || limits.some((limit) => !Number.isInteger(limit) || limit < 0 || limit > 32)) {
@@ -150,7 +176,7 @@ function parseArgs(args) {
     if (key === '--help' || key === '-h') { options.help = true; continue; }
     if (key === '--allow-drift') { options.allowDrift = true; continue; }
     if (key === '--lighting-only') { options.lightingOnly = true; continue; }
-    const fields = { '--original': 'original', '--video': 'video', '--out': 'out', '--crf': 'crf', '--max-drift': 'maxDrift', '--ffmpeg': 'ffmpeg', '--ffprobe': 'ffprobe', '--light-limit': 'lightLimit' };
+    const fields = { '--original': 'original', '--video': 'video', '--out': 'out', '--crf': 'crf', '--max-drift': 'maxDrift', '--ffmpeg': 'ffmpeg', '--ffprobe': 'ffprobe', '--light-limit': 'lightLimit', '--motion-region': 'motionRegion' };
     if (!fields[key] || !args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Unknown or incomplete option: ${key}`);
     options[fields[key]] = args[++i];
   }
@@ -159,6 +185,7 @@ function parseArgs(args) {
   options.crf = Number(options.crf);
   options.maxDrift = Number(options.maxDrift);
   options.lightLimit = parseLightLimit(options.lightLimit);
+  options.motionRegion = parseMotionRegion(options.motionRegion);
   if (!Number.isInteger(options.crf) || options.crf < 20 || options.crf > 23) throw new Error('--crf must be 20–23.');
   if (!Number.isFinite(options.maxDrift) || options.maxDrift < 0 || options.maxDrift > 12) throw new Error('--max-drift must be 0–12 pixels.');
   for (const key of ['original', 'video', 'out']) options[key] = path.resolve(options[key]);
@@ -221,7 +248,7 @@ async function prepare(options) {
     mode: options.lightingOnly ? 'lighting-only: fixed original RGB geometry plus bounded low-frequency Flow lighting delta' : 'native Flow RGB inside original silhouette',
     ...(options.lightingOnly ? { lighting: { blurSigmaPx: 3, maximumRgbDelta: options.lightLimit, reference: 'first Flow frame' } } : {}),
     alpha: 'Exact alpha of the source resized to 720×720; stored as grayscale color, not PNG alpha.',
-    motionMask: { opaqueThreshold: 250, preservedRimPx: 2, featherPx: 3 },
+    motionMask: { opaqueThreshold: 250, preservedRimPx: 2, featherPx: 3, region: options.motionRegion || null, regionFeatherPx: 8 },
     seam: { fadeSeconds: 0.25, firstAndLastFrame: 'original RGB before lossy H.264 encoding', boundaryFadeQp: 18 },
     drift: { detection: 'Coarse gradient registration, 4px resolution; diagnostic only, no stabilization applied.', maxTranslationPx: maxTranslation,
       originalAlignment: { dxPx: originalAlignment.dx * 4, dyPx: originalAlignment.dy * 4, correlation: Number(originalAlignment.score.toFixed(3)) }, sampled },
@@ -238,7 +265,7 @@ async function prepare(options) {
   try {
     const inTemp = (name) => path.join(temporary, name);
     await sharp(rgb, { raw: { width: SIZE, height: SIZE, channels: 3 } }).png().toFile(inTemp('rgb.png'));
-    await sharp(interiorMask(alpha, SIZE, SIZE), { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('motion.png'));
+    await sharp(restrictMotionRegion(interiorMask(alpha, SIZE, SIZE), SIZE, SIZE, options.motionRegion), { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('motion.png'));
     await sharp(alpha, { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('alpha.png'));
     await sharp(rgba, { raw: { width: SIZE, height: SIZE, channels: 4 } }).webp({ lossless: true }).toFile(inTemp('poster.webp'));
     const progress = `clip(min(T/0.25,(${lastFrameTime.toFixed(8)}-T)/0.25),0,1)`;
@@ -296,7 +323,7 @@ if (require.main === module) {
   (async () => {
     const options = parseArgs(process.argv.slice(2));
     if (options.help) {
-      console.log('Usage: node scripts/prepare-object-loop.cjs --original image.webp --video flow.mp4 --out output/name [--lighting-only] [--light-limit 8 | 8,20,8] [--crf 22] [--max-drift 4] [--allow-drift] [--ffmpeg path] [--ffprobe path]\nCreates name.mp4, name-alpha.png, name-poster.webp and name-qa.json. Existing outputs are never overwritten. Lighting-only preserves the original geometry and borrows only a bounded RGB lighting delta from Flow.');
+      console.log('Usage: node scripts/prepare-object-loop.cjs --original image.webp --video flow.mp4 --out output/name [--motion-region x,y,width,height] [--lighting-only] [--light-limit 8 | 8,20,8] [--crf 22] [--max-drift 4] [--allow-drift] [--ffmpeg path] [--ffprobe path]\nCreates name.mp4, name-alpha.png, name-poster.webp and name-qa.json. Existing outputs are never overwritten. Motion-region freezes pixels outside a feathered rectangle. Lighting-only preserves the original geometry and borrows only a bounded RGB lighting delta from Flow.');
       return;
     }
     console.log(JSON.stringify(await prepare(options), null, 2));
@@ -306,4 +333,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { interiorMask, smoothstep, seamWeight, estimateShift, temporalStats, parseLightLimit, parseArgs, prepare };
+module.exports = { interiorMask, smoothstep, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare };
