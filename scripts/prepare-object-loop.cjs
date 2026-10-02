@@ -37,6 +37,17 @@ function restrictMotionRegion(mask, width, height, region, feather = 8) {
   return result;
 }
 
+// Explicit opt-in for a reviewed internal patch. Do not expand tiny near-opaque
+// alpha defects into large frozen holes over a moving subject. Keep weighting,
+// and do not animate any pixel below the conservative source-alpha 200 guard.
+function interiorMotionMask(alpha, width, height, region, feather = 8) {
+  if (!region) throw new Error('--interior-motion requires --motion-region.');
+  if (alpha.length !== width * height) throw new Error('Alpha dimensions do not match.');
+  const mask = Buffer.from(alpha);
+  for (let i = 0; i < mask.length; i += 1) if (alpha[i] < 200) mask[i] = 0;
+  return restrictMotionRegion(mask, width, height, region, feather);
+}
+
 function parseLightLimit(value = '8') {
   const limits = String(value).split(',').map(Number);
   if (![1, 3].includes(limits.length) || limits.some((limit) => !Number.isInteger(limit) || limit < 0 || limit > 32)) {
@@ -176,6 +187,7 @@ function parseArgs(args) {
     if (key === '--help' || key === '-h') { options.help = true; continue; }
     if (key === '--allow-drift') { options.allowDrift = true; continue; }
     if (key === '--lighting-only') { options.lightingOnly = true; continue; }
+    if (key === '--interior-motion') { options.interiorMotion = true; continue; }
     const fields = { '--original': 'original', '--video': 'video', '--out': 'out', '--crf': 'crf', '--max-drift': 'maxDrift', '--ffmpeg': 'ffmpeg', '--ffprobe': 'ffprobe', '--light-limit': 'lightLimit', '--motion-region': 'motionRegion' };
     if (!fields[key] || !args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Unknown or incomplete option: ${key}`);
     options[fields[key]] = args[++i];
@@ -186,6 +198,7 @@ function parseArgs(args) {
   options.maxDrift = Number(options.maxDrift);
   options.lightLimit = parseLightLimit(options.lightLimit);
   options.motionRegion = parseMotionRegion(options.motionRegion);
+  if (options.interiorMotion && !options.motionRegion) throw new Error('--interior-motion requires --motion-region.');
   if (!Number.isInteger(options.crf) || options.crf < 20 || options.crf > 23) throw new Error('--crf must be 20–23.');
   if (!Number.isFinite(options.maxDrift) || options.maxDrift < 0 || options.maxDrift > 12) throw new Error('--max-drift must be 0–12 pixels.');
   for (const key of ['original', 'video', 'out']) options[key] = path.resolve(options[key]);
@@ -193,6 +206,7 @@ function parseArgs(args) {
 }
 
 async function prepare(options) {
+  if (options.interiorMotion && !options.motionRegion) throw new Error('--interior-motion requires --motion-region.');
   const targets = {
     video: `${options.out}.mp4`, alpha: `${options.out}-alpha.png`,
     poster: `${options.out}-poster.webp`, report: `${options.out}-qa.json`,
@@ -248,7 +262,9 @@ async function prepare(options) {
     mode: options.lightingOnly ? 'lighting-only: fixed original RGB geometry plus bounded low-frequency Flow lighting delta' : 'native Flow RGB inside original silhouette',
     ...(options.lightingOnly ? { lighting: { blurSigmaPx: 3, maximumRgbDelta: options.lightLimit, reference: 'first Flow frame' } } : {}),
     alpha: 'Exact alpha of the source resized to 720×720; stored as grayscale color, not PNG alpha.',
-    motionMask: { opaqueThreshold: 250, preservedRimPx: 2, featherPx: 3, region: options.motionRegion || null, regionFeatherPx: 8 },
+    motionMask: { mode: options.interiorMotion ? 'alpha-weighted internal ROI; no hole dilation' : 'eroded opaque interior',
+      opaqueThreshold: options.interiorMotion ? 200 : 250, preservedRimPx: options.interiorMotion ? 0 : 2,
+      featherPx: options.interiorMotion ? 0 : 3, region: options.motionRegion || null, regionFeatherPx: 8 },
     seam: { fadeSeconds: 0.25, firstAndLastFrame: 'original RGB before lossy H.264 encoding', boundaryFadeQp: 18 },
     drift: { detection: 'Coarse gradient registration, 4px resolution; diagnostic only, no stabilization applied.', maxTranslationPx: maxTranslation,
       originalAlignment: { dxPx: originalAlignment.dx * 4, dyPx: originalAlignment.dy * 4, correlation: Number(originalAlignment.score.toFixed(3)) }, sampled },
@@ -265,7 +281,10 @@ async function prepare(options) {
   try {
     const inTemp = (name) => path.join(temporary, name);
     await sharp(rgb, { raw: { width: SIZE, height: SIZE, channels: 3 } }).png().toFile(inTemp('rgb.png'));
-    await sharp(restrictMotionRegion(interiorMask(alpha, SIZE, SIZE), SIZE, SIZE, options.motionRegion), { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('motion.png'));
+    const motion = options.interiorMotion
+      ? interiorMotionMask(alpha, SIZE, SIZE, options.motionRegion)
+      : restrictMotionRegion(interiorMask(alpha, SIZE, SIZE), SIZE, SIZE, options.motionRegion);
+    await sharp(motion, { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('motion.png'));
     await sharp(alpha, { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(inTemp('alpha.png'));
     await sharp(rgba, { raw: { width: SIZE, height: SIZE, channels: 4 } }).webp({ lossless: true }).toFile(inTemp('poster.webp'));
     const progress = `clip(min(T/0.25,(${lastFrameTime.toFixed(8)}-T)/0.25),0,1)`;
@@ -323,7 +342,7 @@ if (require.main === module) {
   (async () => {
     const options = parseArgs(process.argv.slice(2));
     if (options.help) {
-      console.log('Usage: node scripts/prepare-object-loop.cjs --original image.webp --video flow.mp4 --out output/name [--motion-region x,y,width,height] [--lighting-only] [--light-limit 8 | 8,20,8] [--crf 22] [--max-drift 4] [--allow-drift] [--ffmpeg path] [--ffprobe path]\nCreates name.mp4, name-alpha.png, name-poster.webp and name-qa.json. Existing outputs are never overwritten. Motion-region freezes pixels outside a feathered rectangle. Lighting-only preserves the original geometry and borrows only a bounded RGB lighting delta from Flow.');
+      console.log('Usage: node scripts/prepare-object-loop.cjs --original image.webp --video flow.mp4 --out output/name [--motion-region x,y,width,height] [--interior-motion] [--lighting-only] [--light-limit 8 | 8,20,8] [--crf 22] [--max-drift 4] [--allow-drift] [--ffmpeg path] [--ffprobe path]\nCreates name.mp4, name-alpha.png, name-poster.webp and name-qa.json. Existing outputs are never overwritten. Motion-region freezes pixels outside a feathered rectangle. Interior-motion requires a region, uses original alpha without expanding tiny holes, and excludes source alpha below200; the output alpha is unchanged. Lighting-only preserves the original geometry and borrows only a bounded RGB lighting delta from Flow.');
       return;
     }
     console.log(JSON.stringify(await prepare(options), null, 2));
@@ -333,4 +352,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { interiorMask, smoothstep, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare };
+module.exports = { interiorMask, interiorMotionMask, smoothstep, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare };

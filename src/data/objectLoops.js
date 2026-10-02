@@ -7,7 +7,7 @@
 export const OBJECT_LOOPS = Object.freeze({
     '/images/menu/music2.webp': Object.freeze({
         posterSrc: '/videos/objects/music-v2-poster.webp',
-        videoSrc: '/videos/objects/music-v2.mp4', alphaMaskSrc: '/videos/objects/music-alpha.png', width: 720, height: 720,
+        videoSrc: '/videos/objects/music-v3.mp4', alphaMaskSrc: '/videos/objects/music-alpha.png', width: 720, height: 720,
     }),
     '/images/menu/mixes-trans.webp': Object.freeze({
         videoSrc: '/videos/objects/mixes-v2.mp4', alphaMaskSrc: '/videos/objects/mixes-alpha.png', width: 720, height: 720,

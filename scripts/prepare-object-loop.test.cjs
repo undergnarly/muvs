@@ -1,7 +1,32 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { interiorMask, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare } = require('./prepare-object-loop.cjs');
+const { interiorMask, interiorMotionMask, seamWeight, estimateShift, temporalStats, parseLightLimit, parseMotionRegion, restrictMotionRegion, parseArgs, prepare } = require('./prepare-object-loop.cjs');
+
+test('interior motion preserves alpha weighting without dilating tiny defects', () => {
+  const alpha = Buffer.alloc(40 * 40, 255);
+  alpha[20 * 40 + 20] = 240;
+  alpha[21 * 40 + 20] = 171;
+  const before = Buffer.from(alpha);
+  const mask = interiorMotionMask(alpha, 40, 40, [5, 5, 30, 30], 4);
+  assert.equal(mask[20 * 40 + 20], 240);
+  assert.equal(mask[20 * 40 + 21], 255);
+  assert.equal(mask[21 * 40 + 20], 0);
+  assert.equal(mask[21 * 40 + 21], 255);
+  assert.equal(mask[0], 0);
+  assert.deepEqual(alpha, before);
+  for (let i = 0; i < alpha.length; i++) if (mask[i] > 0) assert.ok(alpha[i] >= 200);
+});
+
+test('interior motion is opt-in and cannot operate without a bounded region', async () => {
+  const args = ['--original', 'a.webp', '--video', 'b.mp4', '--out', 'c'];
+  assert.throws(() => parseArgs([...args, '--interior-motion']), /requires --motion-region/);
+  assert.throws(() => interiorMotionMask(Buffer.alloc(400), 20, 20), /requires --motion-region/);
+  await assert.rejects(prepare({ interiorMotion: true }), /requires --motion-region/);
+  const options = parseArgs([...args, '--interior-motion', '--motion-region', '423,488,95,156']);
+  assert.equal(options.interiorMotion, true);
+  assert.deepEqual(options.motionRegion, [423,488,95,156]);
+});
 
 test('localized motion leaves every pixel outside the selected region untouched', () => {
   const mask = Buffer.alloc(40 * 40, 255);
