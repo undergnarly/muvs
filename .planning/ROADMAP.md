@@ -7,3 +7,11 @@
 3. Integration, tests, browser verification and deployment.
 
 Plan: `phases/01-dubplates/01-01-PLAN.md`.
+
+## Phase 02 — Subtle object loops
+
+1. Generate four restrained Flow / Omni loops and prepare transparent web media.
+2. Add selected-only video textures, poster fallback and accessible motion controls.
+3. Verify desktop/mobile and failure behavior, then publish with the existing atomic deploy.
+
+Plan: `phases/02-object-loops/02-01-PLAN.md`.
