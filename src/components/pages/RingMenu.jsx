@@ -5,6 +5,8 @@ import { Html, Text } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
+import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
+import { isObjectPosterReady } from '../../data/objectLoops';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -152,10 +154,14 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
     );
 };
 
-const RingCover = ({ url, size, onClick }) => {
+const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled }) => {
+    const meshRef = React.useRef(null);
     const tex = useProgressiveTexture(url || FALLBACK_COVER, {
         loadFull: true,
         usePreview: false,
+    });
+    const video = useObjectVideoTexture(url, meshRef, {
+        posterReady: isObjectPosterReady(tex, url), enabled: motionEnabled, isSettled: isMotionSettled,
     });
 
     const imgW = tex?.image?.naturalWidth || tex?.image?.width || 1;
@@ -167,14 +173,14 @@ const RingCover = ({ url, size, onClick }) => {
     }, [imgW, imgH, size]);
 
     return (
-        <mesh onClick={onClick}>
+        <mesh ref={meshRef} onClick={onClick}>
             <planeGeometry args={[width, height]} />
-            <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} transparent opacity={tex ? 1 : 0} toneMapped={false} />
+            <meshBasicMaterial key={video?.texture.uuid || tex?.uuid || 'empty'} map={video?.texture || tex || null} alphaMap={video?.alphaMap || null} transparent opacity={tex ? 1 : 0} toneMapped={false} />
         </mesh>
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -210,7 +216,11 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 </group>
                 {cover && (
                     <group>
-                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} />
+                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled} isMotionSettled={() => {
+                        const state = stateRef?.current;
+                        return state?.phase === 'menu' && state.menuIndex === index
+                            && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
+                    }} />
                     </group>
                 )}
                 <group>
@@ -252,7 +262,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -268,6 +278,8 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 captionsVisible={captionsVisible}
                 particlesVisible={particlesVisible}
                 particleSettings={particleSettings}
+                motionEnabled={videosEnabled && i === activeIndex}
+                stateRef={stateRef}
             />
         )))}
     </>

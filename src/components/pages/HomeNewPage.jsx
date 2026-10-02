@@ -7,10 +7,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
+import ObjectMotionControl from '../media/ObjectMotionControl';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
+import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
+import { isObjectPosterReady } from '../../data/objectLoops';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -452,8 +455,12 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled }) => {
+    const meshRef = useRef(null);
     const tex = useProgressiveTexture(release.coverImage || FALLBACK_COVER, { loadFull });
+    const video = useObjectVideoTexture(release.coverImage, meshRef, {
+        posterReady: isObjectPosterReady(tex, release.coverImage), enabled: motionEnabled && !hideCover, isSettled: isMotionSettled,
+    });
 
     const { width, height } = useMemo(() => {
         const img = tex?.image;
@@ -496,9 +503,9 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true }
 
             {!hideCover && (
                 <group>
-                    <mesh position={[0, billboard.coverY, 0]}>
+                    <mesh ref={meshRef} position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
-                        <meshBasicMaterial key={tex?.uuid || 'empty'} map={tex || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
+                        <meshBasicMaterial key={video?.texture.uuid || tex?.uuid || 'empty'} map={video?.texture || tex || null} alphaMap={video?.alphaMap || null} color={tex ? '#ffffff' : '#d8dcde'} transparent toneMapped={false} />
                     </mesh>
                 </group>
             )}
@@ -1259,7 +1266,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1277,6 +1284,9 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             billboard={billboard}
                             hideCover={!!tvMix}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
+                            motionEnabled={artworkMotion && index === activeItemIndex}
+                            isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
+                                && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
                     )}
                     <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} loadFull={Math.abs(index - activeItemIndex) <= 1} />
@@ -1327,6 +1337,8 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         activeOnly={hub.phase !== 'menu'}
                         captionsVisible={hub.phase === 'menu'}
                         particlesVisible={hub.phase === 'menu'}
+                        videosEnabled={hub.phase === 'menu'}
+                        stateRef={hub.stateRef}
                     />
                 </group>
             )}
@@ -2680,6 +2692,7 @@ export const Scene3DShell = ({
                             releases={effectiveItems}
                             activeItemIndex={releaseSwitcher.current}
                             activeItemOnly={activeKey === 'music'}
+                            artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
                             hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
@@ -2716,6 +2729,9 @@ export const Scene3DShell = ({
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
                 swipeHintTarget={swipeHintTarget}
             />
+            <ObjectMotionControl poster={hub && hubPhase === 'menu'
+                ? hubCovers?.[ringIndex]
+                : sectionControls && activeKey === 'code' && currentIndex === 0 ? currentRelease?.coverImage : null} />
             {sectionControls && (
                 <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={goTo} startIndex={sectionEntryStop} />
             )}
