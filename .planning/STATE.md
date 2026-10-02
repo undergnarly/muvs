@@ -1,5 +1,7 @@
 # State
 
+2026-10-03: Revision02-03 complete:2.4s Music drop/dust, Mixes warm reveal, original-layer Code laptop opening, stronger blue-white Code screen loop. Once per logical selection, interruptible navigation, shared ring-copy timeline, hidden freeze and reduced-motion/Save-Data fallbacks. One selected playing decoder.71/71 tests, scoped ESLint and local/server builds pass. Desktop/fixed-frame harness/mobile390×844 touch QA and live media hashes pass; physical iPhone remains untested. Media commit106f04e, runtimec059ea6; deployed `/var/www/muvs-releases/c059ea664a49`. CMS SHA256 unchanged. See02-03-SUMMARY.md for one Flow cleanplate still, exact original layers and evidence. Releases animations remain deferred per user request.
+
 2026-09-27: Dubplates implemented from clean main `50cb262`. Backend commit `97b2509`, library/admin commit `6acd583`. Separate DATA_DIR storage prevents general DB overwrites. Four helper tests and five backend suites pass; scoped ESLint/build pass. Browser desktop/mobile and real ZIP download verified. Admin error/recovery tests pass. Deployment is next via existing atomic release and a narrowly scoped nginx include.
 
 User follow-up implemented: gyroscope events, permission prompts, camera tilt, layer parallax and obsolete admin controls removed. Mouse/touch/swipe and camera stops preserved (code equality checked). Browser instrumentation records zero sensor subscriptions. Combined build passes. Deploy together with Dubplates.

@@ -17,3 +17,5 @@ Plan: `phases/01-dubplates/01-01-PLAN.md`.
 Plan: `phases/02-object-loops/02-01-PLAN.md`.
 
 User review revision completed: `phases/02-object-loops/02-02-PLAN.md` — single-lizard Music cleanup, fixed-geometry statue lighting, no motion control, automatic selected playback and mobile verification. Summary: `phases/02-object-loops/02-02-SUMMARY.md`.
+
+Entrance revision completed: `phases/02-object-loops/02-03-PLAN.md` — Music drop/dust, Mixes warm reveal, Code laptop opening and stronger screen light, selected-only2.4s lifecycle, verified production deployment. Summary: `phases/02-object-loops/02-03-SUMMARY.md`. Per-release animations are not part of this revision.
