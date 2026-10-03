@@ -6,13 +6,15 @@
 // }
 export const OBJECT_LOOPS = Object.freeze({
     '/images/menu/music2.webp': Object.freeze({
-        posterSrc: '/videos/objects/music-v2-poster.webp',
+        posterSrc: '/videos/objects/music-v3-poster.webp',
         videoSrc: '/videos/objects/music-v3.mp4', alphaMaskSrc: '/videos/objects/music-alpha.png', width: 720, height: 720,
     }),
     '/images/menu/mixes-trans.webp': Object.freeze({
-        videoSrc: '/videos/objects/mixes-v2.mp4', alphaMaskSrc: '/videos/objects/mixes-alpha.png', width: 720, height: 720,
+        posterSrc: '/videos/objects/mixes-v3-poster.webp',
+        videoSrc: '/videos/objects/mixes-v3.mp4', alphaMaskSrc: '/videos/objects/mixes-alpha.png', width: 720, height: 720,
     }),
     '/images/menu/code2.webp': Object.freeze({
+        posterSrc: '/videos/objects/code-v3-poster.webp',
         videoSrc: '/videos/objects/code-v3.mp4', alphaMaskSrc: '/videos/objects/code-alpha.png', width: 720, height: 720,
     }),
     '/uploads/1783951707737-ai-agents_trans.webp': Object.freeze({

@@ -20,39 +20,28 @@ const srgbLookup = Uint8Array.from({ length: 65536 }, (_, index) => Math.round(c
 const region = (name, x, y, sx, sy, strength, phase = 0) => ({ name, x, y, sx, sy, strength, phase });
 const PRESETS = {
   mixes: {
-    original: 'public/images/menu/mixes-trans.webp', color: [1, 0.79, 0.47], maximumRgbLift: [56, 46, 32],
-    description: 'Slow warm area-light reflections travel from existing left speaker bronze trim through the statue to right speaker trim; no displaced pixels, shapes or light stripes.',
-    roi: { x: 0.5, y: 0.395, sx: 0.070, sy: 0.085 },
+    original: 'public/images/menu/mixes-trans.webp', color: [1, 0.76, 0.40], maximumRgbLift: [36, 28, 17],
+    envelope: 'side-glint',
+    description: 'Brief localized warm glints on side bronze trim every three seconds, separated by a quiet interval; face, chest and ambient body brightness stay unchanged.',
+    roi: { x: 0.105, y: 0.255, sx: 0.060, sy: 0.13 },
     detailRois: {
-      leftSpeaker: { x: 0.16, y: 0.30, sx: 0.15, sy: 0.29 },
-      rightSpeaker: { x: 0.84, y: 0.30, sx: 0.15, sy: 0.29 },
+      leftTrim: { x: 0.09, y: 0.30, sx: 0.060, sy: 0.16 },
+      rightTrim: { x: 0.91, y: 0.30, sx: 0.060, sy: 0.16 },
+      unchangedFace: { x: 0.5, y: 0.395, sx: 0.040, sy: 0.060 },
     },
     regions: [
-      region('crown', 0.5, 0.276, 0.049, 0.049, 0.18, 0.3),
-      region('left cheek and brow', 0.47, 0.384, 0.027, 0.058, 0.19, 0.32),
-      region('right cheek and brow', 0.53, 0.392, 0.027, 0.060, 0.20, -0.42),
-      region('left shoulder bronze folds', 0.372, 0.54, 0.060, 0.090, 0.19, 0.8),
-      region('right shoulder bronze folds', 0.615, 0.541, 0.061, 0.094, 0.20, -0.85),
-      region('chest ornaments', 0.502, 0.555, 0.068, 0.076, 0.14, -0.15),
-      region('left hand', 0.319, 0.696, 0.034, 0.045, 0.16, 0.6),
-      region('right hand', 0.566, 0.699, 0.038, 0.045, 0.18, -0.8),
-      region('left bronze driver', 0.171, 0.622, 0.105, 0.105, 0.046, 1.0),
-      region('right bronze driver', 0.827, 0.62, 0.105, 0.105, 0.048, -1.1),
-      region('mixer metal detail', 0.50, 0.786, 0.265, 0.044, 0.042, -0.6),
-      // Short separated patches follow existing metal parts, not a synthetic moving bar.
-      // Positive phase reaches its highlight first; the right tower follows the statue.
-      region('left upper bronze frame', 0.17, 0.058, 0.10, 0.026, 0.18, 1.5),
-      region('left upper driver metal edge', 0.105, 0.216, 0.038, 0.081, 0.16, 1.4),
-      region('left carved inner cabinet trim', 0.295, 0.354, 0.028, 0.098, 0.16, 1.25),
-      region('left lower circular bronze rim', 0.176, 0.548, 0.087, 0.029, 0.14, 1.3),
-      region('left lower outer carved trim', 0.040, 0.689, 0.031, 0.120, 0.14, 1.2),
-      region('right upper bronze frame', 0.83, 0.058, 0.10, 0.026, 0.18, -1.5),
-      region('right upper driver metal edge', 0.895, 0.216, 0.038, 0.081, 0.16, -1.4),
-      region('right carved inner cabinet trim', 0.705, 0.354, 0.028, 0.098, 0.16, -1.25),
-      region('right lower circular bronze rim', 0.824, 0.548, 0.087, 0.029, 0.14, -1.3),
-      region('right lower outer carved trim', 0.960, 0.689, 0.031, 0.120, 0.14, -1.2),
-      region('left front carved bronze base', 0.305, 0.902, 0.135, 0.034, 0.09, 0.85),
-      region('right front carved bronze base', 0.695, 0.902, 0.135, 0.034, 0.09, -0.85),
+      // Phase is peak time in the three-second cycle for this pulse envelope.
+      // Separated short patches catch existing trim, never the whole composition.
+      region('left upper bronze frame', 0.17, 0.058, 0.074, 0.020, 0.16, 0.85),
+      region('left upper driver metal edge', 0.105, 0.216, 0.028, 0.080, 0.19, 0.96),
+      region('left carved inner cabinet trim', 0.295, 0.354, 0.020, 0.075, 0.14, 1.08),
+      region('left lower outer carved trim', 0.040, 0.635, 0.022, 0.090, 0.13, 1.18),
+      region('left shoulder outer bronze fold', 0.364, 0.531, 0.019, 0.055, 0.095, 1.22),
+      region('right shoulder outer bronze fold', 0.636, 0.531, 0.019, 0.055, 0.095, 1.38),
+      region('right lower outer carved trim', 0.960, 0.635, 0.022, 0.090, 0.13, 1.42),
+      region('right carved inner cabinet trim', 0.705, 0.354, 0.020, 0.075, 0.14, 1.52),
+      region('right upper driver metal edge', 0.895, 0.216, 0.028, 0.080, 0.19, 1.62),
+      region('right upper bronze frame', 0.83, 0.058, 0.074, 0.020, 0.16, 1.73),
     ],
   },
   code: {
@@ -80,6 +69,14 @@ const PRESETS = {
 function lightWave(frame, frames, phase = 0) {
   const position = frame === frames - 1 ? 0 : frame / (frames - 1);
   return (1 - Math.cos(4 * Math.PI * position + phase)) / 2;
+}
+
+function glintWave(frame, frames, peakSeconds, widthSeconds = 0.86) {
+  const time = frame === frames - 1 ? 0 : (frame / FPS) % 3;
+  const distance = Math.abs(time - peakSeconds);
+  if (distance >= widthSeconds / 2) return 0;
+  const weight = Math.cos(Math.PI * distance / widthSeconds);
+  return weight * weight;
 }
 
 function spatialWeight(x, y, area) {
@@ -121,7 +118,8 @@ function prepareFields(rgba, gray, softenedGray, size, preset) {
 function renderFrame(fields, index, frames = FRAMES) {
   const { base, maps, active, preset } = fields;
   const output = Buffer.from(base);
-  const values = preset.regions.map((area) => lightWave(index, frames, area.phase));
+  const values = preset.regions.map((area) => preset.envelope === 'side-glint'
+    ? glintWave(index, frames, area.phase) : lightWave(index, frames, area.phase));
   for (const pixel of active) {
     let illumination = 0;
     for (let area = 0; area < maps.length; area += 1) illumination += maps[area][pixel] * values[area];
@@ -238,6 +236,52 @@ async function maskedPng(rgb, alpha, size = SIZE) {
     .joinChannel(alpha, { raw: { width: size, height: size, channels: 1 } }).png().toBuffer();
 }
 
+async function writeDecodedPoster({ video, alpha, output, reference, ffmpeg = 'ffmpeg' }) {
+  for (const target of [output, `${output}.qa.json`]) if (fs.existsSync(target)) throw new Error(`Refusing to overwrite ${target}`);
+  const rgb = await run(ffmpeg, ['-nostdin', '-v', 'error', '-threads', '2', '-i', video,
+    '-frames:v', '1', '-vf', 'format=rgb24', '-an', '-f', 'rawvideo', 'pipe:1'], SIZE * SIZE * 3);
+  if (rgb.length !== SIZE * SIZE * 3) throw new Error('Poster extraction requires the final 720-square video.');
+  const alphaMetadata = await sharp(alpha).metadata();
+  if (alphaMetadata.width !== SIZE || alphaMetadata.height !== SIZE) throw new Error('Poster alpha must match the final 720-square video.');
+  const mask = await sharp(alpha).greyscale().raw().toBuffer();
+  await fsp.mkdir(path.dirname(path.resolve(output)), { recursive: true });
+  const webp = await sharp(await maskedPng(rgb, mask)).webp({ lossless: true, effort: 6 }).toBuffer();
+  const decoded = await sharp(webp).ensureAlpha().raw().toBuffer();
+  let changedVisibleRgb = 0;
+  let changedAlpha = 0;
+  for (let pixel = 0; pixel < mask.length; pixel += 1) {
+    if (decoded[pixel * 4 + 3] !== mask[pixel]) changedAlpha += 1;
+    if (mask[pixel]) for (let channel = 0; channel < 3; channel += 1) {
+      if (decoded[pixel * 4 + channel] !== rgb[pixel * 3 + channel]) changedVisibleRgb += 1;
+    }
+  }
+  if (changedAlpha || changedVisibleRgb) throw new Error('Lossless poster did not preserve decoded RGB and original alpha.');
+  let previous = null;
+  if (reference) {
+    const original = await sharp(reference).resize(SIZE, SIZE).removeAlpha().raw().toBuffer();
+    previous = temporalStats(Buffer.concat([rgb, original]), mask, SIZE, SIZE).wrap;
+  }
+  const report = { video: path.resolve(video), alpha: path.resolve(alpha), output: path.resolve(output),
+    bytes: webp.length, dimensions: [SIZE, SIZE], firstDecodedFrame: 0,
+    changedVisibleRgb, changedAlpha, previousPosterDifference: previous,
+    colorProcessing: 'Decoded final video RGB with unchanged external alpha, stored in lossless WebP; no white matte, no resize and no color grading.',
+  };
+  await fsp.writeFile(output, webp, { flag: 'wx' });
+  await fsp.writeFile(`${output}.qa.json`, JSON.stringify(report, null, 2), { flag: 'wx' });
+  return report;
+}
+
+async function writeFallbackPoster({ poster, output, size = 96 }) {
+  if (![96, 128].includes(size)) throw new Error('Inline fallback size must be 96 or 128 pixels.');
+  if (fs.existsSync(output)) throw new Error(`Refusing to overwrite ${output}`);
+  const image = await sharp(poster).resize(size, size).webp({ quality: 55, alphaQuality: 100, effort: 6 }).toBuffer();
+  const info = await sharp(image).metadata();
+  if (!info.hasAlpha) throw new Error('Inline object fallback must retain transparency.');
+  await fsp.mkdir(path.dirname(path.resolve(output)), { recursive: true });
+  await fsp.writeFile(output, image, { flag: 'wx' });
+  return { poster: path.resolve(poster), output: path.resolve(output), bytes: image.length, dimensions: [size, size], quality: 55, alphaQuality: 100 };
+}
+
 async function prepare(name, directory, ffmpeg = 'ffmpeg') {
   const preset = PRESETS[name];
   if (!preset) throw new Error('Choose --object mixes or code.');
@@ -258,7 +302,10 @@ async function prepare(name, directory, ffmpeg = 'ffmpeg') {
   try {
     const snapshots = await encode(ffmpeg, path.join(temporary, 'loop.mp4'), fields);
     await sharp(fields.alpha, { raw: { width: SIZE, height: SIZE, channels: 1 } }).png().toFile(path.join(temporary, 'alpha.png'));
-    await sharp(await maskedPng(snapshots.get(0), fields.alpha)).webp({ lossless: true }).toFile(path.join(temporary, 'poster.webp'));
+    // Use the final encoded/decoded first frame, not the pre-encode original:
+    // switching poster to video then cannot introduce a codec color difference.
+    await writeDecodedPoster({ video: path.join(temporary, 'loop.mp4'), alpha: path.join(temporary, 'alpha.png'),
+      output: path.join(temporary, 'poster.webp'), reference: source, ffmpeg });
     const decoded = await run(ffmpeg, ['-nostdin', '-v', 'error', '-threads', '2', '-i', path.join(temporary, 'loop.mp4'), '-vf', 'scale=300:300:flags=area,format=rgb24', '-an', '-f', 'rawvideo', 'pipe:1'], FRAMES * 300 * 300 * 3 + 1024);
     const alphaSmall = await sharp(fields.alpha, { raw: { width: SIZE, height: SIZE, channels: 1 } }).resize(300, 300).greyscale().raw().toBuffer();
     const encodedStats = temporalStats(decoded, alphaSmall, 300, 300);
@@ -270,20 +317,22 @@ async function prepare(name, directory, ffmpeg = 'ffmpeg') {
       const sample = (frame) => decoded.subarray(frame * frameBytes, (frame + 1) * frameBytes);
       detailRoiStats[detail] = { roi, ...range, meanRgbDelta: roiDelta(sample(range.minimum.frame), sample(range.maximum.frame), alphaSmall, roi, 300) };
     }
-    const selectedFrames = [extremes.minimum.frame, extremes.maximum.frame, 18, 54];
+    const selectedFrames = [preset.envelope === 'side-glint' ? 0 : extremes.minimum.frame, extremes.maximum.frame,
+      preset.envelope === 'side-glint' ? 40 : 18, preset.envelope === 'side-glint' ? 60 : 54];
     const displaySnapshots = selectedFrames.map((frame) => decoded.subarray(frame * frameBytes, (frame + 1) * frameBytes));
     const composites = [];
     for (let i = 0; i < displaySnapshots.length; i += 1) {
       const card = await sharp(await maskedPng(displaySnapshots[i], alphaSmall, 300)).flatten({ background: '#bdbdbd' }).png().toBuffer();
       composites.push({ input: card, left: i * 300, top: 30 });
-      const label = Buffer.from(`<svg width="300" height="30"><rect width="300" height="30" fill="#eeeeee"/><text x="10" y="21" font-family="sans-serif" font-size="14" fill="#222">${name} · ${['minimum','peak','rising','falling'][i]} · ${(selectedFrames[i] / FPS).toFixed(2)}s</text></svg>`);
+      const labels = preset.envelope === 'side-glint' ? ['quiet', 'left glint', 'right glint', 'quiet'] : ['minimum', 'peak', 'rising', 'falling'];
+      const label = Buffer.from(`<svg width="300" height="30"><rect width="300" height="30" fill="#eeeeee"/><text x="10" y="21" font-family="sans-serif" font-size="14" fill="#222">${name} · ${labels[i]} · ${(selectedFrames[i] / FPS).toFixed(2)}s</text></svg>`);
       composites.push({ input: label, left: i * 300, top: 0 });
     }
     await sharp({ create: { width: 1200, height: 330, channels: 3, background: '#bdbdbd' } }).composite(composites).png().toFile(path.join(temporary, 'contact.png'));
     const report = { object: name, original: source, description: preset.description, fps: FPS, frames: FRAMES, duration: FRAMES / FPS,
       dimensions: [SIZE, SIZE], audio: false, geometry: 'Exactly the same original RGB pixel positions; no generated pixels, warps, optical flow, scaling or mesh displacement per frame.',
       colorProcessing: 'sRGB decode → additive illumination in linear RGB (optional soft highlight rolloff) → sRGB encode; explicit BT.709 matrix/primaries and sRGB transfer tag.',
-      modulationHz: 1 / 3, maximumRgbLift: preset.maximumRgbLift, lightColor: preset.color, highlightRolloff: Boolean(preset.highlightRolloff), regions: preset.regions,
+      modulationHz: 1 / 3, envelope: preset.envelope || 'continuous-cosine', maximumRgbLift: preset.maximumRgbLift, lightColor: preset.color, highlightRolloff: Boolean(preset.highlightRolloff), regions: preset.regions,
       alpha: 'Unmodified alpha from original resized once to 720; semi-transparent edges/shadows and 2px opaque rim receive no relighting.',
       rawFirstLastIdentical: snapshots.get(0).equals(snapshots.get(143)),
       featureRoi: preset.roi, featureRoiExtremes: extremes, featureRoiMeanDelta300px: roiDelta(displaySnapshots[0], displaySnapshots[1], alphaSmall, preset.roi, 300),
@@ -304,16 +353,29 @@ async function prepare(name, directory, ffmpeg = 'ffmpeg') {
 }
 
 if (require.main === module) {
-  const options = { object: 'all', output: path.resolve(__dirname, '../output/flow-muvs-v2'), ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg' };
+  const options = { object: 'all', output: path.resolve(__dirname, '../output/flow-muvs-v3'), ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg' };
   (async () => {
     for (let i = 2; i < process.argv.length; i += 1) {
-      const field = { '--object': 'object', '--output': 'output', '--ffmpeg': 'ffmpeg' }[process.argv[i]];
+      const field = { '--object': 'object', '--output': 'output', '--ffmpeg': 'ffmpeg', '--poster-video': 'posterVideo',
+        '--poster-alpha': 'posterAlpha', '--poster-output': 'posterOutput', '--poster-reference': 'posterReference',
+        '--fallback-poster': 'fallbackPoster', '--fallback-output': 'fallbackOutput' }[process.argv[i]];
       if (!field || !process.argv[i + 1]) throw new Error('Usage: node scripts/prepare-object-relighting.cjs [--object mixes|code|all] [--output directory] [--ffmpeg executable]');
       options[field] = process.argv[++i];
+    }
+    if (options.fallbackPoster) {
+      if (!options.fallbackOutput) throw new Error('Inline fallback generation needs --fallback-output.');
+      console.log(JSON.stringify(await writeFallbackPoster({ poster: options.fallbackPoster, output: options.fallbackOutput }), null, 2));
+      return;
+    }
+    if (options.posterVideo) {
+      if (!options.posterAlpha || !options.posterOutput) throw new Error('Poster extraction also needs --poster-alpha and --poster-output.');
+      console.log(JSON.stringify(await writeDecodedPoster({ video: options.posterVideo, alpha: options.posterAlpha,
+        output: options.posterOutput, reference: options.posterReference, ffmpeg: options.ffmpeg }), null, 2));
+      return;
     }
     const objects = options.object === 'all' ? ['mixes', 'code'] : [options.object];
     for (const name of objects) console.log(JSON.stringify(await prepare(name, options.output, options.ffmpeg), null, 2));
   })().catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
 
-module.exports = { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS, prepare };
+module.exports = { srgbToLinear, linearToSrgb, lightWave, glintWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS, prepare, writeDecodedPoster, writeFallbackPoster };

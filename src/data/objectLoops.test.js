@@ -4,9 +4,18 @@ import { getObjectLoop, getObjectPosterSrc, isObjectPosterReady } from './object
 
 test('Music uses the same cleaned single-lizard poster for loading and fallback', () => {
     const canonical = '/images/menu/music2.webp';
-    assert.equal(getObjectPosterSrc(canonical), '/videos/objects/music-v2-poster.webp');
+    assert.equal(getObjectPosterSrc(canonical), '/videos/objects/music-v3-poster.webp');
     assert.equal(isObjectPosterReady({ image: { currentSrc: `https://muvs.dev${getObjectPosterSrc(canonical)}` } }, canonical), true);
     assert.equal(isObjectPosterReady({ image: { src: `https://muvs.dev${canonical}` } }, canonical), false);
+});
+
+test('all menu loops provide exact-first-frame posters alongside video and alpha', () => {
+    for (const canonical of ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp']) {
+        const loop = getObjectLoop(canonical);
+        assert.match(loop.posterSrc, /-v3-poster\.webp$/);
+        assert.match(loop.videoSrc, /-v3\.mp4$/);
+        assert.match(loop.alphaMaskSrc, /-alpha\.png$/);
+    }
 });
 
 test('preview readiness recognizes the cleaned poster rather than the rejected original', () => {

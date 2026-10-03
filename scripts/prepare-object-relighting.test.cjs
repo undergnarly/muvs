@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { srgbToLinear, linearToSrgb, lightWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS } = require('./prepare-object-relighting.cjs');
+const { srgbToLinear, linearToSrgb, lightWave, glintWave, spatialWeight, prepareFields, renderFrame, roiExtremes, roiColorDelta, PRESETS } = require('./prepare-object-relighting.cjs');
 
 test('sRGB transfer round trips and does not use gamma-space addition', () => {
   for (const value of [0, 0.01, 0.04, 0.18, 0.5, 0.9, 1]) assert.ok(Math.abs(linearToSrgb(srgbToLinear(value)) - value) < 1e-10);
@@ -70,11 +70,30 @@ test('perceptual comparison finds actual minimum and peak instead of sampling eq
   assert.equal(actual.maximum.frame, 1);
 });
 
-test('bronze trim reflection passes from left through statue to right', () => {
-  const peak = (area) => Math.PI - PRESETS.mixes.regions.find((region) => region.name === area).phase;
-  assert.ok(peak('left upper bronze frame') < peak('crown'));
-  assert.ok(peak('crown') < peak('right upper bronze frame'));
+test('short bronze side glints repeat after three seconds with exact quiet intervals', () => {
   const topLeft = PRESETS.mixes.regions.find((area) => area.name === 'left upper bronze frame');
   assert.ok(spatialWeight(.17, .058, topLeft) > .99);
   assert.equal(spatialWeight(.50, .07, topLeft), 0);
+  for (const area of PRESETS.mixes.regions) {
+    assert.equal(glintWave(0, 144, area.phase), 0);
+    assert.equal(glintWave(60, 144, area.phase), 0);
+    assert.equal(glintWave(143, 144, area.phase), 0);
+    for (let frame = 0; frame < 71; frame += 1) {
+      assert.ok(Math.abs(glintWave(frame, 144, area.phase) - glintWave(frame + 72, 144, area.phase)) < 1e-12);
+    }
+  }
+});
+
+test('bronze glints never pulse the statue face/chest or alter the original quiet frame', () => {
+  const size = 100;
+  const rgba = Buffer.alloc(size * size * 4, 255);
+  for (let pixel = 0; pixel < size * size; pixel += 1) rgba.fill(120, pixel * 4, pixel * 4 + 3);
+  const fields = prepareFields(rgba, Buffer.alloc(size * size, 120), Buffer.alloc(size * size, 105), size, PRESETS.mixes);
+  for (const frame of [0, 60, 143]) assert.deepEqual(renderFrame(fields, frame), fields.base);
+  const peak = renderFrame(fields, 24);
+  assert.notDeepEqual(peak, fields.base);
+  for (let y = 25; y <= 68; y += 1) for (let x = 43; x <= 57; x += 1) {
+    const pixel = (y * size + x) * 3;
+    assert.deepEqual(peak.subarray(pixel, pixel + 3), fields.base.subarray(pixel, pixel + 3));
+  }
 });
