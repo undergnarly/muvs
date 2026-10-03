@@ -11,10 +11,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <script>
     if (!/^\/(?:admin|login|projects|dubplates)(?:\/|$)/.test(location.pathname)) {
-      ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp'].forEach(function (href) {
+      ['/videos/objects/music-v3-poster.webp', '/videos/objects/mixes-v3-poster.webp', '/videos/objects/code-v3-poster.webp'].forEach(function (href) {
         var link = document.createElement('link');
         link.rel = 'preload';
         link.as = 'image';
+        link.crossOrigin = 'anonymous';
         link.href = href;
         link.fetchPriority = 'high';
         document.head.appendChild(link);
@@ -28,6 +29,8 @@
     }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Optional reading-page fonts must not reject the main Vite CSS chunk. -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 
 <body>
@@ -41,31 +44,6 @@
       <div id="splash-status" style="margin-top:10px;font-size:11px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,0.85)">LOADING</div>
     </div>
   </div>
-  <script>
-    (function(){
-      var bar=document.getElementById('splash-bar');
-      var status=document.getElementById('splash-status');
-      var progress=0;
-      var steps=[
-        [10,'SCRIPTS'],
-        [30,'FONTS'],
-        [55,'ASSETS'],
-        [75,'TEXTURES'],
-        [90,'RENDER'],
-        [100,'READY']
-      ];
-      var i=0;
-      function tick(){
-        if(i>=steps.length)return;
-        var s=steps[i];
-        bar.style.width=s[0]+'%';
-        status.textContent=s[1];
-        i++;
-        setTimeout(tick,300+Math.random()*400);
-      }
-      setTimeout(tick,100);
-    })();
-  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

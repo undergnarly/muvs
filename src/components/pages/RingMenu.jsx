@@ -6,8 +6,11 @@ import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
-import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
-import ArtworkEntrance from '../media/ArtworkEntrance';
+import { getObjectPosterSrc } from '../../data/objectLoops';
+import { getObjectFallbackSrc } from '../../data/menuArtwork';
+import { markMenuArtworkRendered } from '../../utils/menuStartup';
+import ArtworkMaterial from '../media/ArtworkMaterial';
+import { FONT_REGULAR, FONT_BOLD } from '../../data/menuFonts';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -67,8 +70,6 @@ export const lerpPose = (a, b, t) => ({
     fov: lerpN(a.fov, b.fov, t),
 });
 
-const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
-const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
 const FALLBACK_COVER = '/images/logo.png';
 
 const particleRandom = (index, salt) => {
@@ -155,15 +156,15 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
     );
 };
 
-const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, entranceTimeline, entranceKey }) => {
+const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled }) => {
     const meshRef = React.useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(url) || FALLBACK_COVER, {
         loadFull: true,
         usePreview: false,
+        fallback: getObjectFallbackSrc(url) || FALLBACK_COVER,
     });
-    const { video, entranceRef } = useObjectVideoTexture(url, meshRef, {
-        posterReady: isObjectPosterReady(tex, url), enabled: motionEnabled, isSettled: isMotionSettled,
-        entranceTimeline, entranceKey,
+    const video = useObjectVideoTexture(url, meshRef, {
+        posterReady: Boolean(tex), enabled: motionEnabled, isSettled: isMotionSettled,
     });
 
     const imgW = tex?.image?.naturalWidth || tex?.image?.width || 1;
@@ -175,14 +176,14 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled,
     }, [imgW, imgH, size]);
 
     return (
-        <mesh ref={meshRef} onClick={onClick}>
+        <mesh ref={meshRef} onClick={onClick} onAfterRender={() => { if (motionEnabled && tex) markMenuArtworkRendered(); }}>
             <planeGeometry args={[width, height]} />
-            <ArtworkEntrance poster={url} posterTexture={tex} video={video} width={width} height={height} entranceRef={entranceRef} meshRef={meshRef} />
+            <ArtworkMaterial posterTexture={tex} video={video} />
         </mesh>
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef, entranceTimeline }) => {
+const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -192,6 +193,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
                 <group>
                 <Text
+                    onAfterRender={motionEnabled && item.key === 'about' ? markMenuArtworkRendered : undefined}
                     position={[0, 2.25, -1.2]}
                     fontSize={0.92}
                     color="#ffffff"
@@ -218,7 +220,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                 </group>
                 {cover && (
                     <group>
-                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled} entranceTimeline={entranceTimeline} entranceKey={`menu:${item.key}`} isMotionSettled={() => {
+                    <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled} isMotionSettled={() => {
                         const state = stateRef?.current;
                         return state?.phase === 'menu' && state.menuIndex === index
                             && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
@@ -264,7 +266,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef, entranceTimeline }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -282,7 +284,6 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 particleSettings={particleSettings}
                 motionEnabled={videosEnabled && i === activeIndex}
                 stateRef={stateRef}
-                entranceTimeline={entranceTimeline}
             />
         )))}
     </>

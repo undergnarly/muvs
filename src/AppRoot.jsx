@@ -37,6 +37,30 @@ import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
+import { prepareMenuArtwork, waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
+import { settleWithin } from './utils/menuStartupGate';
+import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
+
+const StartupFallback = () => (
+    <main style={{ position: 'fixed', inset: 0, zIndex: 9998, overflow: 'auto', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', color: '#222', background: 'linear-gradient(to bottom, #696969, #a3a3a3 22%, #d8d8d8 46%, #fff 64%)' }}>
+        <div>
+            <img src={getObjectFallbackSrc(MENU_ARTWORK[0])} alt="MUVS sound system" width="280" height="280" style={{ width: 'min(65vw, 280px)', height: 'auto' }} />
+            <h1 style={{ fontSize: 24, margin: '16px 0' }}>MUVS</h1>
+            <p role="status">The 3D view couldn’t load. Your music is still here.</p>
+            <nav aria-label="Static site navigation" style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', margin: '20px 0' }}>
+                <a href={ROUTES.MUSIC_OLD}>Music</a><a href={ROUTES.MIXES_OLD}>Mixes</a><a href={ROUTES.CODE_OLD}>Code</a>
+            </nav>
+            <a href="/" style={{ display: 'inline-block', padding: '12px 20px', border: '1px solid currentColor', borderRadius: 30 }}>Reload 3D menu</a>
+        </div>
+    </main>
+);
+
+class MenuSceneBoundary extends React.Component {
+    state = { failed: false };
+    static getDerivedStateFromError() { return { failed: true }; }
+    componentDidCatch() { this.props.onFailure(); }
+    render() { return this.state.failed ? null : this.props.children; }
+}
 
 const LoadingFallback = () => (
     <div style={{ height: '100vh', width: '100vw', background: 'var(--color-bg-dark)' }} />
@@ -63,6 +87,13 @@ const ReleasePermalinkRoute = () => {
 function AppRoot() {
     const { trackVisit, siteSettings, releases } = useData();
     const location = useLocation();
+    const [startupFailed, setStartupFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!startupFailed) return;
+        document.getElementById('splash-screen')?.remove();
+        markMenuRevealed();
+    }, [startupFailed]);
 
 
     React.useEffect(() => {
@@ -70,41 +101,37 @@ function AppRoot() {
         if (!location.pathname.startsWith('/dubplates')) trackVisit(location.pathname, document.referrer);
     }, [location.pathname]);
 
-    // Remove Splash Screen on Mount
     React.useEffect(() => {
         const splash = document.getElementById('splash-screen');
         if (!splash) return undefined;
 
         let removed = false;
+        let cancelled = false;
+        let removeTimer;
+        let routeTimer;
         const hideSplash = () => {
-            if (removed) return;
+            if (removed || cancelled) return;
             removed = true;
+            const bar = document.getElementById('splash-bar');
+            if (bar) bar.style.width = '100%';
+            const status = document.getElementById('splash-status');
+            if (status) status.textContent = 'READY';
             splash.classList.add('hidden');
-            setTimeout(() => splash.remove(), 1000);
+            removeTimer = setTimeout(() => { splash.remove(); markMenuRevealed(); }, 600);
         };
-        if (/^\/(?:admin|login|projects|dubplates)(?:\/|$)/.test(location.pathname)) {
-            const timer = setTimeout(hideSplash, 500);
-            return () => clearTimeout(timer);
+        if (location.pathname === '/') {
+            // Media have their own 8s fallback; this final deadline also covers
+            // failed WebGL/inline decoding or a scene that never renders.
+            const ready = prepareMenuArtwork().then(waitForMenuArtwork).then(() => true);
+            settleWithin(ready, 15000).then((success) => {
+                if (cancelled) return;
+                if (!success) setStartupFailed(true);
+                hideSplash();
+            });
+        } else {
+            routeTimer = setTimeout(hideSplash, 500);
         }
-        const menuImages = [
-            '/images/menu/music2.webp',
-            '/images/menu/mixes-trans.webp',
-            '/images/menu/code2.webp',
-        ];
-        const imageReady = (src) => new Promise((resolve) => {
-            const image = new Image();
-            image.decoding = 'async';
-            image.onload = resolve;
-            image.onerror = resolve;
-            image.src = src;
-        });
-        const fallbackTimer = setTimeout(hideSplash, 8000);
-        Promise.all(menuImages.map(imageReady)).then(() => {
-            clearTimeout(fallbackTimer);
-            setTimeout(hideSplash, 250);
-        });
-
-        return () => clearTimeout(fallbackTimer);
+        return () => { cancelled = true; clearTimeout(routeTimer); clearTimeout(removeTimer); };
     }, [location.pathname]);
 
     // Update favicon dynamically
@@ -161,7 +188,11 @@ function AppRoot() {
             {!hideOverlays && <PageGradient />}
             <Routes>
                 <Route path="/dubplates" element={<Suspense fallback={<LoadingFallback />}><DubplatesPage /></Suspense>} />
-                <Route path={ROUTES.HOME} element={<HomeNewPage />} />
+                <Route path={ROUTES.HOME} element={startupFailed ? <StartupFallback /> : (
+                    <MenuSceneBoundary onFailure={() => setStartupFailed(true)}>
+                        <Suspense fallback={null}><HomeNewPage /></Suspense>
+                    </MenuSceneBoundary>
+                )} />
                 <Route path={ROUTES.MUSIC} element={<MusicNewPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutHubPage />} />
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />

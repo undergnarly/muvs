@@ -4,6 +4,7 @@ import { createObjectVideoCache } from './objectVideoCache.js';
 const listeners = new Set();
 const reducedMotion = typeof window !== 'undefined' ? window.matchMedia?.('(prefers-reduced-motion: reduce)') : null;
 let removeEnvironmentListeners;
+let frameContext;
 
 // Primitive snapshots stay stable between changes, as useSyncExternalStore requires.
 // The removed manual-pause preference is intentionally never read from storage.
@@ -31,8 +32,25 @@ export function createArtworkVideo() {
     return video;
 }
 
-export const objectVideoCache = createObjectVideoCache({
+export function verifyArtworkVideoFrame(video) {
+    if (video.seeking || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return false;
+    try {
+        if (!frameContext) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            frameContext = canvas.getContext('2d', { willReadFrequently: true });
+        }
+        if (!frameContext) return false;
+        frameContext.clearRect(0, 0, 1, 1);
+        frameContext.drawImage(video, 0, 0, 1, 1);
+        return frameContext.getImageData(0, 0, 1, 1).data[3] > 0;
+    } catch { return false; }
+}
+
+const cache = createObjectVideoCache({
     canPlay: () => getArtworkMotionSnapshot() === 0,
+    verifyFrame: verifyArtworkVideoFrame,
     createVideo: createArtworkVideo,
     createTexture: (video) => {
         const texture = new THREE.VideoTexture(video);
@@ -60,6 +78,21 @@ export const objectVideoCache = createObjectVideoCache({
         }, undefined, reject);
     }),
 });
+
+const preloadPromises = new WeakMap();
+export const objectVideoCache = {
+    ...cache,
+    preload(spec) {
+        const loading = cache.preload(spec);
+        if (!preloadPromises.has(loading)) {
+            // Splash can run before a Canvas subscribes. Keep policy/visibility
+            // handling alive until this warm operation finishes or is skipped.
+            const unsubscribe = subscribeArtworkMotion(() => {});
+            preloadPromises.set(loading, loading.finally(unsubscribe));
+        }
+        return preloadPromises.get(loading);
+    },
+};
 
 const notify = () => {
     // Do this synchronously: background tabs may suspend React and R3F frames.

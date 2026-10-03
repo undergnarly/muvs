@@ -17,9 +17,18 @@ const eventTarget = (properties = {}) => {
 };
 const reducedMotion = eventTarget({ matches: false });
 const connection = eventTarget({ saveData: false });
+let drawFails = false;
+let pixelAlpha = 255;
+let frameDraws = 0;
+const frameContext = {
+    clearRect() {},
+    drawImage() { frameDraws += 1; if (drawFails) throw new Error('Frame unavailable'); },
+    getImageData: () => ({ data: [255, 255, 255, pixelAlpha] }),
+};
 const fakeDocument = eventTarget({
     visibilityState: 'visible',
     createElement(name) {
+        if (name === 'canvas') return { width: 0, height: 0, getContext: () => frameContext };
         assert.equal(name, 'video');
         return { attributes: {}, setAttribute(key, value) { this.attributes[key] = value; } };
     },
@@ -42,7 +51,7 @@ after(() => {
     }
 });
 
-const { createArtworkVideo, getArtworkMotionSnapshot, objectVideoCache, subscribeArtworkMotion } = await import('./objectVideoRuntime.js');
+const { createArtworkVideo, getArtworkMotionSnapshot, objectVideoCache, subscribeArtworkMotion, verifyArtworkVideoFrame } = await import('./objectVideoRuntime.js');
 
 test('legacy session pause is ignored while real environment gates remain', () => {
     assert.equal(storageReads, 0);
@@ -69,6 +78,38 @@ test('mobile video is muted, inline and preloaded, with playback exclusively cac
     assert.ok(Object.hasOwn(video.attributes, 'playsinline'));
     assert.ok(Object.hasOwn(video.attributes, 'webkit-playsinline'));
     assert.ok(Object.hasOwn(video.attributes, 'muted'));
+});
+
+test('paused-frame verification requires real decoded pixels, not metadata or a successful empty draw', () => {
+    const video = { readyState: 1, videoWidth: 720, videoHeight: 720, seeking: false };
+    assert.equal(verifyArtworkVideoFrame(video), false);
+    assert.equal(frameDraws, 0);
+    video.readyState = 2;
+    video.seeking = true;
+    assert.equal(verifyArtworkVideoFrame(video), false);
+    assert.equal(frameDraws, 0);
+    video.seeking = false;
+    pixelAlpha = 0;
+    assert.equal(verifyArtworkVideoFrame(video), false);
+    pixelAlpha = 255;
+    assert.equal(verifyArtworkVideoFrame(video), true);
+    drawFails = true;
+    assert.equal(verifyArtworkVideoFrame(video), false);
+    drawFails = false;
+});
+
+test('splash preloads own temporary environment watchers before Canvas subscribers exist', async () => {
+    connection.saveData = true;
+    assert.equal(fakeDocument.count('visibilitychange'), 0);
+    const first = objectVideoCache.preload({ videoSrc: '/warm-one.mp4' });
+    const second = objectVideoCache.preload({ videoSrc: '/warm-two.mp4' });
+    assert.equal(fakeDocument.count('visibilitychange'), 1);
+    assert.equal(connection.count('change'), 1);
+    assert.equal((await first).status, 'skipped');
+    assert.equal((await second).status, 'skipped');
+    assert.equal(fakeDocument.count('visibilitychange'), 0);
+    assert.equal(connection.count('change'), 0);
+    connection.saveData = false;
 });
 
 test('shared listeners retry on trusted interaction or visible return only and clean up in StrictMode', () => {

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { VideoTexture } from 'three';
 import { createObjectVideoCache } from './objectVideoCache.js';
 import { getObjectLoop, getObjectPosterSrc, isObjectPosterReady, OBJECT_LOOPS } from '../data/objectLoops.js';
 
@@ -12,7 +13,7 @@ const deferred = () => {
     return { promise, resolve, reject };
 };
 
-function harness({ alpha, play } = {}) {
+function harness({ alpha, play, verifyFrame, withFrameCallback = false, textureFactory } = {}) {
     const videos = [];
     const textures = [];
     const masks = [];
@@ -23,8 +24,11 @@ function harness({ alpha, play } = {}) {
     const cache = createObjectVideoCache({
         createVideo: () => {
             const listeners = new Map();
+            const frames = new Map();
+            let frameId = 0;
             const video = {
                 src: '', paused: true, readyState: 0, videoWidth: 720, videoHeight: 720,
+                duration: 6, buffered: { length: 1, start: () => 0, end: () => 6 },
                 addEventListener(name, fn) { listeners.set(name, fn); },
                 removeEventListener(name) { listeners.delete(name); },
                 emit(name) { listeners.get(name)?.(); },
@@ -33,12 +37,19 @@ function harness({ alpha, play } = {}) {
                 play() { this.paused = false; events.push(['play', this.src]); return play ? play(this) : Promise.resolve(); },
                 pause() { this.paused = true; events.push(['pause', this.src]); },
                 removeAttribute(name) { if (name === 'src') this.src = ''; },
+                frameCount: () => frames.size,
+                present() { const pending = [...frames.values()]; frames.clear(); pending.forEach((callback) => callback(0, { width: 720, height: 720 })); },
             };
+            if (withFrameCallback) {
+                video.requestVideoFrameCallback = (callback) => { const id = ++frameId; frames.set(id, callback); return id; };
+                video.cancelVideoFrameCallback = (id) => frames.delete(id);
+            }
             videos.push(video);
             return video;
         },
-        createTexture: () => {
-            const texture = { disposed: false, dispose() { this.disposed = true; } };
+        createTexture: (video) => {
+            const texture = textureFactory ? textureFactory(video) : { version: 0, disposed: false, dispose() { this.disposed = true; } };
+            if (!textureFactory) Object.defineProperty(texture, 'needsUpdate', { set: (value) => { if (value) texture.version += 1; } });
             textures.push(texture);
             return texture;
         },
@@ -48,6 +59,7 @@ function harness({ alpha, play } = {}) {
             return alpha ? alpha(mask) : Promise.resolve(mask);
         },
         canPlay: () => allowed,
+        ...(verifyFrame ? { verifyFrame } : {}),
         schedule: (fn, delay) => { const id = ++timerId; timers.set(id, { fn, delay }); return id; },
         cancel: (id) => timers.delete(id),
     });
@@ -229,74 +241,223 @@ test('preparing a newly selected source pauses the old one and policy gates all 
     assert.equal(h.videos.every((video) => video.paused), true);
 });
 
-test('entrance restart rewinds shared source once per selection, never on visibility resume or duplicate owner', async () => {
-    const h = harness();
-    const first = h.cache.acquire(spec());
-    const copy = h.cache.acquire(spec());
-    first.setPlayback({ prepare: true, active: true, restartToken: 'first-arrival' });
-    h.ready();
+test('three splash preloads buffer in parallel without play and deduplicate scene acquisition', async () => {
+    const h = harness({ withFrameCallback: true });
+    const specs = [spec('music'), spec('mixes'), spec('code')];
+    const warming = specs.map((source) => h.cache.preload(source));
+    assert.equal(h.cache.preload(specs[0]), warming[0]);
+    assert.equal(h.videos.length, 3);
+    assert.equal(h.videos.every((video) => video.paused), true);
+    const leases = specs.map((source) => h.cache.acquire(source));
+    specs.forEach((_, index) => h.ready(index));
     await flush();
-    let seeks = 0;
-    let currentTime = 3;
-    Object.defineProperty(h.videos[0], 'currentTime', {
-        get: () => currentTime,
-        set: (value) => { currentTime = value; seeks += 1; },
-    });
-    first.setPlayback({ prepare: true, restartToken: 'second-arrival' });
-    copy.setPlayback({ prepare: true, restartToken: 'second-arrival' });
-    assert.equal(seeks, 1);
-    assert.equal(currentTime, 0);
-    assert.equal(h.videos[0].paused, true);
-    assert.equal(first.getSnapshot().texture, null);
-    first.setPlayback({ prepare: true, active: true, restartToken: 'second-arrival' });
+    assert.deepEqual((await Promise.all(warming)).map((result) => result.status), ['ready', 'ready', 'ready']);
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 0);
+    assert.equal(leases.every((lease) => lease.getSnapshot().prepared), true);
+    assert.equal(leases.every((lease) => lease.getSnapshot().texture === null), true);
+    leases[0].setActive(true);
     await flush();
-    assert.equal(first.getSnapshot().status, 'ready');
-    currentTime = 1.5;
-    h.policy(false);
-    first.setPlayback({});
-    copy.setPlayback({});
-    h.policy(true);
-    first.setPlayback({ prepare: true, active: true, restartToken: 'second-arrival' });
-    await flush();
-    assert.equal(seeks, 1);
-    assert.equal(currentTime, 1.5);
-    assert.equal(h.videos.length, 1);
+    assert.equal(leases[0].getSnapshot().texture, null);
+    h.videos[0].present();
+    assert.equal(leases[0].getSnapshot().status, 'ready');
+    assert.equal(h.videos.length, 3);
+    assert.equal(h.videos.filter((video) => !video.paused).length, 1);
+    assert.equal(h.textures[0].version > 0, true);
 });
 
-test('entrance rewind waits for seeked before exposing the old cached video frame', async () => {
+test('warm records stay alive until the scene takes ownership, then use normal disposal', async () => {
     const h = harness();
+    const warming = h.cache.preload(spec());
+    h.ready();
+    await flush();
+    assert.equal((await warming).status, 'ready');
+    h.timers(1000);
+    h.timers(8000);
+    assert.equal(h.textures[0].disposed, false);
+    const lease = h.cache.acquire(spec());
+    assert.equal(lease.getSnapshot().prepared, true);
+    lease.release();
+    h.timers(1000);
+    assert.equal(h.textures[0].disposed, true);
+    assert.equal(h.videos[0].src, '');
+});
+
+test('warm promise waits for the full clip buffer, not only a decoded first frame or canplaythrough', async () => {
+    const h = harness();
+    const warming = h.cache.preload(spec());
+    const lease = h.cache.acquire(spec());
+    h.videos[0].buffered = { length: 1, start: () => 0, end: () => 2 };
+    let resolved = false;
+    warming.then(() => { resolved = true; });
+    h.ready();
+    h.videos[0].emit('canplaythrough');
+    await flush();
+    assert.equal(lease.getSnapshot().prepared, true);
+    assert.equal(lease.getSnapshot().buffered, false);
+    assert.equal(resolved, false);
+    h.videos[0].buffered = { length: 2, start: (index) => index ? 4 : 0, end: (index) => index ? 6 : 2 };
+    h.videos[0].emit('progress');
+    await flush();
+    assert.equal(resolved, false);
+    h.videos[0].buffered = { length: 1, start: () => 0, end: () => 6 };
+    h.videos[0].emit('progress');
+    assert.equal((await warming).status, 'ready');
+    assert.equal(lease.getSnapshot().buffered, true);
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 0);
+});
+
+test('scene lease may release while preload is pending without discarding its result early', async () => {
+    const h = harness();
+    const warming = h.cache.preload(spec());
+    const lease = h.cache.acquire(spec());
+    lease.release();
+    h.timers(1000);
+    assert.equal(h.textures[0].disposed, false);
+    h.ready();
+    await flush();
+    assert.equal((await warming).status, 'ready');
+    h.timers(1000);
+    assert.equal(h.textures[0].disposed, true);
+});
+
+test('preload never accepts an undecoded or transparent frame as prepared', async () => {
+    let usable = false;
+    const h = harness({ verifyFrame: () => usable });
+    const warming = h.cache.preload(spec());
+    const lease = h.cache.acquire(spec());
+    h.ready();
+    await flush();
+    assert.equal(lease.getSnapshot().prepared, false);
+    assert.equal(h.textures[0].version, 0);
+    usable = true;
+    h.videos[0].emit('canplay');
+    assert.equal((await warming).status, 'ready');
+    assert.equal(lease.getSnapshot().prepared, true);
+    assert.ok(h.textures[0].version > 0);
+});
+
+test('loadeddata and resolved play alone cannot expose a zero-version rVFC texture', async () => {
+    const h = harness({ withFrameCallback: true });
     const lease = h.cache.acquire(spec());
     lease.setActive(true);
     h.ready();
     await flush();
-    h.videos[0].seeking = true;
-    lease.setPlayback({ prepare: true, restartToken: 'arrival' });
-    lease.setPlayback({ prepare: true, active: true, restartToken: 'arrival' });
-    h.videos[0].emit('canplay');
-    await flush();
+    assert.equal(lease.getSnapshot().prepared, true);
+    assert.equal(lease.getSnapshot().status, 'loading');
     assert.equal(lease.getSnapshot().texture, null);
-    h.videos[0].seeking = false;
-    h.videos[0].emit('seeked');
+    h.videos[0].present();
+    assert.equal(lease.getSnapshot().status, 'ready');
+    assert.ok(lease.getSnapshot().texture.version > 0);
+    assert.equal(lease.getSnapshot().alphaMap, h.masks[0]);
+});
+
+test('actual THREE.VideoTexture version-zero regression: rVFC path is dirtied before material exposure', async () => {
+    const h = harness({ withFrameCallback: true, textureFactory: (video) => new VideoTexture(video) });
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    const texture = h.textures[0];
+    texture.update();
+    assert.equal(texture.isVideoTexture, true);
+    assert.equal(texture.version, 0);
+    h.ready();
+    await flush();
+    assert.ok(texture.version > 0);
+    assert.equal(lease.getSnapshot().texture, null);
+    h.videos[0].present();
+    assert.equal(lease.getSnapshot().texture, texture);
+    assert.equal(lease.getSnapshot().alphaMap, h.masks[0]);
+    lease.release();
+    h.timers(1000);
+    assert.equal(h.videos[0].frameCount(), 0);
+});
+
+test('transient frame verification failure gets bounded native-frame retries without blank exposure', async () => {
+    let checks = 0;
+    const h = harness({ withFrameCallback: true, verifyFrame: () => ++checks >= 3 });
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    h.videos[0].present();
+    assert.equal(lease.getSnapshot().texture, null);
+    assert.equal(h.videos[0].frameCount(), 1);
+    h.videos[0].present();
+    assert.equal(lease.getSnapshot().status, 'ready');
+    assert.equal(h.videos[0].frameCount(), 0);
+    const bad = harness({ withFrameCallback: true, verifyFrame: () => false });
+    const badLease = bad.cache.acquire(spec());
+    badLease.setActive(true);
+    bad.ready();
+    await flush();
+    for (let frame = 0; frame < 10; frame += 1) bad.videos[0].present();
+    assert.equal(bad.videos[0].frameCount(), 0);
+    assert.equal(badLease.getSnapshot().texture, null);
+    bad.timers(15000);
+    assert.equal(badLease.getSnapshot().status, 'error');
+});
+
+test('preload errors and eight-second deadlines resolve safely without background playback', async () => {
+    for (const failure of ['video', 'alpha', 'timeout', 'unreadable']) {
+        const h = harness({
+            ...(failure === 'alpha' ? { alpha: () => Promise.reject(new Error('bad mask')) } : {}),
+            ...(failure === 'unreadable' ? { verifyFrame: () => false } : {}),
+        });
+        const warming = h.cache.preload(spec());
+        if (failure === 'video') h.videos[0].emit('error');
+        if (failure === 'unreadable') h.ready();
+        await flush();
+        if (failure === 'timeout' || failure === 'unreadable') h.timers(8000);
+        assert.equal((await warming).status, 'error', failure);
+        assert.equal(h.videos[0].paused, true, failure);
+        assert.equal(h.videos[0].src, '', failure);
+        assert.equal(h.events.filter(([name]) => name === 'play').length, 0, failure);
+    }
+});
+
+test('warm timeout does not cancel a live scene owner still within its normal loading deadline', async () => {
+    const h = harness();
+    const warming = h.cache.preload(spec());
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.timers(8000);
+    assert.equal((await warming).status, 'error');
+    assert.equal(h.videos[0].src, spec().videoSrc);
+    h.ready();
+    await flush();
     assert.equal(lease.getSnapshot().status, 'ready');
 });
 
-test('new entrance may rewind a blocked source but never unlocks autoplay or decode errors', async () => {
-    const h = harness({ play: () => Promise.reject(autoplayBlocked()) });
+test('reduced/save-data/hidden policies skip initial warm requests and abort unowned pending warm', async () => {
+    const h = harness();
+    h.policy(false);
+    assert.equal((await h.cache.preload(spec())).status, 'skipped');
+    assert.equal(h.videos.length, 0);
+    h.policy(true);
+    const warming = h.cache.preload(spec());
+    h.policy(false);
+    assert.equal((await warming).status, 'skipped');
+    assert.equal(h.videos[0].src, '');
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 0);
+    h.policy(true);
+    const next = h.cache.preload(spec());
+    h.ready(1);
+    await flush();
+    assert.equal((await next).status, 'ready');
+    h.policy(false);
+    assert.equal((await h.cache.preload(spec())).status, 'ready');
+    assert.equal(h.videos.length, 2);
+});
+
+test('final release cancels first-frame callbacks and ignores a captured stale callback', async () => {
+    const h = harness({ withFrameCallback: true });
     const lease = h.cache.acquire(spec());
     lease.setActive(true);
-    h.ready();
-    await flush();
-    h.videos[0].currentTime = 1.5;
-    lease.setPlayback({ prepare: true, restartToken: 'new-arrival' });
-    lease.setPlayback({ prepare: true, active: true, restartToken: 'new-arrival' });
-    await flush();
-    assert.equal(h.videos[0].currentTime, 0);
-    assert.equal(lease.getSnapshot().status, 'blocked');
-    assert.equal(h.events.filter(([name]) => name === 'play').length, 1);
-    h.videos[0].emit('error');
-    lease.setPlayback({ prepare: true, active: true, restartToken: 'another-arrival' });
-    assert.equal(lease.getSnapshot().status, 'error');
-    assert.equal(h.videos.length, 1);
+    assert.equal(h.videos[0].frameCount(), 1);
+    lease.release();
+    h.timers(1000);
+    assert.equal(h.videos[0].frameCount(), 0);
+    h.videos[0].present();
+    assert.equal(h.cache.getStatus(spec().videoSrc), 'idle');
 });
 
 test('autoplay rejection shows the poster without retry loops; recovery is bounded and reuses the source', async () => {

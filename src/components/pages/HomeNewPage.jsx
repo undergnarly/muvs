@@ -7,14 +7,18 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import AlbumPlayer from '../media/AlbumPlayer';
-import ArtworkEntrance from '../media/ArtworkEntrance';
+import ArtworkMaterial from '../media/ArtworkMaterial';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
-import { getObjectPosterSrc, isObjectPosterReady } from '../../data/objectLoops';
-import { createObjectEntranceTimeline, getObjectEntranceKind } from '../../utils/objectEntranceTimeline';
+import { getObjectPosterSrc } from '../../data/objectLoops';
+import { getObjectFallbackSrc } from '../../data/menuArtwork';
+import { hasMenuBeenRevealed } from '../../utils/menuStartup';
+import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
+import { createInitialMenuZoom } from '../../utils/initialMenuZoom';
+import { FONT_REGULAR, FONT_BOLD } from '../../data/menuFonts';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
     hubMod, hubDisplayIndex, hubSmoothstep, hubMenuPose, hubCameraDistance, lerpPose,
@@ -36,8 +40,6 @@ const stripHtml = (html) =>
 const RELEASE_SPACING = 14;
 // Matches body font-family (Urbanist). Same family at multiple weights so
 // drei Text renders with the same look as DOM elements.
-const FONT_REGULAR = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-500-normal.woff';
-const FONT_BOLD = 'https://cdn.jsdelivr.net/npm/@fontsource/urbanist@5.0.16/files/urbanist-latin-700-normal.woff';
 const FONT_HANDWRITTEN = '/fonts/yuliana.ttf';
 const RELEASE_FONT_OPTIONS = [
     { value: 'urbanist-regular', label: 'Urbanist Regular', url: FONT_REGULAR },
@@ -456,12 +458,13 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, entranceTimeline, entranceKey }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled }) => {
     const meshRef = useRef(null);
-    const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, { loadFull });
-    const { video, entranceRef } = useObjectVideoTexture(release.coverImage, meshRef, {
-        posterReady: isObjectPosterReady(tex, release.coverImage), enabled: motionEnabled && !hideCover, isSettled: isMotionSettled,
-        entranceTimeline, entranceKey,
+    const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, {
+        loadFull, fallback: getObjectFallbackSrc(release.coverImage) || FALLBACK_COVER,
+    });
+    const video = useObjectVideoTexture(release.coverImage, meshRef, {
+        posterReady: Boolean(tex), enabled: motionEnabled && !hideCover, isSettled: isMotionSettled,
     });
 
     const { width, height } = useMemo(() => {
@@ -507,7 +510,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
                 <group>
                     <mesh ref={meshRef} position={[0, billboard.coverY, 0]}>
                         <planeGeometry args={[width, height]} />
-                        <ArtworkEntrance poster={release.coverImage} posterTexture={tex} video={video} width={width} height={height} entranceRef={entranceRef} meshRef={meshRef} />
+                        <ArtworkMaterial posterTexture={tex} video={video} />
                     </mesh>
                 </group>
             )}
@@ -908,11 +911,27 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
 const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
     const lookAt = useRef(new THREE.Vector3());
+    const initialZoom = useRef(null);
+    const zoomFrame = useRef({ delta: 0, ready: false, visible: true, skip: false, menu: true, index: 0 });
 
     useFrame(({ camera }, delta) => {
         const cfg = cfgRef.current;
         const hub = cfg.hub || DEFAULT_HUB;
         const st = stRef.current;
+        if (!initialZoom.current) initialZoom.current = createInitialMenuZoom({
+            enabled: window.location.pathname === '/' && !hasMenuBeenRevealed() && st.phase === 'menu',
+            initialIndex: st.menuIndex,
+        });
+        const motionPreferences = getArtworkMotionSnapshot();
+        const frame = zoomFrame.current;
+        frame.delta = delta;
+        frame.ready = hasMenuBeenRevealed();
+        frame.visible = !(motionPreferences & 2);
+        frame.skip = Boolean(motionPreferences & 12);
+        frame.menu = st.phase === 'menu';
+        frame.index = st.menuIndex;
+        const zoom = initialZoom.current.sample(frame);
+        if (camera.zoom !== zoom) { camera.zoom = zoom; camera.updateProjectionMatrix(); }
 
         // troika Text ignores scene fog, so distant worlds would shine through
         // it — toggle whole-world visibility around the travel midpoint instead.
@@ -1268,12 +1287,13 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, entranceTimeline, entranceScope }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
     const sectionContent = (
-        <>
+        // Hidden section fonts/assets must not suspend the menu or its camera.
+        <Suspense fallback={null}>
             {!simple && visibleReleaseEntries.map(({ release, index }) => (
                 <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
             ))}
@@ -1287,8 +1307,6 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             hideCover={!!tvMix}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                             motionEnabled={artworkMotion && index === activeItemIndex}
-                            entranceTimeline={entranceTimeline}
-                            entranceKey={`${entranceScope}:${sceneItemKey(release, index)}`}
                             isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
                                 && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
@@ -1301,7 +1319,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
             ))}
             {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
             {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} comingSoon={tvComingSoon} />}
-        </>
+        </Suspense>
     );
 
     const ringRef = useRef(null);
@@ -1343,7 +1361,6 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         particlesVisible={hub.phase === 'menu'}
                         videosEnabled={hub.phase === 'menu'}
                         stateRef={hub.stateRef}
-                        entranceTimeline={entranceTimeline}
                     />
                 </group>
             )}
@@ -2539,20 +2556,9 @@ export const Scene3DShell = ({
         });
     }, [hub, displayItems]);
 
-    const [entranceTimeline] = useState(createObjectEntranceTimeline);
-    const entranceInMenu = Boolean(hub && hubPhase === 'menu');
-    const entranceInCode = Boolean(sectionControls && activeKey === 'code' && currentIndex === 0 && currentRelease);
-    const entranceSelectionKey = entranceInMenu
-        ? `menu:${HUB_ITEMS[ringIndex].key}`
-        : entranceInCode ? `section:code:${sceneItemKey(currentRelease, releaseSwitcher.current)}` : null;
-    const entrancePoster = entranceInMenu ? hubCovers?.[ringIndex] : entranceInCode ? currentRelease.coverImage : null;
-    useLayoutEffect(() => {
-        entranceTimeline.select(entranceSelectionKey, getObjectEntranceKind(entrancePoster));
-    }, [entranceTimeline, entranceSelectionKey, entrancePoster]);
-
     useEffect(() => {
         (hubCovers || []).filter(Boolean).forEach((url) => {
-            preloadImage(url, 'high');
+            preloadImage(getObjectPosterSrc(url), 'high');
         });
     }, [hubCovers]);
 
@@ -2709,8 +2715,6 @@ export const Scene3DShell = ({
                             activeItemIndex={releaseSwitcher.current}
                             activeItemOnly={activeKey === 'music'}
                             artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
-                            entranceTimeline={entranceTimeline}
-                            entranceScope={`section:${activeKey}`}
                             hub={hubProps}
                             cfgRef={cfgRef}
                             progressRef={progressRef}

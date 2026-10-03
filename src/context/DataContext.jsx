@@ -24,11 +24,15 @@ export const DataProvider = ({ children }) => {
 
     // Fetch data from API on mount
     useEffect(() => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        let cancelled = false;
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/data');
+                const res = await fetch('/api/data', { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
+                    if (cancelled) return;
                     if (data.releases) setReleases(data.releases);
                     if (data.mixes) setMixes(data.mixes);
                     if (data.projects) setProjects(data.projects);
@@ -40,12 +44,14 @@ export const DataProvider = ({ children }) => {
                     if (data.stats) setStats(data.stats);
                 }
             } catch (error) {
-                console.error('Failed to fetch data:', error);
+                if (!cancelled) console.error('Failed to fetch data:', error);
             } finally {
-                setIsLoaded(true);
+                clearTimeout(timeout);
+                if (!cancelled) setIsLoaded(true);
             }
         };
         fetchData();
+        return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
     }, []);
 
     // Helper to save to API — only saves if explicitly marked as changed

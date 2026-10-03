@@ -40,6 +40,8 @@ const loadTexture = (url) => {
     return record.promise;
 };
 
+export const preloadTexture = loadTexture;
+
 export const imagePreviewUrl = (source, width = 192, quality = 35) => {
     if (!source || /^(?:data:|blob:|https?:)/i.test(source)) return source;
     const pathname = source.split(/[?#]/, 1)[0];
@@ -99,6 +101,12 @@ export const useProgressiveTexture = (source, {
             if (previewTexture && previewUrl !== fullUrl) apply(previewTexture);
             else applyFallback();
         };
+
+        if (fallback && fallback !== fullUrl) {
+            loadTexture(fallback).then((nextTexture) => {
+                if (!fullApplied && !cachedTexture(fullUrl) && !cachedTexture(previewUrl)) apply(nextTexture);
+            }).catch(() => {});
+        }
 
         if (previewUrl && previewUrl !== fullUrl) {
             loadTexture(previewUrl)
