@@ -38,4 +38,4 @@ Typography/spray/portrait revision completed: `phases/02-object-loops/02-11-PLAN
 
 Desktop animation revision completed: `phases/02-object-loops/02-12-PLAN.md` — supplied bronze Mixes, marble Code and glass AI Agents loops, silent transparent-alpha sidecars/exact decoded posters, selected-only playback and verified publication. Summary: `phases/02-object-loops/02-12-SUMMARY.md`.
 
-Current revision: `phases/02-object-loops/02-13-PLAN.md` — grounded Music/Mixes floor details with near/far foreground reveal on entry scroll; subtle floating Code bob/rotation and safe travel/return preferences.
+Floor/hover revision completed: `phases/02-object-loops/02-13-PLAN.md` — grounded Music/Mixes floor details with near/far foreground reveal on entry scroll; subtle floating Code bob/rotation, safe travel/return preferences and seamless physical-copy wrapping. Verified production publication. Summary: `phases/02-object-loops/02-13-SUMMARY.md`.
