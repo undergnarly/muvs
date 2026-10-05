@@ -31,3 +31,7 @@ Code caption layout completed: `phases/02-object-loops/02-07-PLAN.md` — persis
 Loading stamp/mobile title revision completed: `phases/02-object-loops/02-08-PLAN.md` — lime marker progress and inline black MUVS tag, center-preserving outward mobile glyph stretch to80vw, desktop unchanged, recovery/preferences/interruption and live publication verified. Summary: `phases/02-object-loops/02-08-SUMMARY.md`.
 
 Music photo revision completed: `phases/02-object-loops/02-09-PLAN.md` — new transparent user artwork, versioned full/inline fallback, static Music without old-video override, safe loop warmup and verified live publication. Other object loops and camera/title effects unchanged. Summary: `phases/02-object-loops/02-09-SUMMARY.md`.
+
+Material variety revision completed: `phases/02-object-loops/02-10-PLAN.md` — restored previous Music and three small generated material-family assets with sparse stable randomized 3D-plane instances, mobile/desktop/failure/interaction QA and verified publication. Summary: `phases/02-object-loops/02-10-SUMMARY.md`.
+
+Current revision: `phases/02-object-loops/02-11-PLAN.md` — static Bebas Neue and immediate1s retained mobile stretching, generated aerosol loading stroke with synchronized black tag reveal, transparent completed About portrait.
