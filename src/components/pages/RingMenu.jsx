@@ -8,9 +8,12 @@ import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc } from '../../data/objectLoops';
 import { getObjectFallbackSrc } from '../../data/menuArtwork';
-import { markMenuArtworkRendered } from '../../utils/menuStartup';
+import { hasMenuBeenRevealed, markMenuArtworkRendered } from '../../utils/menuStartup';
+import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
+import { createMenuTitleStretch } from '../../utils/menuTitleStretch';
 import ArtworkMaterial from '../media/ArtworkMaterial';
-import { FONT_REGULAR, FONT_BOLD } from '../../data/menuFonts';
+import { FONT_REGULAR } from '../../data/menuFonts';
+import MenuTitle from './MenuTitle';
 import './RingMenu.css';
 
 // 3D menu that lives inside the Scene3DShell canvas. Items share the same
@@ -183,7 +186,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled 
     );
 };
 
-const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
+const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -192,19 +195,12 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
         <group position={[index * HUB_SPACING, 0, 0]}>
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
                 <group>
-                <Text
+                <MenuTitle
                     onAfterRender={motionEnabled && item.key === 'about' ? markMenuArtworkRendered : undefined}
-                    position={[0, 2.25, -1.2]}
-                    fontSize={0.92}
-                    color="#ffffff"
-                    anchorX="center"
-                    anchorY="middle"
-                    letterSpacing={-0.02}
-                    font={FONT_BOLD}
-                    material-side={THREE.FrontSide}
-                >
-                    {item.label}
-                </Text>
+                    label={item.label}
+                    logicalIndex={logicalIndex}
+                    timeline={titleTimeline}
+                />
                 <Text
                     position={[0, 3.0, -1.2]}
                     fontSize={0.26}
@@ -266,7 +262,24 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => (
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => {
+    const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch() }), []);
+    const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, ready: false, settled: false, visible: true, skip: false });
+    useFrame(({ size }, delta) => {
+        const state = stateRef?.current;
+        const preferences = getArtworkMotionSnapshot();
+        const frame = titleFrame.current;
+        frame.delta = delta;
+        frame.index = hubMod(state?.menuIndex ?? activeIndex);
+        frame.mobile = size.width <= 768;
+        frame.menu = state?.phase === 'menu';
+        frame.ready = hasMenuBeenRevealed();
+        frame.settled = Boolean(state && Math.abs(state.angle - state.menuIndex * HUB_SPACING) < 0.025);
+        frame.visible = !(preferences & 2);
+        frame.skip = Boolean(preferences & 12);
+        titleTimeline.current.sample(frame);
+    }, -1);
+    return (
     <>
         {LOOP_COPIES.flatMap((copy) => HUB_ITEMS.map((item, i) => (
             (!activeOnly || i === activeIndex) &&
@@ -274,6 +287,8 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 key={`${copy}-${item.key}`}
                 item={item}
                 index={i + (copy + 1) * HUB_COUNT}
+                logicalIndex={i}
+                titleTimeline={titleTimeline}
                 displayIndex={hubDisplayIndex(i)}
                 cover={covers?.[i]}
                 caption={captions?.[item.key]}
@@ -287,4 +302,5 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
             />
         )))}
     </>
-);
+    );
+};
