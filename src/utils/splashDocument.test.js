@@ -26,15 +26,20 @@ function boot({ missing = false, hidden = false } = {}) {
     return { classes, timers, listeners, progress, status, retry, reloads: () => reloads };
 }
 
-test('loading stamp is inline, black/lime, labelled and has no old progress line', () => {
-    assert.ok(html.includes('id="splash-stamp"'));
+test('generated paint and original black tag share one inline progressive reveal', () => {
+    assert.ok(html.includes('id="splash-stamp" style="--splash-progress:12%"'));
     assert.ok(html.includes('role="progressbar" aria-label="Loading MUVS"'));
     assert.ok(html.includes('aria-valuenow="12" style="--splash-progress:12%"'));
     assert.ok(html.includes('role="img" aria-label="MUVS"'));
-    assert.match(html, /#splash-progress\{[^}]*color:#ccff00;[^}]*clip-path:inset\(0 calc\(100% - var\(--splash-progress/);
+    assert.match(html, /#splash-reveal\{[^}]*clip-path:inset\(0 calc\(100% - var\(--splash-progress/);
+    assert.match(html, /#splash-progress\{--splash-paint-source:url\('data:image\/webp;base64,[A-Za-z0-9+/=]+'\);[^}]*background:var\(--splash-paint-source\) center\/contain no-repeat/);
     assert.match(html, /#splash-logo\{--splash-logo-source:url\('data:image\/webp;base64,[A-Za-z0-9+/=]+'\);[^}]*background:#000/);
     assert.ok(!html.includes('id="splash-bar"'));
-    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-progress\{transition:none\}/);
+    assert.ok(!html.includes('<svg'));
+    assert.ok(!html.includes('splash-brush-grain'));
+    assert.match(html, /<div id="splash-reveal">\s*<div id="splash-progress"[^>]*><\/div>\s*<div id="splash-logo"[^>]*><\/div>\s*<\/div>/);
+    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-reveal\{transition:none\}/);
+    assert.match(html, /#splash-screen.failed #splash-reveal\{clip-path:none;transition:none\}/);
 });
 
 test('failed early bundle still exposes recovery after 18 seconds and retry reloads', () => {

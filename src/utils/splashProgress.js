@@ -9,13 +9,16 @@ function boundedProgress(value) {
 export function updateSplashProgress(value, doc = globalThis.document) {
     const progress = doc?.getElementById('splash-progress');
     if (!progress) return;
+    const stamp = doc.getElementById('splash-stamp');
 
     const next = Math.max(
         boundedProgress(value),
         boundedProgress(progress.style.getPropertyValue('--splash-progress')),
         boundedProgress(progress.getAttribute('aria-valuenow')),
+        boundedProgress(stamp?.style.getPropertyValue('--splash-progress')),
     );
     progress.style.setProperty('--splash-progress', `${next}%`);
+    stamp?.style.setProperty('--splash-progress', `${next}%`);
     progress.setAttribute('aria-valuenow', String(next));
     return next;
 }
