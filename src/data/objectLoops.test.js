@@ -2,17 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { getMenuObjectLoops, getObjectLoop, getObjectPosterSrc, isObjectPosterReady } from './objectLoops.js';
 
-test('updated Music photo remains static and cannot be replaced by the old video', () => {
-    const canonical = '/images/menu/music-20261005.webp';
-    assert.equal(getObjectPosterSrc(canonical), canonical);
-    assert.equal(getObjectLoop(canonical), null);
-    assert.equal(getObjectLoop('/images/menu/music2.webp'), null);
+test('restored Music uses its matching prior poster and single-lizard loop', () => {
+    const canonical = '/images/menu/music2.webp';
+    assert.equal(getObjectPosterSrc(canonical), '/videos/objects/music-v3-poster.webp');
+    assert.equal(getObjectLoop(canonical).videoSrc, '/videos/objects/music-v3.mp4');
+    assert.equal(getObjectLoop('/images/menu/music-20261005.webp'), null);
     assert.equal(isObjectPosterReady({ image: { currentSrc: `https://muvs.dev${getObjectPosterSrc(canonical)}` } }, canonical), true);
-    assert.equal(isObjectPosterReady({ image: { src: 'https://muvs.dev/videos/objects/music-v3-poster.webp' } }, canonical), false);
+    assert.equal(isObjectPosterReady({ image: { src: `https://muvs.dev${canonical}` } }, canonical), false);
 });
 
-test('remaining menu loops provide exact-first-frame posters alongside video and alpha', () => {
-    for (const canonical of ['/images/menu/mixes-trans.webp', '/images/menu/code2.webp']) {
+test('all three menu loops provide exact-first-frame posters alongside video and alpha', () => {
+    for (const canonical of ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp']) {
         const loop = getObjectLoop(canonical);
         assert.match(loop.posterSrc, /-v3-poster\.webp$/);
         assert.match(loop.videoSrc, /-v3\.mp4$/);
@@ -28,10 +28,10 @@ test('preview readiness recognizes an animated poster rather than its original i
     assert.equal(isObjectPosterReady({ image }, canonical), false);
 });
 
-test('startup warms only registered loops and skips static Music without null specs', () => {
-    const specs = getMenuObjectLoops(['/images/menu/music-20261005.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp']);
-    assert.deepEqual(specs.map((spec) => spec.videoSrc), ['/videos/objects/mixes-v3.mp4', '/videos/objects/code-v3.mp4']);
-    assert.deepEqual(getMenuObjectLoops(['/images/menu/music-20261005.webp', '/images/menu/music2.webp', null]), []);
+test('startup warms restored menu loops but still skips static images without null specs', () => {
+    const specs = getMenuObjectLoops(['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp']);
+    assert.deepEqual(specs.map((spec) => spec.videoSrc), ['/videos/objects/music-v3.mp4', '/videos/objects/mixes-v3.mp4', '/videos/objects/code-v3.mp4']);
+    assert.deepEqual(getMenuObjectLoops(['/images/menu/music-20261005.webp', '/images/menu/unregistered.webp', null]), []);
 });
 
 test('unregistered covers remain static and unchanged', () => {
