@@ -137,8 +137,12 @@ test('loader intro starts at its first frame and heavy app/hero work waits until
     vm.runInNewContext(script, {
         window: win, document: { getElementById: id => id === 'splash-stamp' ? stamp : { classList: { add: key => classes.add(key) } } },
         requestAnimationFrame: fn => frames.push(fn), performance: { now: () => 123 }, Event: class { constructor(type) { this.type = type; } },
+        getComputedStyle: () => ({ getPropertyValue: () => "url('data:image/webp;base64,decoded')" }),
+        Image: class { decode() { events.push('decode'); return Promise.resolve(); } },
     });
-    assert.equal(classes.has('intro'), false); assert.deepEqual(events, []);
+    assert.equal(classes.has('intro'), false); assert.deepEqual(events, ['decode', 'decode']);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    events.length = 0;
     frames.shift()(); assert.ok(classes.has('intro')); assert.equal(stamp.dataset.startedAt, '123');
     assert.deepEqual(events, []); frames.shift()(); await win.__muvsLoaderPainted;
     assert.deepEqual(events, ['muvs:loader-painted']);

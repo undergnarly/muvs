@@ -121,12 +121,20 @@
   </div>
   <script>
     window.__muvsLoaderPainted = new Promise(function (resolve) {
-      requestAnimationFrame(function () {
-        document.getElementById('splash-stamp').dataset.startedAt = String(performance.now());
-        document.getElementById('splash-screen').classList.add('intro');
+      var assets = [['splash-logo', '--splash-logo-source'], ['splash-progress', '--splash-paint-source']].map(function (asset) {
+        var source = getComputedStyle(document.getElementById(asset[0])).getPropertyValue(asset[1]).trim();
+        var image = new Image();
+        image.src = source.slice(4, -1).trim().replace(/^['"]|['"]$/g, '');
+        return image.decode ? image.decode().catch(function () {}) : Promise.resolve();
+      });
+      Promise.all(assets).then(function () {
         requestAnimationFrame(function () {
-          window.dispatchEvent(new Event('muvs:loader-painted'));
-          resolve();
+          document.getElementById('splash-stamp').dataset.startedAt = String(performance.now());
+          document.getElementById('splash-screen').classList.add('intro');
+          requestAnimationFrame(function () {
+            window.dispatchEvent(new Event('muvs:loader-painted'));
+            resolve();
+          });
         });
       });
     });
