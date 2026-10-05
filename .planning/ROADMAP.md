@@ -44,3 +44,4 @@ Curated composition/chrome loader revision completed: `phases/02-object-loops/02
 
 Physical floor/breathing title revision completed: `phases/02-object-loops/02-15-PLAN.md` — world-scale rocks, actual textured cassette/record/reel geometry with exact floor support and refined mobile foreground, uniform centered5%/3.8s breathing after the existing mobile title intro.178 tests, mobile/desktop/grid/native-touch/preferences/failure and actual live video/bundle/CMS verification. Summary: `phases/02-object-loops/02-15-SUMMARY.md`.
 - [x]02-16 — Opaque priority Y2K/spray loader, synchronized downward entrance, gentler edge titles and simultaneous prepared decoration reveal;195tests/mobile/deep/recovery/live verified.
+- [x]02-17 — Occasional one-second loading mesh, randomized8–13second quiet gaps, lifecycle/preferences safety;203tests/mobile/desktop/recovery/live verified.
