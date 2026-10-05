@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import MenuDecorations from './MenuDecorations';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html, Text } from '@react-three/drei';
@@ -221,6 +222,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cove
                         return state?.phase === 'menu' && state.menuIndex === index
                             && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
                     }} />
+                    <MenuDecorations sectionKey={item.key} index={index} hub={hub} stateRef={stateRef} active={motionEnabled} />
                     </group>
                 )}
                 <group>
