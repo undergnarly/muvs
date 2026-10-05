@@ -27,3 +27,5 @@ Caption typography completed: `phases/02-object-loops/02-05-PLAN.md` — Josefin
 Startup/camera review completed: `phases/02-object-loops/02-06-PLAN.md` — reveal the rendered menu independently of full video buffering, early bundle recovery, elevated physical dolly out and tighter gray captions. Verified atomic production release. Summary: `phases/02-object-loops/02-06-SUMMARY.md`.
 
 Code caption layout completed: `phases/02-object-loops/02-07-PLAN.md` — persisted shared/AdsUp caption tuning copied from unchanged AI Agents; all-five mobile/desktop position checks and scoped DB invariance verified. Summary: `phases/02-object-loops/02-07-SUMMARY.md`.
+
+Loading stamp/mobile title revision completed: `phases/02-object-loops/02-08-PLAN.md` — lime marker progress and inline black MUVS tag, center-preserving outward mobile glyph stretch to80vw, desktop unchanged, recovery/preferences/interruption and live publication verified. Summary: `phases/02-object-loops/02-08-SUMMARY.md`.
