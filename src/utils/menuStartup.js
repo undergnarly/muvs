@@ -19,8 +19,8 @@ export const hasMenuBeenRevealed = () => revealed;
 export const markMenuRevealed = () => { revealed = true; };
 
 function updateProgress(value) {
-    progress = Math.max(progress, value);
     const bar = document.getElementById('splash-bar');
+    progress = Math.max(progress, value, Number.parseFloat(bar?.style.width) || 0);
     if (bar) bar.style.width = `${progress}%`;
 }
 

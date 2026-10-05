@@ -37,7 +37,7 @@ import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
-import { prepareMenuArtwork, waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
+import { waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
 import { settleWithin } from './utils/menuStartupGate';
 import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
 
@@ -90,6 +90,10 @@ function AppRoot() {
     const [startupFailed, setStartupFailed] = React.useState(false);
 
     React.useEffect(() => {
+        window.dispatchEvent(new Event('muvs:app-mounted'));
+    }, []);
+
+    React.useEffect(() => {
         if (!startupFailed) return;
         document.getElementById('splash-screen')?.remove();
         markMenuRevealed();
@@ -120,9 +124,9 @@ function AppRoot() {
             removeTimer = setTimeout(() => { splash.remove(); markMenuRevealed(); }, 600);
         };
         if (location.pathname === '/') {
-            // Media have their own 8s fallback; this final deadline also covers
-            // failed WebGL/inline decoding or a scene that never renders.
-            const ready = prepareMenuArtwork().then(waitForMenuArtwork).then(() => true);
+            // Reveal a drawn poster immediately; full video buffers warm behind it.
+            // The deadline handles an actual scene/renderer failure only.
+            const ready = waitForMenuArtwork().then(() => true);
             settleWithin(ready, 15000).then((success) => {
                 if (cancelled) return;
                 if (!success) setStartupFailed(true);
@@ -131,7 +135,12 @@ function AppRoot() {
         } else {
             routeTimer = setTimeout(hideSplash, 500);
         }
-        return () => { cancelled = true; clearTimeout(routeTimer); clearTimeout(removeTimer); };
+        return () => {
+            cancelled = true;
+            clearTimeout(routeTimer);
+            clearTimeout(removeTimer);
+            if (removed) { splash.remove(); markMenuRevealed(); }
+        };
     }, [location.pathname]);
 
     // Update favicon dynamically

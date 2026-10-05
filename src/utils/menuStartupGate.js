@@ -1,5 +1,4 @@
 // Optional network media must not block an otherwise usable static scene.
-// Required inline fallback/render promises deliberately do not use this timeout.
 export function settleWithin(promise, timeout = 8000, schedule = setTimeout, cancel = clearTimeout) {
     if (!Number.isFinite(timeout) || timeout < 0) throw new RangeError('Startup timeout must be finite and non-negative.');
     return new Promise((resolve) => {
@@ -30,10 +29,11 @@ export function createStartupGate({ prepare, waitForRender }) {
     return {
         prepare: prepareOnce,
         start() {
-            // Both waits begin together. The caller retains its first-render
-            // promise so a frame arriving before start is not a lost event.
+            // Eager warming is independent of opening an already drawn scene.
+            // Keep its rejection handled even if a required asset fails later.
+            prepareOnce().catch(() => {});
             rendering ||= Promise.resolve().then(waitForRender);
-            startup ||= Promise.all([prepareOnce(), rendering]).then(() => undefined);
+            startup ||= rendering.then(() => undefined);
             return startup;
         },
     };

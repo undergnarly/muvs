@@ -83,7 +83,7 @@ test('preparation and startup each deduplicate, including prepare before start',
     assert.equal(gate.prepare(), preparation);
 });
 
-test('posters and videos start in parallel and time out together, but fallback and render remain mandatory', async () => {
+test('a drawn fallback opens the site while poster/video warming is still pending', async () => {
     const time = clock();
     const fallback = deferred();
     const poster = deferred();
@@ -110,13 +110,12 @@ test('posters and videos start in parallel and time out together, but fallback a
     time.advance(8000);
     await flush();
     assert.equal(time.pending(), 0);
-    assert.equal(revealed, false, 'optional timeout cannot bypass an unresolved inline fallback');
-    fallback.resolve();
-    await flush();
-    assert.equal(revealed, false, 'prepared assets cannot bypass first scene render');
+    assert.equal(revealed, false, 'optional timeout cannot bypass an undrawn scene');
     rendered.resolve();
     await started;
     assert.equal(revealed, true);
+    fallback.resolve();
+    await gate.prepare();
 });
 
 test('a first-frame signal before start is retained; a fast load has no fixed artificial delay', async () => {
@@ -135,19 +134,24 @@ test('a first-frame signal before start is retained; a fast load has no fixed ar
     assert.equal(time.pending(), 0);
 });
 
-test('mandatory fallback/render failures never become a successful reveal and remain deduplicated', async () => {
-    for (const failing of ['prepare', 'waitForRender']) {
-        let attempts = 0;
-        const error = new Error(`${failing} failed`);
-        const gate = createStartupGate({
-            prepare: () => Promise.resolve(),
-            waitForRender: () => Promise.resolve(),
-            [failing]: () => { attempts += 1; throw error; },
-        });
-        const result = gate.start();
-        await assert.rejects(result, error);
-        assert.equal(gate.start(), result);
-        await assert.rejects(gate.start(), error);
-        assert.equal(attempts, 1);
+test('a hung or rejected media warmup never blocks a rendered scene', async () => {
+    for (const prepare of [() => new Promise(() => {}), () => Promise.reject(new Error('Warmup failed'))]) {
+        const gate = createStartupGate({ prepare, waitForRender: () => Promise.resolve() });
+        await gate.start();
+        assert.equal(gate.start(), gate.start());
     }
+});
+
+test('first-render failure is retained and cannot reveal an empty scene', async () => {
+    let attempts = 0;
+    const error = new Error('Renderer failed');
+    const gate = createStartupGate({
+        prepare: () => Promise.resolve(),
+        waitForRender: () => { attempts += 1; throw error; },
+    });
+    const result = gate.start();
+    await assert.rejects(result, error);
+    assert.equal(gate.start(), result);
+    await assert.rejects(gate.start(), error);
+    assert.equal(attempts, 1);
 });

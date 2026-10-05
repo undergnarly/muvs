@@ -27,6 +27,30 @@
       robots.content = 'noindex, nofollow, noarchive';
       document.head.appendChild(robots);
     }
+    // Runs before the module bundle: a missing/stalled bundle still needs a way out.
+    (function () {
+      var earlyBootTimer = setTimeout(function () {
+        var splash = document.getElementById('splash-screen');
+        if (!splash || splash.classList.contains('hidden')) return;
+        splash.classList.add('failed');
+        var progress = document.getElementById('splash-progress');
+        if (progress) progress.hidden = true;
+        var status = document.getElementById('splash-status');
+        if (status) status.textContent = 'Couldn’t load. Check your connection and try again.';
+        var retry = document.getElementById('splash-retry');
+        if (retry) {
+          retry.href = location.href;
+          retry.hidden = false;
+          retry.addEventListener('click', function (event) {
+            event.preventDefault();
+            location.reload();
+          });
+        }
+      }, 18000);
+      window.addEventListener('muvs:app-mounted', function () {
+        clearTimeout(earlyBootTimer);
+      }, { once: true });
+    })();
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Optional reading-page fonts must not reject the main Vite CSS chunk. -->
@@ -35,13 +59,21 @@
 
 <body>
   <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(to bottom,#767676,#8f8f8fc2 35%,#ffffff);transition:opacity .6s ease">
-    <style>#splash-screen.hidden{opacity:0;pointer-events:none}</style>
+    <style>
+      #splash-screen.hidden{opacity:0;pointer-events:none}
+      #splash-status{margin-top:10px;font-size:11px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,0.85)}
+      #splash-screen.failed #splash-status{width:min(280px,76vw);margin-top:22px;font-size:14px;line-height:1.45;letter-spacing:normal;color:#333}
+      #splash-retry{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:16px;padding:0 24px;border:1px solid currentColor;border-radius:24px;color:#333;font-size:14px;font-weight:600;text-decoration:none}
+      #splash-retry[hidden]{display:none}
+      #splash-retry:focus-visible{outline:2px solid #333;outline-offset:4px}
+    </style>
     <div style="text-align:center;font-family:Urbanist,sans-serif">
       <div style="width:140px;height:70px;margin:0 auto;background-color:#fff;-webkit-mask:url('/images/logo.png') center/contain no-repeat;mask:url('/images/logo.png') center/contain no-repeat"></div>
-      <div style="margin-top:22px;width:180px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;overflow:hidden">
+      <div id="splash-progress" style="margin-top:22px;width:180px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;overflow:hidden">
         <div id="splash-bar" style="width:0%;height:100%;background:#ffffff;border-radius:1px;transition:width .3s ease"></div>
       </div>
-      <div id="splash-status" style="margin-top:10px;font-size:11px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,0.85)">LOADING</div>
+      <div id="splash-status" role="status">LOADING</div>
+      <a id="splash-retry" href="" hidden>Reload</a>
     </div>
   </div>
   <div id="root"></div>
