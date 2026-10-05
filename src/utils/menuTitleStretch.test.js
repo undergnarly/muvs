@@ -8,6 +8,12 @@ import {
 
 const frame = { delta: 0.02, index: 0, mobile: true, menu: true, ready: true, settled: true, visible: true, skip: false };
 
+const close = (actual, expected, tolerance = 1e-12) => assert.ok(Math.abs(actual - expected) <= tolerance,
+    `expected ${actual} to be within ${tolerance} of ${expected}`);
+const advance = (timeline, seconds, overrides = {}) => {
+    for (let i = 0; i < Math.round(seconds / frame.delta); i++) timeline.sample({ ...frame, ...overrides });
+};
+
 test('selection stretches immediately before camera settles and finishes in one second', () => {
     const timeline = createMenuTitleStretch();
     assert.equal(timeline.sample({ ...frame, ready: false }), 0);
@@ -191,4 +197,190 @@ test('already-wide titles are never compressed and missing metrics leave fonts u
     assert.equal(titleStretchStrength(metrics, NaN, 1), 0);
     assert.equal(measureTitleGlyphs([], [0, 0, 0, 0]), null);
     assert.equal(measureTitleGlyphs(new Float32Array([-2, 0, 2, 1]), [0, 0, 0, 0]), null);
+});
+
+test('breathing begins smoothly at full width only after the one-second intro completes', () => {
+    const timeline = createMenuTitleStretch();
+    advance(timeline, 0.98);
+    assert.ok(timeline.progress < 1);
+    assert.equal(timeline.widthFactorFor(0), 1);
+    timeline.sample(frame);
+    assert.equal(timeline.progress, 1);
+    assert.equal(timeline.widthFactorFor(0), 1);
+    timeline.sample({ ...frame, delta: 0 });
+    assert.equal(timeline.widthFactorFor(0), 1);
+    timeline.sample(frame);
+    const first = timeline.widthFactorFor(0);
+    close(first, 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 0.02 / 3.8)));
+    assert.ok(first < 1 && first > 0.99998);
+});
+
+test('breathing has a 3.8-second cosine cycle with zero-velocity ends and no overshoot', () => {
+    const timeline = createMenuTitleStretch();
+    advance(timeline, 1);
+    advance(timeline, 0.94);
+    const beforeQuarter = timeline.widthFactorFor(0);
+    advance(timeline, 0.96);
+    close(timeline.widthFactorFor(0), 0.95);
+    timeline.sample(frame);
+    assert.ok(timeline.widthFactorFor(0) > 0.95 && timeline.widthFactorFor(0) < 0.95002);
+    advance(timeline, 1.88);
+    close(timeline.widthFactorFor(0), 1);
+    assert.ok(beforeQuarter > 0.975 && beforeQuarter < 0.976);
+    for (let i = 0; i < 2000; i++) {
+        timeline.sample(frame);
+        const factor = timeline.widthFactorFor(0);
+        assert.ok(factor >= 0.95 && factor <= 1);
+    }
+});
+
+test('hidden and not-ready time freeze breathing and resumed frame spikes are bounded', () => {
+    const timeline = createMenuTitleStretch();
+    advance(timeline, 1);
+    advance(timeline, 0.8);
+    const held = timeline.widthFactorFor(0);
+    for (let i = 0; i < 100; i++) {
+        timeline.sample({ ...frame, visible: false, delta: 100 });
+        assert.equal(timeline.widthFactorFor(0), held);
+        timeline.sample({ ...frame, ready: false, delta: 100 });
+        assert.equal(timeline.widthFactorFor(0), held);
+    }
+    timeline.sample({ ...frame, delta: 0 });
+    assert.equal(timeline.widthFactorFor(0), held);
+    timeline.sample({ ...frame, delta: 100 });
+    close(timeline.widthFactorFor(0), 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 0.85 / 3.8)));
+});
+
+test('travel and section hold the current breath and return resumes without a first-frame jump', () => {
+    const timeline = createMenuTitleStretch();
+    advance(timeline, 1);
+    advance(timeline, 1.3);
+    const held = timeline.widthFactorFor(0);
+    for (const phase of ['travel', 'section', 'foreign']) {
+        advance(timeline, 3.8, { menu: false, phase });
+        assert.equal(timeline.widthFactorFor(0), held);
+    }
+    timeline.sample({ ...frame, menu: false, phase: 'travel', delta: 0 });
+    assert.equal(timeline.widthFactorFor(0), held);
+    timeline.sample({ ...frame, phase: 'menu', delta: 0 });
+    assert.equal(timeline.widthFactorFor(0), held);
+    timeline.sample({ ...frame, phase: 'menu' });
+    close(timeline.widthFactorFor(0), 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 1.32 / 3.8)));
+
+    const interrupted = createMenuTitleStretch();
+    advance(interrupted, 0.2);
+    advance(interrupted, 1, { menu: false, phase: 'travel' });
+    assert.equal(interrupted.progress, 1);
+    assert.equal(interrupted.widthFactorFor(0), 1);
+    interrupted.sample({ ...frame, delta: 0 });
+    assert.equal(interrupted.widthFactorFor(0), 1);
+    interrupted.sample(frame);
+    close(interrupted.widthFactorFor(0), 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 0.02 / 3.8)));
+});
+
+test('same logical physical wraps retain breath while a real selection restarts only the incoming word', () => {
+    for (const [from, to] of [[3, 7], [8, 4]]) {
+        const timeline = createMenuTitleStretch();
+        const logicalIndex = from % 4;
+        advance(timeline, 1, { index: logicalIndex });
+        advance(timeline, 1.2, { index: logicalIndex });
+        const held = timeline.widthFactorFor(logicalIndex);
+        timeline.sample({ ...frame, index: to % 4, delta: 0 });
+        assert.equal(timeline.widthFactorFor(logicalIndex), held);
+        advance(timeline, 1, { index: to % 4, menu: false, phase: 'travel' });
+        assert.equal(timeline.widthFactorFor(logicalIndex), held);
+        timeline.sample({ ...frame, index: to % 4, delta: 0 });
+        assert.equal(timeline.widthFactorFor(logicalIndex), held);
+        timeline.sample({ ...frame, index: to % 4 });
+        close(timeline.widthFactorFor(logicalIndex), 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 1.22 / 3.8)));
+        const outgoing = timeline.widthFactorFor(logicalIndex);
+        const incoming = (logicalIndex + 1) % 4;
+        timeline.sample({ ...frame, index: incoming });
+        assert.equal(timeline.widthFactorFor(incoming), 1);
+        assert.ok(timeline.progressFor(incoming) > 0 && timeline.progressFor(incoming) < 1);
+        assert.equal(timeline.widthFactorFor(logicalIndex), outgoing);
+        timeline.sample({ ...frame, index: logicalIndex, delta: 0 });
+        assert.equal(timeline.widthFactorFor(logicalIndex), 1);
+        assert.equal(timeline.progressFor(logicalIndex), 0);
+    }
+});
+
+test('reduced motion and Save Data remain at full static width without replay when disabled', () => {
+    for (const preference of ['reduced motion', 'Save Data']) {
+        const timeline = createMenuTitleStretch();
+        advance(timeline, 1.8);
+        assert.ok(timeline.widthFactorFor(0) < 1, preference);
+        advance(timeline, 3.8, { skip: true });
+        assert.equal(timeline.progressFor(0), 1, preference);
+        assert.equal(timeline.widthFactorFor(0), 1, preference);
+        timeline.sample({ ...frame, delta: 0 });
+        assert.equal(timeline.progressFor(0), 1, preference);
+        assert.equal(timeline.widthFactorFor(0), 1, preference);
+        timeline.sample(frame);
+        assert.equal(timeline.progressFor(0), 1, preference);
+        close(timeline.widthFactorFor(0), 1 - 0.025 * (1 - Math.cos(2 * Math.PI * 0.02 / 3.8)));
+    }
+    const timeline = createMenuTitleStretch();
+    timeline.sample({ ...frame, skip: true });
+    timeline.sample({ ...frame, delta: 0 });
+    assert.equal(timeline.progressFor(0), 1);
+    assert.equal(timeline.widthFactorFor(0), 1);
+});
+
+test('desktop keeps native title width and freezes rather than clears the mobile breath snapshot', () => {
+    const timeline = createMenuTitleStretch();
+    advance(timeline, 2.2);
+    const held = timeline.widthFactorFor(0);
+    advance(timeline, 3.8, { mobile: false });
+    assert.equal(timeline.progressFor(0), 0);
+    assert.equal(timeline.widthFactorFor(0), 1);
+    timeline.sample({ ...frame, delta: 0 });
+    assert.equal(timeline.progressFor(0), 1);
+    assert.equal(timeline.widthFactorFor(0), held);
+});
+
+test('breathing multiplies the whole requested width uniformly for narrow and already-wide words', () => {
+    for (const nativeWidth of [1.2, 3.8, 7]) {
+        const center = 0.75;
+        const left = center - nativeWidth / 2;
+        const right = center + nativeWidth / 2;
+        const bounds = new Float32Array([left, 0, left + nativeWidth * 0.2, 1,
+            left + nativeWidth * 0.3, 0, left + nativeWidth * 0.6, 1,
+            left + nativeWidth * 0.7, 0, right, 1]);
+        const metrics = measureTitleGlyphs(bounds, [left, 0, right, 1]);
+        const source = bounds.slice();
+        const target = bounds.slice();
+        const requestedWidth = 5;
+        const baseWidth = Math.max(nativeWidth, requestedWidth);
+        for (const widthFactor of [1, 0.975, 0.95, 0.975, 1, 0.95, 1]) {
+            const strength = titleStretchStrength(metrics, requestedWidth, 1, widthFactor);
+            const factor = baseWidth * widthFactor / nativeWidth;
+            applyTitleGlyphStretch(target, metrics, strength);
+            close(target[target.length - 2] - target[0], baseWidth * widthFactor, 1e-6);
+            close((target[0] + target[target.length - 2]) / 2, center, 1e-6);
+            for (let offset = 0; offset < target.length; offset += 4) {
+                close((target[offset + 2] - target[offset]) / (source[offset + 2] - source[offset]), factor, 1e-6);
+                assert.equal(target[offset + 1], source[offset + 1]);
+                assert.equal(target[offset + 3], source[offset + 3]);
+                if (offset + 4 < target.length) {
+                    close((target[offset + 4] - target[offset + 2]) / (source[offset + 4] - source[offset + 2]), factor, 1e-6);
+                }
+            }
+            assert.deepEqual(metrics.source, source);
+            assert.deepEqual(bounds, source);
+        }
+        assert.equal(titleStretchStrength(metrics, requestedWidth, 1),
+            titleStretchStrength(metrics, requestedWidth, 1, 1));
+        assert.equal(titleStretchStrength(metrics, requestedWidth, 1, NaN),
+            titleStretchStrength(metrics, requestedWidth, 1, 1));
+        assert.equal(titleStretchStrength(metrics, requestedWidth, 1, Infinity),
+            titleStretchStrength(metrics, requestedWidth, 1, 1));
+    }
+});
+
+test('MenuTitle applies the shared width factor directly from immutable source glyph bounds', () => {
+    const component = readFileSync(new URL('../components/pages/MenuTitle.jsx', import.meta.url), 'utf8');
+    assert.match(component, /titleStretchStrength\(metrics, targetWidth, current\.progressFor\(logicalIndex\),\s*current\.widthFactorFor\(logicalIndex\)\)/);
+    assert.match(component, /applyTitleGlyphStretch\(attribute\.array, metrics, strength\)/);
+    assert.doesNotMatch(component, /useState|requestAnimationFrame/);
 });

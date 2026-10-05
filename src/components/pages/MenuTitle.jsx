@@ -32,7 +32,8 @@ export default function MenuTitle({ label, logicalIndex, timeline, hub, onAfterR
         if (!mesh || !metrics) return;
         const current = timeline.current;
         if (!current.visible) return;
-        const strength = titleStretchStrength(metrics, targetWidth, current.progressFor(logicalIndex));
+        const strength = titleStretchStrength(metrics, targetWidth, current.progressFor(logicalIndex),
+            current.widthFactorFor(logicalIndex));
         if (Math.abs(applied.current - strength) < 0.00001) return;
         const attribute = mesh.geometry.getAttribute('aTroikaGlyphBounds');
         applyTitleGlyphStretch(attribute.array, metrics, strength);

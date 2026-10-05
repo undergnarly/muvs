@@ -1,11 +1,15 @@
 export const MENU_TITLE_STRETCH_DURATION = 1;
 export const MENU_TITLE_VIEWPORT_FRACTION = 0.8;
+export const MENU_TITLE_BREATH_PERIOD = 3.8;
+export const MENU_TITLE_BREATH_MIN = 0.95;
 
 export function createMenuTitleStretch() {
     let previousIndex = -1;
     let elapsed = 0;
+    let breathElapsed = 0;
     let active = false;
     const progressByIndex = new Float64Array(4);
+    const widthFactorByIndex = new Float64Array(4).fill(1);
     return {
         index: -1,
         progress: 0,
@@ -13,6 +17,9 @@ export function createMenuTitleStretch() {
         mobile: false,
         progressFor(index) {
             return this.mobile ? (progressByIndex[index] || 0) : 0;
+        },
+        widthFactorFor(index) {
+            return this.mobile ? (widthFactorByIndex[index] || 1) : 1;
         },
         sample({ delta, index, mobile, menu, ready, visible, skip, phase }) {
             this.index = index;
@@ -26,21 +33,33 @@ export function createMenuTitleStretch() {
             if (!active || index !== previousIndex) {
                 previousIndex = index;
                 elapsed = 0;
+                breathElapsed = 0;
                 this.progress = 0;
                 progressByIndex[index] = 0;
+                widthFactorByIndex[index] = 1;
                 active = true;
             }
             if (!ready || !visible) return this.progress;
             if (skip) {
+                elapsed = MENU_TITLE_STRETCH_DURATION;
+                breathElapsed = 0;
                 this.progress = 1;
                 progressByIndex[index] = 1;
+                widthFactorByIndex[index] = 1;
                 return this.progress;
             }
+            const step = Number.isFinite(delta) ? Math.max(0, Math.min(0.05, delta)) : 0;
+            const complete = elapsed >= MENU_TITLE_STRETCH_DURATION;
             elapsed = Math.min(MENU_TITLE_STRETCH_DURATION,
-                elapsed + (Number.isFinite(delta) ? Math.max(0, Math.min(0.05, delta)) : 0));
+                elapsed + step);
             const t = elapsed / MENU_TITLE_STRETCH_DURATION;
             this.progress = 1 - (1 - t) ** 3;
             progressByIndex[index] = this.progress;
+            if (complete && menu && (!phase || phase === 'menu')) {
+                breathElapsed = (breathElapsed + step) % MENU_TITLE_BREATH_PERIOD;
+                widthFactorByIndex[index] = 1 - (1 - MENU_TITLE_BREATH_MIN)
+                    * 0.5 * (1 - Math.cos(2 * Math.PI * breathElapsed / MENU_TITLE_BREATH_PERIOD));
+            }
             return this.progress;
         },
     };
@@ -79,10 +98,11 @@ export function measureTitleGlyphs(bounds, visibleBounds) {
     return { source: bounds.slice(), center, halfWidth, width, expansion: width, minX, maxX };
 }
 
-export function titleStretchStrength(metrics, targetWidth, progress) {
+export function titleStretchStrength(metrics, targetWidth, progress, widthFactor = 1) {
     if (!metrics || !Number.isFinite(targetWidth)) return 0;
-    return Math.max(0, targetWidth - metrics.width) / metrics.expansion
-        * Math.max(0, Math.min(1, progress));
+    const width = metrics.width + Math.max(0, targetWidth - metrics.width) * Math.max(0, Math.min(1, progress));
+    const factor = Number.isFinite(widthFactor) ? Math.max(MENU_TITLE_BREATH_MIN, Math.min(1, widthFactor)) : 1;
+    return (width * factor - metrics.width) / metrics.expansion;
 }
 
 export function applyTitleGlyphStretch(target, metrics, strength) {
