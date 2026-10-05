@@ -29,3 +29,5 @@ Startup/camera review completed: `phases/02-object-loops/02-06-PLAN.md` — reve
 Code caption layout completed: `phases/02-object-loops/02-07-PLAN.md` — persisted shared/AdsUp caption tuning copied from unchanged AI Agents; all-five mobile/desktop position checks and scoped DB invariance verified. Summary: `phases/02-object-loops/02-07-SUMMARY.md`.
 
 Loading stamp/mobile title revision completed: `phases/02-object-loops/02-08-PLAN.md` — lime marker progress and inline black MUVS tag, center-preserving outward mobile glyph stretch to80vw, desktop unchanged, recovery/preferences/interruption and live publication verified. Summary: `phases/02-object-loops/02-08-SUMMARY.md`.
+
+Music photo revision completed: `phases/02-object-loops/02-09-PLAN.md` — new transparent user artwork, versioned full/inline fallback, static Music without old-video override, safe loop warmup and verified live publication. Other object loops and camera/title effects unchanged. Summary: `phases/02-object-loops/02-09-SUMMARY.md`.
