@@ -591,13 +591,13 @@ body.home-new-active {
     width: 360px;
     max-height: 5em;
     overflow: hidden;
-    color: #222222;
-    letter-spacing: 0.08em;
+    color: #666666;
+    letter-spacing: 0.035em;
 }
 .hn-code-short p,
 .hn-code-short div { margin: 0; }
 .hn-code-short strong,
-.hn-code-short b { font-weight: 700; color: #111111; }
+.hn-code-short b { font-weight: 700; color: inherit; }
 .hn-code-short em,
 .hn-code-short i { font-style: italic; }
 

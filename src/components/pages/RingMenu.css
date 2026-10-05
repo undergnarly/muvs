@@ -12,12 +12,12 @@
 .mp3d-rich-caption {
     width: max-content;
     max-width: 520px;
-    color: #222222;
+    color: #666666;
     font-family: 'Josefin Sans', Urbanist, sans-serif;
     font-size: 16px;
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.06em;
     text-align: center;
     white-space: pre-wrap;
 }

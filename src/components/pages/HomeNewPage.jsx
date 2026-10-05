@@ -17,7 +17,7 @@ import { getObjectPosterSrc } from '../../data/objectLoops';
 import { getObjectFallbackSrc } from '../../data/menuArtwork';
 import { hasMenuBeenRevealed } from '../../utils/menuStartup';
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
-import { createInitialMenuZoom } from '../../utils/initialMenuZoom';
+import { createInitialMenuZoom, applyInitialMenuDolly } from '../../utils/initialMenuZoom';
 import { FONT_REGULAR, FONT_BOLD } from '../../data/menuFonts';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
@@ -599,7 +599,7 @@ const CodeShortDescription = ({ release, x, codeCaption = DEFAULT_CODE_CAPTION }
                             maxHeight: `${caption.maxHeight}em`,
                             fontSize: `${caption.fontSize}px`,
                             lineHeight: caption.lineHeight,
-                            letterSpacing: `${caption.letterSpacing}em`,
+                            letterSpacing: '0.035em',
                         }}
                         dangerouslySetInnerHTML={{ __html: sanitizeCaptionHtml(release.description) }}
                     />
@@ -931,7 +931,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         frame.menu = st.phase === 'menu';
         frame.index = st.menuIndex;
         const zoom = initialZoom.current.sample(frame);
-        if (camera.zoom !== zoom) { camera.zoom = zoom; camera.updateProjectionMatrix(); }
+        if (camera.zoom !== 1) { camera.zoom = 1; camera.updateProjectionMatrix(); }
 
         // troika Text ignores scene fog, so distant worlds would shine through
         // it — toggle whole-world visibility around the travel midpoint instead.
@@ -1003,6 +1003,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             }
         } else {
             pose = hubMenuPose(hub, st.angle);
+            applyInitialMenuDolly(pose.pos, pose.look, zoom);
         }
 
         camera.position.set(pose.pos.x, pose.pos.y, pose.pos.z);
