@@ -21,3 +21,5 @@ User review revision completed: `phases/02-object-loops/02-02-PLAN.md` — singl
 Entrance revision completed: `phases/02-object-loops/02-03-PLAN.md` — Music drop/dust, Mixes warm reveal, Code laptop opening and stronger screen light, selected-only2.4s lifecycle, verified production deployment. Summary: `phases/02-object-loops/02-03-SUMMARY.md`. Per-release animations are not part of this revision.
 
 Cold-start revision completed (supersedes those entrances): `phases/02-object-loops/02-04-PLAN.md` — decoded/GPU-ready media, exact posters/inline stills, all-menu warmup, initial1s zoom-out, steady Mixes bronze glints, always-open Code laptop and isolated startup failure recovery. Verified atomic production release. Summary: `phases/02-object-loops/02-04-SUMMARY.md`.
+
+Caption typography completed: `phases/02-object-loops/02-05-PLAN.md` — Josefin Sans Bold 700 and near-black captions across menu and Code objects, locally embedded font, mobile-safe wrapping and verified publication. Summary: `phases/02-object-loops/02-05-SUMMARY.md`.
