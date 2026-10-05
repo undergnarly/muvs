@@ -1,43 +1,46 @@
 import { MENU_DECORATION_ASSETS } from '../data/menuDecorAssets.js';
+import { menuPropDimensions, menuPropSupport } from './menuPropGeometry.js';
 
 export { MENU_DECORATION_ASSETS };
+export { menuPropDimensions as menuDecorationModelDimensions, menuPropSupport as menuDecorationModelSupport };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
+const WORLD_WIDTHS = { music: 0.32, cassette: 0.165, vinyl: 0.495, reel: 0.33 };
 const GROUND_SLOTS = {
     music: {
         mobile: [
-            { variant: 0, x: 0.085, depth: -0.055, size: 28, yaw: -0.08, roll: 0.03 },
-            { variant: 1, x: 0.915, depth: 0.12, size: 29, yaw: 0.07, roll: -0.025 },
-            { variant: 2, x: 0.085, floor: 0.84, size: 26, yaw: -0.1, roll: 0.04 },
-            { variant: 3, x: 0.085, floor: 1.22, size: 28, yaw: 0.09, roll: -0.04, foreground: true },
-            { variant: 4, x: 0.915, floor: 1.35, size: 29, yaw: -0.07, roll: 0.02, foreground: true },
+            { variant: 0, x: 0.085, depth: -0.055, yaw: -0.08, roll: 0.03 },
+            { variant: 1, x: 0.915, depth: 0.12, yaw: 0.07, roll: -0.025 },
+            { variant: 2, x: 0.085, floor: 0.84, yaw: -0.1, roll: 0.04 },
+            { variant: 3, x: 0.20, floor: 1.22, yaw: 0.09, roll: -0.04, foreground: true },
+            { variant: 4, x: 0.80, floor: 1.35, yaw: -0.07, roll: 0.02, foreground: true },
         ],
         desktop: [
-            { variant: 0, x: 0.18, depth: -0.06, size: 54, yaw: -0.08, roll: 0.03 },
-            { variant: 1, x: 0.82, depth: -0.02, size: 60, yaw: 0.07, roll: -0.025 },
-            { variant: 2, x: 0.07, floor: 0.84, size: 52, yaw: -0.1, roll: 0.04 },
-            { variant: 3, x: 0.085, floor: 1.22, size: 59, yaw: 0.09, roll: -0.04, foreground: true },
-            { variant: 4, x: 0.915, floor: 1.35, size: 58, yaw: -0.07, roll: 0.02, foreground: true },
+            { variant: 0, x: 0.18, depth: -0.06, yaw: -0.08, roll: 0.03 },
+            { variant: 1, x: 0.82, depth: -0.02, yaw: 0.07, roll: -0.025 },
+            { variant: 2, x: 0.07, floor: 0.84, yaw: -0.1, roll: 0.04 },
+            { variant: 3, x: 0.085, floor: 1.22, yaw: 0.09, roll: -0.04, foreground: true },
+            { variant: 4, x: 0.915, floor: 1.35, yaw: -0.07, roll: 0.02, foreground: true },
         ],
     },
     mixes: {
         mobile: [
-            { variant: 0, x: 0.085, depth: -0.055, size: 30, yaw: -0.08, roll: 0.025 },
-            { variant: 1, x: 0.915, depth: 0.12, size: 29, yaw: 0.07, roll: -0.03 },
-            { variant: 5, x: 0.075, floor: 0.84, size: 28, yaw: -0.07, roll: 0.025 },
-            { variant: 2, x: 0.948, floor: 0.84, size: 25, yaw: 0.09, roll: -0.025 },
-            { variant: 6, x: 0.085, floor: 1.22, size: 31, yaw: -0.07, roll: 0.025, foreground: true },
-            { variant: 7, x: 0.915, floor: 1.35, size: 30, yaw: 0.08, roll: -0.025, foreground: true },
+            { model: { kind: 'cassette', pose: 'flat', variant: 0 }, x: 0.085, depth: -0.055, azimuth: 0.32 },
+            { model: { kind: 'cassette', pose: 'standing', variant: 1 }, x: 0.915, depth: 0.12, azimuth: -0.22 },
+            { model: { kind: 'vinyl', pose: 'flat', variant: 0 }, x: 0.12, floor: 0.84, azimuth: 0.16 },
+            { model: { kind: 'cassette', pose: 'flat', variant: 2 }, x: 0.948, floor: 0.84, azimuth: -0.24 },
+            { model: { kind: 'vinyl', pose: 'flat', variant: 1 }, x: 0.24, floor: 1.34, azimuth: 0.18, foreground: true },
+            { model: { kind: 'reel', pose: 'flat', variant: 0 }, x: 0.76, floor: 1.35, azimuth: 0.36, foreground: true },
         ],
         desktop: [
-            { variant: 0, x: 0.18, depth: -0.06, size: 55, yaw: -0.08, roll: 0.025 },
-            { variant: 1, x: 0.82, depth: -0.02, size: 56, yaw: 0.07, roll: -0.03 },
-            { variant: 3, x: 0.13, depth: 0.13, size: 52, yaw: -0.09, roll: 0.035 },
-            { variant: 5, x: 0.07, floor: 0.84, size: 59, yaw: -0.07, roll: 0.025 },
-            { variant: 2, x: 0.93, floor: 0.84, size: 56, yaw: 0.09, roll: -0.025 },
-            { variant: 6, x: 0.085, floor: 1.22, size: 61, yaw: -0.07, roll: 0.025, foreground: true },
-            { variant: 7, x: 0.915, floor: 1.35, size: 59, yaw: 0.08, roll: -0.025, foreground: true },
+            { model: { kind: 'cassette', pose: 'flat', variant: 0 }, x: 0.18, depth: -0.06, azimuth: 0.32 },
+            { model: { kind: 'cassette', pose: 'standing', variant: 1 }, x: 0.82, depth: -0.02, azimuth: -0.22 },
+            { model: { kind: 'cassette', pose: 'flat', variant: 3 }, x: 0.13, depth: 0.13, azimuth: 0.17 },
+            { model: { kind: 'vinyl', pose: 'flat', variant: 0 }, x: 0.07, floor: 0.84, azimuth: 0.16 },
+            { model: { kind: 'cassette', pose: 'flat', variant: 2 }, x: 0.93, floor: 0.84, azimuth: -0.24 },
+            { model: { kind: 'vinyl', pose: 'flat', variant: 1 }, x: 0.14, floor: 1.34, azimuth: 0.18, foreground: true },
+            { model: { kind: 'reel', pose: 'flat', variant: 0 }, x: 0.90, floor: 1.35, azimuth: 0.36, foreground: true },
         ],
     },
 };
@@ -136,13 +139,17 @@ function createGroundLayout({ sectionKey, width, height, hub, variants }) {
     const slots = GROUND_SLOTS[sectionKey][mobile ? 'mobile' : 'desktop'];
     const seen = new Set();
     const revealBack = Math.max(1.6, camera.distance * 0.32);
+    const heroScale = Math.max(0.5, finite(hub.itemSize, 3.4)) / 3.4;
     const layout = [];
     for (const slot of slots) {
-        const asset = variants[slot.variant];
-        if (!asset?.src || seen.has(asset.src) || !Number.isFinite(asset.width) || asset.width <= 0
+        const model = slot.model;
+        const asset = model ? null : variants[slot.variant];
+        if (!model && (!asset?.src || !Number.isFinite(asset.width) || asset.width <= 0
             || !Number.isFinite(asset.height) || asset.height <= 0 || !asset.footHull?.length
-            || !asset.footHull.every((point) => point.length === 2 && point.every(Number.isFinite))) continue;
-        seen.add(asset.src);
+            || !asset.footHull.every((point) => point.length === 2 && point.every(Number.isFinite)))) continue;
+        const identifier = model ? `${model.kind}-${model.variant}` : asset.src;
+        if (seen.has(identifier)) continue;
+        seen.add(identifier);
         const foreground = Boolean(slot.foreground);
         const screenX = slot.x;
         let depth;
@@ -155,23 +162,28 @@ function createGroundLayout({ sectionKey, width, height, hub, variants }) {
             depth = camera.distance * slot.depth;
         }
         const reference = { ...options, cameraBack: foreground ? revealBack : 0 };
-        const base = projectMenuDecoration([0, groundY, depth], reference);
-        const sizePx = slot.size;
-        const scale = sizePx * base.unitsPerPixel;
-        const roll = slot.roll;
-        const yaw = slot.yaw;
-        const foot = menuDecorationFoot(sectionKey, roll, asset);
-        const centerY = groundY - foot.y * scale;
+        const scale = WORLD_WIDTHS[model?.kind || sectionKey] * heroScale;
+        const rotation = model ? model.kind === 'cassette'
+            ? model.pose === 'flat' ? [-Math.PI / 2, 0, slot.azimuth] : [0, slot.azimuth, 0]
+            : model.pose === 'flat' ? [0, slot.azimuth, 0] : [Math.PI / 2, 0, -slot.azimuth]
+            : [0, slot.yaw, slot.roll];
+        const foot = model ? menuPropSupport(model, rotation) : menuDecorationFoot(sectionKey, slot.roll, asset);
+        const centerY = groundY - foot.y * scale + (model ? 0.002 : 0);
         const centerProjection = projectMenuDecoration([0, centerY, depth], reference);
         const centerX = (screenX - 0.5) * width * centerProjection.unitsPerPixel;
-        const contact = [centerX + foot.x * Math.cos(yaw) * scale, groundY, depth - foot.x * Math.sin(yaw) * scale];
+        const contact = model ? [centerX + foot.x * scale, groundY, depth + foot.z * scale]
+            : [centerX + foot.x * Math.cos(slot.yaw) * scale, groundY, depth - foot.x * Math.sin(slot.yaw) * scale];
         const position = [centerX, centerY, depth];
         const projected = projectMenuDecoration(position, options);
-        const longestSide = Math.max(asset.width, asset.height);
-        layout.push({ screenX: projected.screenX, screenY: projected.screenY, sizePx, position, scale, asset,
-            planeSize: [asset.width / longestSide, asset.height / longestSide],
-            rotation: [0, yaw, roll], grounded: true, foreground, belowCaption: !foreground && Boolean(slot.floor), groundY, foot,
-            shadow: { position: [contact[0], contact[1] + 0.006, contact[2]], size: [scale * 0.76, scale * 0.26] } });
+        const shape = model ? { model } : { asset,
+            planeSize: [asset.width / Math.max(asset.width, asset.height), asset.height / Math.max(asset.width, asset.height)] };
+        const shadowSize = model ? model.kind === 'cassette'
+            ? [scale * 0.9, scale * (model.pose === 'flat' ? 0.58 : 0.18)]
+            : [scale * (model.pose === 'flat' ? 0.94 : 0.72), scale * (model.pose === 'flat' ? 0.94 : 0.16)]
+            : [scale * 0.76, scale * 0.26];
+        layout.push({ screenX: projected.screenX, screenY: projected.screenY, position, scale, ...shape,
+            rotation, grounded: true, foreground, belowCaption: !foreground && Boolean(slot.floor), groundY, foot,
+            shadow: { position: [contact[0], contact[1] + 0.006, contact[2]], size: shadowSize } });
     }
     return layout;
 }
