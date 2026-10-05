@@ -1,0 +1,11 @@
+# 02-12 complete — supplied Desktop animations
+
+Preparation17d7a48; runtime0b0e943. Atomic live release /var/www/muvs-releases/0b0e943d8832 verified2026-10-05. Source paths/encoding/hashes/registration/seam and exact-posters in02-12-ASSETS.md.
+
+mixes.mp4 → Mixes-v4 bronze DJ; aiagents.mp4 → Code-v4 marble/laptop; ai agents.mp4 → agents-v2 glass brain in Code's AI Agents project. Used only these three new Desktop clips, preserved originals and old public assets, kept Music-v3 and static About. Existing native-RGB original-alpha pipeline, no gray chromakey on glass:720square/24fps/6s,silentH264High3.1faststart, exact encoded first-frame posters and original alpha masks. No source camera/silhouette drift; preserved translucent edges. Total3.51MB MP4s, largest1.95MB.
+
+Updated manifest and two early decoded-poster preloads only. CMS cover URLs remain original keys; brain gets an exact decoded-poster override rather than old upload preview. Automatic selected-only muted/playsinline cache unchanged; no new controls or loading gates. Runtime original-rim masks prevent opaque source gray background.
+
+Combined120/120 tests, scoped lint/build/diff; independent review found two outdated preload URLs which root corrected before final build/publication, then41 focused tests pass. Local/actual live Mixes/Code playback and Code-entry AI Agents loop verified on390px, all four menu layouts320 anddesktop, contact sheets/motion/loop seam and fallback/reduced behavior checked; one selected playing decoder, no page errors or white rectangles. Browser source instrumentation confirms muted/inline/ready4 on each warm menu clip; brain alone plays in Code project. Optional full-media failure preserves stills. Physical handset not tested.
+
+All9 bare publicvideo/mask/poster URLs200 with exact localSHA256. Live all-four fresh screenshots and new About200, publishedCSS match, CMSdc2d30237a353a3caa4460531bb5aa13aaf10e217ab3bdd1c22500aefa4b7523 unchanged. Private QA JSON and unused original-base posters moved to output/desktop-animation-review, not public distribution. Retained previous public media for cached clients. User's new02-13 decor layout review is separate; no media re-generation required.

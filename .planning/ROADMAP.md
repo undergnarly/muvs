@@ -34,4 +34,8 @@ Music photo revision completed: `phases/02-object-loops/02-09-PLAN.md` — new t
 
 Material variety revision completed: `phases/02-object-loops/02-10-PLAN.md` — restored previous Music and three small generated material-family assets with sparse stable randomized 3D-plane instances, mobile/desktop/failure/interaction QA and verified publication. Summary: `phases/02-object-loops/02-10-SUMMARY.md`.
 
-Current revision: `phases/02-object-loops/02-11-PLAN.md` — static Bebas Neue and immediate1s retained mobile stretching, generated aerosol loading stroke with synchronized black tag reveal, transparent completed About portrait.
+Typography/spray/portrait revision completed: `phases/02-object-loops/02-11-PLAN.md` — static Bebas Neue and immediate1s retained mobile stretching, generated aerosol loading stroke with synchronized black tag reveal, transparent completed About portrait. Summary: `phases/02-object-loops/02-11-SUMMARY.md`.
+
+Desktop animation revision completed: `phases/02-object-loops/02-12-PLAN.md` — supplied bronze Mixes, marble Code and glass AI Agents loops, silent transparent-alpha sidecars/exact decoded posters, selected-only playback and verified publication. Summary: `phases/02-object-loops/02-12-SUMMARY.md`.
+
+Current revision: `phases/02-object-loops/02-13-PLAN.md` — grounded Music/Mixes floor details with near/far foreground reveal on entry scroll; subtle floating Code bob/rotation and safe travel/return preferences.
