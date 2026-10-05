@@ -197,10 +197,11 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cove
             <group position={[0, hub.itemY, -hub.ringRadius]} rotation={[0, Math.PI, 0]}>
                 <group>
                 <MenuTitle
-                    onAfterRender={motionEnabled && item.key === 'about' ? markMenuArtworkRendered : undefined}
+                    onAfterRender={motionEnabled && item.key === 'about' && !cover ? markMenuArtworkRendered : undefined}
                     label={item.label}
                     logicalIndex={logicalIndex}
                     timeline={titleTimeline}
+                    hub={hub}
                 />
                 <Text
                     position={[0, 3.0, -1.2]}
@@ -266,7 +267,7 @@ const LOOP_COPIES = [-1, 0, 1];
 
 export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => {
     const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch() }), []);
-    const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, ready: false, settled: false, visible: true, skip: false });
+    const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, phase: '', ready: false, settled: false, visible: true, skip: false });
     useFrame(({ size }, delta) => {
         const state = stateRef?.current;
         const preferences = getArtworkMotionSnapshot();
@@ -275,6 +276,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
         frame.index = hubMod(state?.menuIndex ?? activeIndex);
         frame.mobile = size.width <= 768;
         frame.menu = state?.phase === 'menu';
+        frame.phase = state?.phase;
         frame.ready = hasMenuBeenRevealed();
         frame.settled = Boolean(state && Math.abs(state.angle - state.menuIndex * HUB_SPACING) < 0.025);
         frame.visible = !(preferences & 2);

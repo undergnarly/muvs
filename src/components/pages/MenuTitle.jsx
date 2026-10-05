@@ -1,18 +1,20 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import { FONT_BOLD } from '../../data/menuFonts';
+import { FONT_MENU_TITLE } from '../../data/menuFonts';
 import {
-    applyTitleGlyphStretch, measureTitleGlyphs, MENU_TITLE_VIEWPORT_FRACTION,
+    applyTitleGlyphStretch, measureTitleGlyphs, menuTitleTargetWidth,
     titleStretchStrength, warpTitleCoordinate,
 } from '../../utils/menuTitleStretch';
 
-export default function MenuTitle({ label, logicalIndex, timeline, onAfterRender }) {
+export default function MenuTitle({ label, logicalIndex, timeline, hub, onAfterRender }) {
     const meshRef = useRef(null);
     const glyphs = useRef(null);
     const applied = useRef(0);
-    const projected = useMemo(() => ({ center: new THREE.Vector3(), unit: new THREE.Vector3() }), []);
+    const width = useThree((state) => state.size.width);
+    const height = useThree((state) => state.size.height);
+    const targetWidth = useMemo(() => menuTitleTargetWidth(hub, width / Math.max(1, height)), [hub, width, height]);
     const onSync = useCallback((mesh) => {
         const attribute = mesh.geometry.getAttribute('aTroikaGlyphBounds');
         const metrics = measureTitleGlyphs(mesh.textRenderInfo?.glyphBounds, mesh.textRenderInfo?.visibleBounds);
@@ -24,23 +26,13 @@ export default function MenuTitle({ label, logicalIndex, timeline, onAfterRender
         applied.current = 0;
     }, []);
 
-    useFrame(({ camera }) => {
+    useFrame(() => {
         const mesh = meshRef.current;
         const metrics = glyphs.current;
         if (!mesh || !metrics) return;
         const current = timeline.current;
         if (!current.visible) return;
-        let strength = 0;
-        if (current.index === logicalIndex && current.progress > 0) {
-            camera.updateMatrixWorld();
-            mesh.updateWorldMatrix(true, false);
-            projected.center.set(metrics.center, 0, 0).applyMatrix4(mesh.matrixWorld).project(camera);
-            projected.unit.set(metrics.center + 1, 0, 0).applyMatrix4(mesh.matrixWorld).project(camera);
-            const unitWidth = Math.abs(projected.unit.x - projected.center.x);
-            if (unitWidth > 0.00001) {
-                strength = titleStretchStrength(metrics, 2 * MENU_TITLE_VIEWPORT_FRACTION / unitWidth, current.progress);
-            }
-        }
+        const strength = titleStretchStrength(metrics, targetWidth, current.progressFor(logicalIndex));
         if (Math.abs(applied.current - strength) < 0.00001) return;
         const attribute = mesh.geometry.getAttribute('aTroikaGlyphBounds');
         applyTitleGlyphStretch(attribute.array, metrics, strength);
@@ -64,7 +56,7 @@ export default function MenuTitle({ label, logicalIndex, timeline, onAfterRender
             anchorX="center"
             anchorY="middle"
             letterSpacing={-0.02}
-            font={FONT_BOLD}
+            font={FONT_MENU_TITLE}
             material-side={THREE.FrontSide}
         >
             {label}

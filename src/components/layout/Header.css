@@ -1,3 +1,18 @@
+@font-face {
+    font-family: 'Bebas Neue';
+    src: url('../../assets/fonts/BebasNeue-Regular.ttf?inline') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+.staggered-menu-wrapper .sm-panel-itemLabel {
+    font-family: 'Bebas Neue', Urbanist, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0;
+    font-synthesis: none;
+}
+
 .header {
     position: fixed;
     top: 0;

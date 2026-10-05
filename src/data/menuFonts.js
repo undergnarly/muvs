@@ -4,6 +4,8 @@
 // The unmodified font files retain their SIL OFL license in assets/fonts.
 import regularFont from '../assets/fonts/Urbanist500.woff?inline';
 import boldFont from '../assets/fonts/Urbanist700.woff?inline';
+import menuTitleFont from '../assets/fonts/BebasNeue-Regular.ttf?inline';
 
 export const FONT_REGULAR = regularFont;
 export const FONT_BOLD = boldFont;
+export const FONT_MENU_TITLE = menuTitleFont;
