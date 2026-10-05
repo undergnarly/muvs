@@ -15,9 +15,9 @@ import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveT
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc } from '../../data/objectLoops';
 import { MENU_ARTWORK, getObjectFallbackSrc } from '../../data/menuArtwork';
-import { hasMenuBeenRevealed } from '../../utils/menuStartup';
-import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
-import { createInitialMenuZoom, applyInitialMenuDolly } from '../../utils/initialMenuZoom';
+import { markMenuArtworkRendered } from '../../utils/menuStartup';
+import { getStartupDiveProgress } from '../../utils/startupDive';
+import { applyStartupDivePose } from '../../utils/startupDivePose';
 import { FONT_REGULAR, FONT_BOLD } from '../../data/menuFonts';
 import {
     RingMenu, HUB_ITEMS, HUB_SPACING, HUB_RETURN_KEY, DEFAULT_HUB,
@@ -508,7 +508,8 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
 
             {!hideCover && (
                 <group>
-                    <mesh ref={meshRef} position={[0, billboard.coverY, 0]}>
+                    <mesh ref={meshRef} position={[0, billboard.coverY, 0]}
+                        onAfterRender={() => { if (tex) markMenuArtworkRendered(); }}>
                         <planeGeometry args={[width, height]} />
                         <ArtworkMaterial posterTexture={tex} video={video} />
                     </mesh>
@@ -518,7 +519,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
     );
 };
 
-const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = false }) => {
+const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = false, startupReady = false }) => {
     const meta = release.releaseDate ? `RELEASED · ${release.releaseDate}` : '';
     const html = richText
         ? (fullDescriptionOnly ? (release.fullDescription || '') : (release.fullDescription || release.description || ''))
@@ -556,6 +557,7 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
             ) : !richText ? (
                 <Text
                     position={[0, -0.7, 0]}
+                    onAfterRender={startupReady && plain ? markMenuArtworkRendered : undefined}
                     fontSize={0.32}
                     color="#222222"
                     anchorX="center"
@@ -891,6 +893,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
         const c = cfgRef.current;
         const { pos, look, fov } = sampleStops(c.stops, progressRef.current);
         const offX = releaseOffsetRef.current;
+        applyStartupDivePose(pos, look, getStartupDiveProgress());
 
         camera.position.set(pos.x + offX, pos.y, pos.z);
         lookAt.current.set(look.x + offX, look.y, look.z);
@@ -911,26 +914,11 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef }) => {
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
 const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
     const lookAt = useRef(new THREE.Vector3());
-    const initialZoom = useRef(null);
-    const zoomFrame = useRef({ delta: 0, ready: false, visible: true, skip: false, menu: true, index: 0 });
 
     useFrame(({ camera }, delta) => {
         const cfg = cfgRef.current;
         const hub = cfg.hub || DEFAULT_HUB;
         const st = stRef.current;
-        if (!initialZoom.current) initialZoom.current = createInitialMenuZoom({
-            enabled: window.location.pathname === '/' && !hasMenuBeenRevealed() && st.phase === 'menu',
-            initialIndex: st.menuIndex,
-        });
-        const motionPreferences = getArtworkMotionSnapshot();
-        const frame = zoomFrame.current;
-        frame.delta = delta;
-        frame.ready = hasMenuBeenRevealed();
-        frame.visible = !(motionPreferences & 2);
-        frame.skip = Boolean(motionPreferences & 12);
-        frame.menu = st.phase === 'menu';
-        frame.index = st.menuIndex;
-        const zoom = initialZoom.current.sample(frame);
         if (camera.zoom !== 1) { camera.zoom = 1; camera.updateProjectionMatrix(); }
 
         // troika Text ignores scene fog, so distant worlds would shine through
@@ -1003,9 +991,9 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             }
         } else {
             pose = hubMenuPose(hub, st.angle);
-            applyInitialMenuDolly(pose.pos, pose.look, zoom);
         }
 
+        applyStartupDivePose(pose.pos, pose.look, getStartupDiveProgress());
         camera.position.set(pose.pos.x, pose.pos.y, pose.pos.z);
         lookAt.current.set(pose.look.x, pose.look.y, pose.look.z);
         camera.lookAt(lookAt.current);
@@ -1197,7 +1185,7 @@ const TVScreen = ({ mix, tv = DEFAULT_TV, playing = false, comingSoon = false })
                     <meshBasicMaterial color="#0a0a0a" toneMapped={false} />
                 </mesh>
             )}
-            <mesh>
+            <mesh onAfterRender={() => { if (tex) markMenuArtworkRendered(); }}>
                 <planeGeometry args={[W, H]} />
                 <meshBasicMaterial map={tex} transparent toneMapped={false} />
             </mesh>
@@ -1313,7 +1301,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         />
                     )}
                     <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} loadFull={Math.abs(index - activeItemIndex) <= 1} />
-                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} />
+                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} startupReady={hideBillboard} />
                     {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} codeCaption={codeCaption} />}
                     {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} />}
                 </React.Fragment>
