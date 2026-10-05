@@ -1,5 +1,5 @@
 import { MENU_ARTWORK, getObjectFallbackSrc } from '../data/menuArtwork';
-import { getObjectLoop, getObjectPosterSrc } from '../data/objectLoops';
+import { getMenuObjectLoops, getObjectPosterSrc } from '../data/objectLoops';
 import { preloadTexture } from '../hooks/useProgressiveTexture';
 import { objectVideoCache } from './objectVideoRuntime';
 import { createStartupGate, settleWithin } from './menuStartupGate';
@@ -24,7 +24,7 @@ const startup = createStartupGate({
         const fallbackReady = Promise.all(MENU_ARTWORK.map((poster) => preloadTexture(getObjectFallbackSrc(poster))));
         const postersReady = Promise.all(MENU_ARTWORK.map((poster) => settleWithin(preloadTexture(getObjectPosterSrc(poster)), 8000)))
             .then(() => updateSplashProgress(65));
-        const videosReady = Promise.all(MENU_ARTWORK.map((poster) => objectVideoCache.preload(getObjectLoop(poster))));
+        const videosReady = Promise.all(getMenuObjectLoops(MENU_ARTWORK).map((spec) => objectVideoCache.preload(spec)));
         await fallbackReady;
         updateSplashProgress(25);
         await Promise.all([postersReady, settleWithin(videosReady, 8500)]);

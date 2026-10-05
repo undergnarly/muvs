@@ -5,10 +5,6 @@
 //   alphaMaskSrc: '/videos/objects/music-alpha.png', width: 720, height: 720,
 // }
 export const OBJECT_LOOPS = Object.freeze({
-    '/images/menu/music2.webp': Object.freeze({
-        posterSrc: '/videos/objects/music-v3-poster.webp',
-        videoSrc: '/videos/objects/music-v3.mp4', alphaMaskSrc: '/videos/objects/music-alpha.png', width: 720, height: 720,
-    }),
     '/images/menu/mixes-trans.webp': Object.freeze({
         posterSrc: '/videos/objects/mixes-v3-poster.webp',
         videoSrc: '/videos/objects/mixes-v3.mp4', alphaMaskSrc: '/videos/objects/mixes-alpha.png', width: 720, height: 720,
@@ -29,6 +25,9 @@ export const getObjectLoop = (poster) => (
 );
 
 export const getObjectPosterSrc = (poster) => getObjectLoop(poster)?.posterSrc || poster;
+
+// Static menu artwork has no video sidecar and must not reach cache.preload.
+export const getMenuObjectLoops = (posters) => posters.map(getObjectLoop).filter(Boolean);
 
 export function isObjectPosterReady(texture, poster) {
     const source = texture?.image?.currentSrc || texture?.image?.src;

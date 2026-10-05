@@ -14,7 +14,7 @@ import { sanitizeCaptionHtml } from '../../utils/captionRichText';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc } from '../../data/objectLoops';
-import { getObjectFallbackSrc } from '../../data/menuArtwork';
+import { MENU_ARTWORK, getObjectFallbackSrc } from '../../data/menuArtwork';
 import { hasMenuBeenRevealed } from '../../utils/menuStartup';
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import { createInitialMenuZoom, applyInitialMenuDolly } from '../../utils/initialMenuZoom';
@@ -2542,7 +2542,7 @@ export const Scene3DShell = ({
     const hubCovers = useMemo(() => {
         if (!hub) return null;
         const menuCovers = {
-            music: '/images/menu/music2.webp',
+            music: MENU_ARTWORK[0],
             mixes: '/images/menu/mixes-trans.webp',
             code: '/images/menu/code2.webp',
             about: null,

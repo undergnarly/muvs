@@ -1,9 +1,9 @@
-import musicFallback from '../assets/menu-fallback/music.webp?inline';
+import musicFallback from '../assets/menu-fallback/music-20261005.webp?inline';
 import mixesFallback from '../assets/menu-fallback/mixes.webp?inline';
 import codeFallback from '../assets/menu-fallback/code.webp?inline';
 
 export const MENU_ARTWORK = Object.freeze([
-    '/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp',
+    '/images/menu/music-20261005.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp',
 ]);
 const fallbacks = Object.freeze({
     [MENU_ARTWORK[0]]: musicFallback,
