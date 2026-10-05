@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Euler, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import {
-    createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationTimeline, createMenuDecorationVisibility,
+    createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationTextureCache, createMenuDecorationTimeline, createMenuDecorationVisibility,
     menuDecorationFoot, menuDecorationGroundY, menuDecorationMotion,
     menuDecorationPoint, projectMenuDecoration,
 } from './menuDecorations.js';
+import { MENU_DECORATION_ASSETS } from '../data/menuDecorAssets.js';
 
 const frame = { delta: 0.02, active: true, phase: 'menu', index: 4, selectedIndex: 4,
     ready: true, settled: true, visible: true, skip: false, travel: 0, direction: 1 };
@@ -13,10 +15,14 @@ const close = (actual, expected, tolerance = 1e-11) => assert.ok(Math.abs(actual
 const optionsFor = (width) => ({ width, height: width > 768 ? 900 : 740 });
 const revealBackFor = (width) => (width <= 768 ? 11 : 9.5) * 0.32;
 
+const createGroundLayout = createMenuDecorationLayout;
+
 const bounds = { music: [-167 / 384, 168 / 384, -119 / 384, 113 / 384],
     mixes: [-163 / 384, 165 / 384, -127 / 384, 130 / 384] };
 function spriteBounds(prop, sectionKey, options) {
-    const [left, right, bottom, top] = bounds[sectionKey];
+    const longestSide = Math.max(prop.asset.width, prop.asset.height);
+    const [left, right, bottom, top] = prop.asset.opaqueBounds
+        ? prop.asset.opaqueBounds.map((value) => value / longestSide) : bounds[sectionKey];
     const sine = Math.sin(prop.rotation[2]);
     const cosine = Math.cos(prop.rotation[2]);
     const yawSin = Math.sin(prop.rotation[1]);
@@ -32,30 +38,32 @@ function spriteBounds(prop, sectionKey, options) {
         top: Math.min(...points.map((p) => p.screenY)), bottom: Math.max(...points.map((p) => p.screenY)) };
 }
 
-test('scatter is seeded and sparse, with material-specific stable load variations', () => {
-    const music = createMenuDecorationLayout({ sectionKey: 'music', seed: 10 });
-    assert.deepEqual(createMenuDecorationLayout({ sectionKey: 'music', seed: 10 }), music);
-    assert.notDeepEqual(createMenuDecorationLayout({ sectionKey: 'music', seed: 11 }), music);
-    assert.notDeepEqual(createMenuDecorationLayout({ sectionKey: 'mixes', seed: 10 }), music);
+test('curated floor composition stays fixed across reloads and physical copies', () => {
+    const music = createGroundLayout({ sectionKey: 'music', seed: 10 });
+    assert.deepEqual(createGroundLayout({ sectionKey: 'music', seed: 10 }), music);
+    assert.deepEqual(createGroundLayout({ sectionKey: 'music', seed: 11 }), music);
+    assert.notDeepEqual(createGroundLayout({ sectionKey: 'mixes', seed: 10 }), music);
     for (const sectionKey of ['music', 'mixes']) {
-        assert.equal(createMenuDecorationLayout({ sectionKey }).length, 5);
-        assert.equal(createMenuDecorationLayout({ sectionKey, width: 1440, height: 900 }).length, 7);
+        assert.equal(createGroundLayout({ sectionKey }).length, sectionKey === 'music' ? 5 : 6);
+        assert.equal(createGroundLayout({ sectionKey, width: 1440, height: 900 }).length, sectionKey === 'music' ? 5 : 7);
     }
     assert.equal(createMenuDecorationLayout({ sectionKey: 'code' }).length, 3);
     assert.equal(createMenuDecorationLayout({ sectionKey: 'code', width: 1440, height: 900 }).length, 4);
+    assert.deepEqual(createMenuDecorationLayout({ sectionKey: 'code', seed: 10 }),
+        createMenuDecorationLayout({ sectionKey: 'code', seed: 11 }));
     assert.deepEqual(createMenuDecorationLayout({ sectionKey: 'about' }), []);
 });
 
 test('rocks and cassettes have coplanar visible feet despite sprite padding and roll', () => {
     for (const sectionKey of ['music', 'mixes']) for (const width of [320, 390, 1440]) {
         for (let seed = 0; seed < 100; seed++) {
-            const layout = createMenuDecorationLayout({ sectionKey, ...optionsFor(width), seed });
+            const layout = createGroundLayout({ sectionKey, ...optionsFor(width), seed });
             assert.ok(layout.some((prop) => prop.position[2] < 0), 'at least one far prop');
             assert.ok(layout.some((prop) => prop.position[2] > 0), 'positive local Z is foreground');
             for (const prop of layout) {
                 assert.equal(prop.grounded, true);
                 assert.equal(prop.rotation[0], 0);
-                const foot = menuDecorationFoot(sectionKey, prop.rotation[2]);
+                const foot = menuDecorationFoot(sectionKey, prop.rotation[2], prop.asset);
                 close(prop.position[1] + foot.y * prop.scale, menuDecorationGroundY(sectionKey));
                 close(prop.shadow.position[1], prop.groundY + 0.006);
                 assert.ok(Math.abs(prop.rotation[2]) <= 0.08);
@@ -72,19 +80,26 @@ test('initial visible ground props protect title, hero, caption center and contr
     for (const width of [320, 390, 768, 1440]) for (const sectionKey of ['music', 'mixes']) {
         const options = optionsFor(width);
         for (let seed = 0; seed < 200; seed++) {
-            const layout = createMenuDecorationLayout({ sectionKey, ...options, seed });
+            const layout = createGroundLayout({ sectionKey, ...options, seed });
             for (const prop of layout.filter((item) => !item.foreground)) {
                 const box = spriteBounds(prop, sectionKey, options);
                 assert.ok(box.left > 0 && box.right < 1, 'entire visible cutout stays in canvas');
-                assert.ok(box.top > 0.38 && box.bottom < 0.82, 'not in title or controls');
+                assert.ok(box.top > 0.38 && box.bottom < 0.86, 'not in title or controls');
                 assert.ok(box.right < (width <= 768 ? 0.15 : 0.25)
                     || box.left > (width <= 768 ? 0.85 : 0.75), 'side lane protects hero and caption');
                 assert.ok(prop.sizePx >= (width <= 768 ? 24 : 46));
                 assert.ok(prop.sizePx <= (width <= 768 ? 33 : 70));
             }
+            const belowCaption = layout.filter((prop) => prop.belowCaption);
+            assert.equal(belowCaption.length, sectionKey === 'music' ? 1 : 2);
+            for (const prop of belowCaption) {
+                const box = spriteBounds(prop, sectionKey, options);
+                assert.ok(box.top >= 0.78 && box.bottom < 0.86, 'near details sit below copy at rest');
+            }
             if (width <= 768 && sectionKey === 'mixes') {
-                assert.ok(layout[2].screenX < 0.06);
-                assert.ok(layout[2].sizePx <= 27, 'caption-side cassette is smaller');
+                const cassette = belowCaption.find((prop) => prop.asset.family === 'cassette');
+                assert.ok(cassette.screenX > 0.94);
+                assert.ok(cassette.sizePx <= 27, 'caption-side cassette is smaller');
             }
         }
     }
@@ -94,7 +109,7 @@ test('extra foreground pieces are below fold and naturally reveal after physical
     for (const width of [320, 390, 1440]) for (const sectionKey of ['music', 'mixes']) {
         const options = optionsFor(width);
         for (let seed = 0; seed < 100; seed++) {
-            const layout = createMenuDecorationLayout({ sectionKey, ...options, seed });
+            const layout = createGroundLayout({ sectionKey, ...options, seed });
             const extra = layout.filter((prop) => prop.foreground);
             assert.equal(extra.length, 2);
             for (const prop of extra) {
@@ -311,4 +326,131 @@ test('shared timeline still gates phase/reveal/preferences and reverse travel af
     close(timeline.sample({ ...frame, ready: false }), 0);
     close(timeline.sample({ ...frame, skip: true }), 1);
     close(timeline.sample({ ...frame, visible: false }), 1);
+});
+
+test('fixed floor assignments never repeat and Mixes always includes cassette and visible vinyl', () => {
+    for (const sectionKey of ['music', 'mixes']) for (const width of [320, 390, 1440]) {
+        const orders = new Set();
+        for (let seed = 0; seed < 100; seed++) {
+            const layout = createGroundLayout({ sectionKey, ...optionsFor(width), seed });
+            const count = sectionKey === 'music' ? 5 : width <= 768 ? 6 : 7;
+            assert.equal(layout.length, count);
+            assert.equal(layout.filter((prop) => !prop.foreground).length, count - 2);
+            assert.equal(layout.filter((prop) => prop.foreground).length, 2);
+            assert.equal(new Set(layout.map((prop) => prop.asset.src)).size, count);
+            assert.ok(layout.every((prop) => MENU_DECORATION_ASSETS[sectionKey].some((asset) => asset.src === prop.asset.src)));
+            if (sectionKey === 'mixes') {
+                const initial = layout.filter((prop) => !prop.foreground);
+                assert.ok(initial.some((prop) => prop.asset.family === 'cassette'));
+                assert.ok(initial.some((prop) => prop.asset.family === 'vinyl'));
+            }
+            for (const prop of layout) {
+                assert.ok(prop.scale > 0, 'no mirrored cassette branding');
+                assert.ok(Math.abs(prop.rotation[1]) <= 0.14);
+                assert.ok(Math.abs(prop.rotation[2]) <= 0.08);
+            }
+            orders.add(layout.map((prop) => prop.asset.src).join('|'));
+        }
+        assert.equal(orders.size, 1, 'asset assignments do not vary with session seed');
+    }
+});
+
+test('unmeasured or duplicate variants do not invent floor contacts or repeat the last sprite', () => {
+    const original = MENU_DECORATION_ASSETS.music.at(-1);
+    const layout = createMenuDecorationLayout({ sectionKey: 'music', variants: [
+        original, original, { src: '/unmeasured.webp', width: 384, height: 384 },
+    ] });
+    assert.equal(layout.length, 1);
+    assert.equal(layout[0].asset.src, original.src);
+    assert.ok(layout.every((prop) => Number.isFinite(prop.position[1])));
+});
+
+test('non-square variant aspect and its actual alpha foot share the same normalization', () => {
+    const original = MENU_DECORATION_ASSETS.mixes.find((asset) => asset.family === 'cassette');
+    const variant = { ...original, src: '/fixture-nonsquare.webp', height: 300 };
+    const [prop] = createMenuDecorationLayout({ sectionKey: 'mixes', variants: [variant], seed: 4 });
+    assert.deepEqual(prop.planeSize, [1, 300 / 384]);
+    const foot = menuDecorationFoot('mixes', prop.rotation[2], variant);
+    close(prop.position[1] + foot.y * prop.scale, prop.groundY);
+});
+
+test('optional per-variant cache shares requests and isolates failure without subscriptions', async () => {
+    const calls = [];
+    const loaded = { image: { width: 384, height: 384 } };
+    const cache = createMenuDecorationTextureCache((src) => {
+        calls.push(src);
+        return src === '/failed.webp' ? Promise.reject(new Error('missing')) : Promise.resolve(loaded);
+    });
+    const ready = cache.get('/ready.webp');
+    const failed = cache.get('/failed.webp');
+    assert.equal(cache.get('/ready.webp'), ready);
+    assert.equal(cache.get('/failed.webp'), failed);
+    assert.equal(ready.texture, null);
+    const request = cache.start(ready);
+    assert.equal(cache.start(ready), request);
+    await Promise.all([request, cache.start(failed)]);
+    assert.equal(ready.texture, loaded);
+    assert.equal(ready.failed, false);
+    assert.equal(failed.texture, null);
+    assert.equal(failed.failed, true);
+    await Promise.all([cache.start(ready), cache.start(failed)]);
+    assert.deepEqual(calls, ['/ready.webp', '/failed.webp']);
+});
+
+test('all floor asset records carry measured dimensions, alpha feet and silhouette bounds', () => {
+    for (const sectionKey of ['music', 'mixes']) {
+        const assets = MENU_DECORATION_ASSETS[sectionKey];
+        assert.equal(assets.length, sectionKey === 'music' ? 5 : 8);
+        assert.equal(new Set(assets.map((asset) => asset.src)).size, assets.length);
+        for (const asset of assets) {
+            assert.ok(asset.width > 0 && asset.height > 0);
+            assert.ok(asset.footHull.length >= 2);
+            assert.equal(asset.opaqueBounds.length, 4);
+            const [left, right, bottom, top] = asset.opaqueBounds;
+            assert.ok(left >= -asset.width / 2 && right <= asset.width / 2);
+            assert.ok(bottom >= -asset.height / 2 && top <= asset.height / 2);
+            for (const [x, y] of asset.footHull) {
+                assert.ok(x >= left && x <= right && y >= bottom && y <= top);
+            }
+        }
+    }
+});
+
+test('actual Three Euler transforms keep each alpha silhouette and contact shadow on the hero floor', () => {
+    for (const width of [320, 390, 1440]) for (const sectionKey of ['music', 'mixes']) {
+        const layout = createMenuDecorationLayout({ sectionKey, ...optionsFor(width) });
+        for (const prop of layout) {
+            const orientation = new Quaternion().setFromEuler(new Euler(...prop.rotation));
+            const origin = new Vector3(...prop.position);
+            const longestSide = Math.max(prop.asset.width, prop.asset.height);
+            const points = prop.asset.footHull.map(([x, y]) => new Vector3(x / longestSide, y / longestSide, 0)
+                .multiplyScalar(prop.scale).applyQuaternion(orientation).add(origin));
+            const contact = points.reduce((lowest, point) => point.y < lowest.y ? point : lowest);
+            close(contact.y, prop.groundY);
+            assert.ok(points.every((point) => point.y >= prop.groundY - 1e-11), 'no opaque foot penetrates the floor');
+            close(prop.shadow.position[0], contact.x);
+            close(prop.shadow.position[1], contact.y + 0.006);
+            close(prop.shadow.position[2], contact.z);
+        }
+    }
+});
+
+test('decoration projection agrees with the actual Three perspective camera at rest and during dolly', () => {
+    const hub = { camDistMobile: 13, camDistDesktop: 8, camY: 3, itemY: 2.1, lookY: 2.7, fov: 54 };
+    for (const width of [320, 390, 1440]) for (const cameraBack of [0, 2.4, 3.6]) {
+        const options = { ...optionsFor(width), hub, cameraBack };
+        const distance = (width <= 768 ? hub.camDistMobile : hub.camDistDesktop) + cameraBack;
+        const camera = new PerspectiveCamera(hub.fov, options.width / options.height, 0.01, 1000);
+        camera.position.set(0, hub.camY - hub.itemY, distance);
+        camera.lookAt(0, hub.lookY - hub.itemY, 0);
+        camera.updateMatrixWorld();
+        for (const sectionKey of ['music', 'mixes']) {
+            for (const prop of createMenuDecorationLayout({ sectionKey, ...options })) {
+                const actual = new Vector3(...prop.position).project(camera);
+                const expected = projectMenuDecoration(prop.position, options);
+                close(expected.screenX, actual.x * 0.5 + 0.5);
+                close(expected.screenY, 0.5 - actual.y * 0.5);
+            }
+        }
+    }
 });

@@ -1,36 +1,63 @@
-export const MENU_DECORATION_ASSETS = Object.freeze({
-    music: '/images/menu/decor/moss-stones-v2.webp',
-    mixes: '/images/menu/decor/bronze-cassette.webp',
-    code: '/images/menu/decor/marble-braces.webp',
-});
+import { MENU_DECORATION_ASSETS } from '../data/menuDecorAssets.js';
+
+export { MENU_DECORATION_ASSETS };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
-const sectionSeed = (key) => {
-    let value = 2166136261;
-    for (let i = 0; i < key.length; i++) value = Math.imul(value ^ key.charCodeAt(i), 16777619);
-    return value >>> 0;
+const GROUND_SLOTS = {
+    music: {
+        mobile: [
+            { variant: 0, x: 0.085, depth: -0.055, size: 28, yaw: -0.08, roll: 0.03 },
+            { variant: 1, x: 0.915, depth: 0.12, size: 29, yaw: 0.07, roll: -0.025 },
+            { variant: 2, x: 0.085, floor: 0.84, size: 26, yaw: -0.1, roll: 0.04 },
+            { variant: 3, x: 0.085, floor: 1.22, size: 28, yaw: 0.09, roll: -0.04, foreground: true },
+            { variant: 4, x: 0.915, floor: 1.35, size: 29, yaw: -0.07, roll: 0.02, foreground: true },
+        ],
+        desktop: [
+            { variant: 0, x: 0.18, depth: -0.06, size: 54, yaw: -0.08, roll: 0.03 },
+            { variant: 1, x: 0.82, depth: -0.02, size: 60, yaw: 0.07, roll: -0.025 },
+            { variant: 2, x: 0.07, floor: 0.84, size: 52, yaw: -0.1, roll: 0.04 },
+            { variant: 3, x: 0.085, floor: 1.22, size: 59, yaw: 0.09, roll: -0.04, foreground: true },
+            { variant: 4, x: 0.915, floor: 1.35, size: 58, yaw: -0.07, roll: 0.02, foreground: true },
+        ],
+    },
+    mixes: {
+        mobile: [
+            { variant: 0, x: 0.085, depth: -0.055, size: 30, yaw: -0.08, roll: 0.025 },
+            { variant: 1, x: 0.915, depth: 0.12, size: 29, yaw: 0.07, roll: -0.03 },
+            { variant: 5, x: 0.075, floor: 0.84, size: 28, yaw: -0.07, roll: 0.025 },
+            { variant: 2, x: 0.948, floor: 0.84, size: 25, yaw: 0.09, roll: -0.025 },
+            { variant: 6, x: 0.085, floor: 1.22, size: 31, yaw: -0.07, roll: 0.025, foreground: true },
+            { variant: 7, x: 0.915, floor: 1.35, size: 30, yaw: 0.08, roll: -0.025, foreground: true },
+        ],
+        desktop: [
+            { variant: 0, x: 0.18, depth: -0.06, size: 55, yaw: -0.08, roll: 0.025 },
+            { variant: 1, x: 0.82, depth: -0.02, size: 56, yaw: 0.07, roll: -0.03 },
+            { variant: 3, x: 0.13, depth: 0.13, size: 52, yaw: -0.09, roll: 0.035 },
+            { variant: 5, x: 0.07, floor: 0.84, size: 59, yaw: -0.07, roll: 0.025 },
+            { variant: 2, x: 0.93, floor: 0.84, size: 56, yaw: 0.09, roll: -0.025 },
+            { variant: 6, x: 0.085, floor: 1.22, size: 61, yaw: -0.07, roll: 0.025, foreground: true },
+            { variant: 7, x: 0.915, floor: 1.35, size: 59, yaw: 0.08, roll: -0.025, foreground: true },
+        ],
+    },
 };
 
-const seededRandom = (seed) => {
-    let state = seed >>> 0;
-    return () => {
-        state = (state + 0x6d2b79f5) >>> 0;
-        let value = state;
-        value = Math.imul(value ^ (value >>> 15), value | 1);
-        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
+const CODE_SLOTS = {
+    mobile: [
+        { x: 0.085, y: 0.447, size: 28, depth: -0.9, rotation: [0.04, -0.1, -0.19], phase: 0.3, period: 5.1 },
+        { x: 0.915, y: 0.583, size: 30, depth: -1.6, rotation: [-0.05, 0.08, 0.21], phase: 2.1, period: 6.2 },
+        { x: 0.085, y: 0.599, size: 26, depth: -1.2, rotation: [0.06, -0.12, -0.24], phase: 4.7, period: 5.7 },
+    ],
+    desktop: [
+        { x: 0.135, y: 0.445, size: 58, depth: -0.9, rotation: [0.04, -0.1, -0.19], phase: 0.3, period: 5.1 },
+        { x: 0.865, y: 0.461, size: 62, depth: -1.6, rotation: [-0.05, 0.08, 0.21], phase: 2.1, period: 6.2 },
+        { x: 0.16, y: 0.593, size: 51, depth: -1.2, rotation: [0.06, -0.12, -0.24], phase: 4.7, period: 5.7 },
+        { x: 0.84, y: 0.6, size: 57, depth: -1.8, rotation: [-0.04, 0.11, 0.17], phase: 1.3, period: 6.6 },
+    ],
 };
 
 // Opaque feet of the approved 720 px hero masks; the image box includes bottom padding.
 const GROUND_FEET = { music: -339 / 720, mixes: -329 / 720 };
-// Lower convex hulls of the 384 px prop alpha masks (alpha > 96), centered with Y upward.
-// Rotating this hull, rather than the padded square, keeps every varied cutout in contact.
-const SPRITE_FEET = {
-    music: [[-167, -70], [-155, -74], [-106, -89], [-69, -100], [-4, -115], [20, -117], [50, -119], [54, -119], [152, -115], [160, -112], [168, -90]],
-    mixes: [[-163, 56], [-160, -57], [-159, -88], [-158, -105], [-157, -107], [-154, -112], [-144, -122], [-140, -125], [-136, -127], [-125, -127], [-77, -123], [-67, -122], [-31, -116], [53, -101], [69, -98], [100, -92], [105, -91], [118, -88], [153, -77], [156, -76], [159, -74], [163, -70], [164, -68], [165, -52]],
-};
 const smoothstep = (value) => {
     const t = clamp(value, 0, 1);
     return t * t * (3 - 2 * t);
@@ -52,18 +79,19 @@ export function menuDecorationGroundY(sectionKey, hub = {}) {
     return Math.max(0.5, finite(hub.itemSize, 3.4)) * (GROUND_FEET[sectionKey] ?? -0.5);
 }
 
-export function menuDecorationFoot(sectionKey, roll = 0) {
-    const hull = SPRITE_FEET[sectionKey];
+export function menuDecorationFoot(sectionKey, roll = 0, asset = MENU_DECORATION_ASSETS[sectionKey]?.findLast((variant) => variant.footHull?.length)) {
+    const hull = asset?.footHull;
     if (!hull) return { x: 0, y: -0.5 };
+    const longestSide = Math.max(asset.width, asset.height);
     const sine = Math.sin(roll);
     const cosine = Math.cos(roll);
     let lowest = Infinity;
     let footX = 0;
     for (let i = 0; i < hull.length; i++) {
-        const y = (hull[i][0] * sine + hull[i][1] * cosine) / 384;
+        const y = (hull[i][0] * sine + hull[i][1] * cosine) / longestSide;
         if (y < lowest) {
             lowest = y;
-            footX = (hull[i][0] * cosine - hull[i][1] * sine) / 384;
+            footX = (hull[i][0] * cosine - hull[i][1] * sine) / longestSide;
         }
     }
     return { x: footX, y: lowest };
@@ -100,85 +128,109 @@ export function menuDecorationPoint({ screenX, screenY, depth = -1, width, heigh
     };
 }
 
-function createGroundLayout({ sectionKey, width, height, hub, random }) {
+function createGroundLayout({ sectionKey, width, height, hub, variants }) {
     const options = { width, height, hub };
     const camera = decorationCamera(options);
     const mobile = width <= 768;
     const groundY = menuDecorationGroundY(sectionKey, hub);
-    const slots = mobile ? [[0.085, -0.055], [0.915, 0.12], [0.08, 0.24]]
-        : [[0.18, -0.06], [0.82, -0.02], [0.12, 0.13], [0.88, 0.23], [0.85, 0.045]];
-    const count = slots.length + 2;
+    const slots = GROUND_SLOTS[sectionKey][mobile ? 'mobile' : 'desktop'];
+    const seen = new Set();
     const revealBack = Math.max(1.6, camera.distance * 0.32);
     const layout = [];
-    for (let i = 0; i < count; i++) {
-        const foreground = i >= slots.length;
-        const captionSide = mobile && sectionKey === 'mixes' && i === 2;
-        const side = foreground ? ((i - slots.length) % 2 ? 0.915 : 0.085) : captionSide ? 0.052 : slots[i][0];
-        const screenX = side + (random() - 0.5) * (mobile ? 0.008 : 0.03);
+    for (const slot of slots) {
+        const asset = variants[slot.variant];
+        if (!asset?.src || seen.has(asset.src) || !Number.isFinite(asset.width) || asset.width <= 0
+            || !Number.isFinite(asset.height) || asset.height <= 0 || !asset.footHull?.length
+            || !asset.footHull.every((point) => point.length === 2 && point.every(Number.isFinite))) continue;
+        seen.add(asset.src);
+        const foreground = Boolean(slot.foreground);
+        const screenX = slot.x;
         let depth;
-        if (foreground) {
-            // Solve a fixed floor point below the viewport; it enters by camera parallax,
-            // never by moving/re-anchoring the object to the screen during scrolling.
-            const belowFoldY = 1.12 + (i - slots.length) * 0.13 + random() * 0.025;
-            const ndcY = (0.5 - belowFoldY) * 2;
+        if (slot.floor) {
+            const ndcY = (0.5 - slot.floor) * 2;
             const rayY = -camera.pitchSin + camera.pitchCos * ndcY * camera.tangent;
             const rayZ = -camera.pitchCos - camera.pitchSin * ndcY * camera.tangent;
             depth = camera.distance + (groundY - camera.cameraY) / rayY * rayZ;
         } else {
-            depth = camera.distance * (slots[i][1] + (random() - 0.5) * 0.025);
+            depth = camera.distance * slot.depth;
         }
         const reference = { ...options, cameraBack: foreground ? revealBack : 0 };
         const base = projectMenuDecoration([0, groundY, depth], reference);
-        const sizePx = mobile ? 24 + random() * (captionSide ? 3 : 9) : 46 + random() * 24;
+        const sizePx = slot.size;
         const scale = sizePx * base.unitsPerPixel;
-        const roll = (random() - 0.5) * 0.16;
-        const yaw = (random() - 0.5) * 0.28;
-        const foot = menuDecorationFoot(sectionKey, roll);
+        const roll = slot.roll;
+        const yaw = slot.yaw;
+        const foot = menuDecorationFoot(sectionKey, roll, asset);
         const centerY = groundY - foot.y * scale;
         const centerProjection = projectMenuDecoration([0, centerY, depth], reference);
         const centerX = (screenX - 0.5) * width * centerProjection.unitsPerPixel;
         const contact = [centerX + foot.x * Math.cos(yaw) * scale, groundY, depth - foot.x * Math.sin(yaw) * scale];
         const position = [centerX, centerY, depth];
         const projected = projectMenuDecoration(position, options);
-        layout.push({ screenX: projected.screenX, screenY: projected.screenY, sizePx, position, scale,
-            rotation: [0, yaw, roll], grounded: true, foreground, groundY, foot,
+        const longestSide = Math.max(asset.width, asset.height);
+        layout.push({ screenX: projected.screenX, screenY: projected.screenY, sizePx, position, scale, asset,
+            planeSize: [asset.width / longestSide, asset.height / longestSide],
+            rotation: [0, yaw, roll], grounded: true, foreground, belowCaption: !foreground && Boolean(slot.floor), groundY, foot,
             shadow: { position: [contact[0], contact[1] + 0.006, contact[2]], size: [scale * 0.76, scale * 0.26] } });
     }
     return layout;
 }
 
-export function createMenuDecorationLayout({ sectionKey, width = 390, height = 844, hub = {}, seed = 0 }) {
+export function createMenuDecorationLayout({ sectionKey, width = 390, height = 844, hub = {},
+    variants = MENU_DECORATION_ASSETS[sectionKey] }) {
     if (!MENU_DECORATION_ASSETS[sectionKey]) return [];
     const viewWidth = Math.max(1, finite(width, 390));
     const viewHeight = Math.max(1, finite(height, 844));
     const mobile = viewWidth <= 768;
-    const random = seededRandom((finite(seed, 0) >>> 0) ^ sectionSeed(sectionKey));
     if (sectionKey === 'music' || sectionKey === 'mixes') {
-        return createGroundLayout({ sectionKey, width: viewWidth, height: viewHeight, hub, random });
+        return createGroundLayout({ sectionKey, width: viewWidth, height: viewHeight, hub, variants });
     }
-    const slots = mobile
-        ? [[0.085, 0.447], [0.915, 0.583], [0.085, 0.599]]
-        : [[0.135, 0.445], [0.865, 0.461], [0.16, 0.593], [0.84, 0.6]];
+    const slots = CODE_SLOTS[mobile ? 'mobile' : 'desktop'];
     const layout = [];
-    for (let i = 0; i < slots.length; i++) {
-        const screenX = slots[i][0] + (random() - 0.5) * (mobile ? 0.012 : 0.06);
-        const screenY = slots[i][1] + (random() - 0.5) * 0.022;
-        const sizePx = mobile ? 23 + random() * 9 : 46 + random() * 25;
-        const depth = -0.7 - random() * 1.35;
+    for (const slot of slots) {
+        const screenX = slot.x;
+        const screenY = slot.y;
+        const sizePx = slot.size;
+        const depth = slot.depth;
         const point = menuDecorationPoint({ screenX, screenY, depth, width: viewWidth, height: viewHeight, hub });
+        const asset = MENU_DECORATION_ASSETS.code[0];
+        const longestSide = Math.max(asset.width, asset.height);
         layout.push({
+            asset,
+            planeSize: [asset.width / longestSide, asset.height / longestSide],
             screenX,
             screenY,
             sizePx,
             position: point.position,
             scale: sizePx * point.unitsPerPixel,
-            rotation: [(random() - 0.5) * 0.22, (random() - 0.5) * 0.32, (random() - 0.5) * 0.72],
+            rotation: [...slot.rotation],
             grounded: false,
-            motion: { phase: random() * Math.PI * 2, period: 4.4 + random() * 2.5,
+            motion: { phase: slot.phase, period: slot.period,
                 amplitude: Math.min(0.035, sizePx * point.unitsPerPixel * 0.07), yaw: 0.035, roll: 0.026 },
         });
     }
     return layout;
+}
+
+export function createMenuDecorationTextureCache(loadTexture) {
+    const records = new Map();
+    return {
+        get(src) {
+            if (!records.has(src)) records.set(src, { src, texture: null, promise: null, failed: false });
+            return records.get(src);
+        },
+        start(record) {
+            if (record.promise) return record.promise;
+            record.promise = Promise.resolve().then(() => loadTexture(record.src)).then((texture) => {
+                record.texture = texture;
+                return texture;
+            }, () => {
+                record.failed = true;
+                return null;
+            });
+            return record.promise;
+        },
+    };
 }
 
 export function createMenuDecorationVisibility() {
