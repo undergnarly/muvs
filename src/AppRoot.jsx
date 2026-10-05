@@ -39,6 +39,7 @@ import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 import { waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
 import { settleWithin } from './utils/menuStartupGate';
+import { updateSplashProgress } from './utils/splashProgress';
 import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
 
 const StartupFallback = () => (
@@ -116,8 +117,7 @@ function AppRoot() {
         const hideSplash = () => {
             if (removed || cancelled) return;
             removed = true;
-            const bar = document.getElementById('splash-bar');
-            if (bar) bar.style.width = '100%';
+            updateSplashProgress(100);
             const status = document.getElementById('splash-status');
             if (status) status.textContent = 'READY';
             splash.classList.add('hidden');
