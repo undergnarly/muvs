@@ -13,7 +13,7 @@ test('loading backgrounds are opaque and only the post-drawing runtime can blend
     assert.match(html, /id="splash-screen" style="[^"]*background:linear-gradient\(to bottom,#696969,#a3a3a3 22%,#d8d8d8 46%,#fff 64%\)/);
     assert.match(html, /#splash-plane\{[^}]*background:linear-gradient\([^}]*;opacity:1\}/);
     assert.match(html, /#splash-screen.departing\{background:none!important\}/);
-    assert.match(html, /<div id="splash-plane"><div id="splash-content">/);
+    assert.match(html, /<div id="splash-plane"><div id="splash-grid" aria-hidden="true"><\/div><div id="splash-content">/);
 });
 
 function boot({ missing = false, hidden = false, visibility = 'visible' } = {}) {
