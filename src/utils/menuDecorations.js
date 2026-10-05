@@ -224,7 +224,9 @@ export function createMenuDecorationLayout({ sectionKey, width = 390, height = 8
     return layout;
 }
 
-export function createMenuDecorationTextureCache(loadTexture) {
+export function createMenuDecorationTextureCache(loadTexture, {
+    timeoutMs = 3500, setTimer = setTimeout, clearTimer = clearTimeout,
+} = {}) {
     const records = new Map();
     return {
         get(src) {
@@ -233,26 +235,45 @@ export function createMenuDecorationTextureCache(loadTexture) {
         },
         start(record) {
             if (record.promise) return record.promise;
-            record.promise = Promise.resolve().then(() => loadTexture(record.src)).then((texture) => {
-                record.texture = texture;
-                return texture;
-            }, () => {
-                record.failed = true;
-                return null;
+            record.promise = new Promise((resolve) => {
+                let settled = false;
+                const finish = (texture) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimer(timer);
+                    record.texture = texture || null;
+                    record.failed = !texture;
+                    resolve(record.texture);
+                };
+                const timer = setTimer(() => finish(null), clamp(finite(timeoutMs, 3500), 0, 3500));
+                Promise.resolve().then(() => loadTexture(record.src)).then(finish, () => finish(null));
             });
             return record.promise;
         },
     };
 }
 
+const sharedTextureCaches = new WeakMap();
+const sharedPreparations = new WeakMap();
+
+export function getMenuDecorationTextureCache(loadTexture) {
+    if (!sharedTextureCaches.has(loadTexture)) sharedTextureCaches.set(loadTexture, createMenuDecorationTextureCache(loadTexture));
+    return sharedTextureCaches.get(loadTexture);
+}
+
+export function prepareMenuDecorationAssets(loadTexture) {
+    if (!sharedPreparations.has(loadTexture)) {
+        const cache = getMenuDecorationTextureCache(loadTexture);
+        const sources = [...MENU_DECORATION_ASSETS.music, ...MENU_DECORATION_ASSETS.code];
+        sharedPreparations.set(loadTexture, Promise.all(sources.map((asset) => cache.start(cache.get(asset.src)))));
+    }
+    return sharedPreparations.get(loadTexture);
+}
+
 export function createMenuDecorationVisibility() {
     return {
         opacity: 0,
-        baseOpacity: 0,
-        elapsed: 0,
         reset() {
-            this.elapsed = 0;
-            this.baseOpacity = 0;
             this.opacity = 0;
         },
         sample(frame) {
@@ -261,25 +282,8 @@ export function createMenuDecorationVisibility() {
                 return 0;
             }
             if (!frame.visible) return this.opacity;
-            if (frame.phase === 'travel') {
-                if ((frame.direction < 0 && this.baseOpacity === 0) || frame.skip) {
-                    this.baseOpacity = 1;
-                    this.elapsed = 0.48;
-                } else if (frame.direction >= 0) {
-                    this.baseOpacity = Math.max(this.baseOpacity, smoothstep(finite(frame.travel, 0) / 0.14));
-                } else {
-                    this.elapsed = Math.max(this.elapsed, 0.2 + 0.28 * (1 - Math.cbrt(1 - this.baseOpacity)));
-                }
-                this.opacity = this.baseOpacity * (1 - smoothstep((finite(frame.travel, 0) - 0.3) / 0.22));
-                return this.opacity;
-            }
-            if (!frame.settled && this.baseOpacity === 0) return 0;
-            if (frame.skip) this.elapsed = 0.48;
-            if (this.baseOpacity > 0) this.elapsed = Math.max(this.elapsed, 0.2 + 0.28 * (1 - Math.cbrt(1 - this.baseOpacity)));
-            this.elapsed += clamp(finite(frame.delta, 0), 0, 0.05);
-            const progress = clamp((this.elapsed - 0.2) / 0.28, 0, 1);
-            this.baseOpacity = 1 - (1 - progress) ** 3;
-            this.opacity = this.baseOpacity;
+            this.opacity = frame.phase === 'travel'
+                ? 1 - smoothstep((finite(frame.travel, 0) - 0.3) / 0.22) : 1;
             return this.opacity;
         },
     };

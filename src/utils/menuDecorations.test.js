@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { BoxGeometry, CylinderGeometry, Euler, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import {
     createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationTextureCache, createMenuDecorationTimeline, createMenuDecorationVisibility,
+    getMenuDecorationTextureCache, prepareMenuDecorationAssets,
     menuDecorationFoot, menuDecorationGroundY, menuDecorationModelDimensions, menuDecorationModelSupport, menuDecorationMotion,
     menuDecorationPoint, projectMenuDecoration,
 } from './menuDecorations.js';
@@ -202,16 +203,14 @@ test('decor clock freezes hidden/nonrendered/preferences time and bounds resumed
     close(clock.sample({ ...moving, delta: 30 }), 0.07);
 });
 
-test('menu entrance waits for reveal/settled camera and freezes hidden time', () => {
+test('menu props appear immediately with the revealed hero even while camera is settling', () => {
     const visibility = createMenuDecorationVisibility();
     assert.equal(visibility.sample({ ...frame, ready: false }), 0);
-    assert.equal(visibility.sample({ ...frame, settled: false }), 0);
-    for (let i = 0; i < 10; i++) close(visibility.sample(frame), 0);
-    visibility.sample(frame);
-    assert.ok(visibility.opacity > 0 && visibility.opacity < 1);
-    const opacity = visibility.opacity;
-    for (let i = 0; i < 50; i++) assert.equal(visibility.sample({ ...frame, visible: false }), opacity);
-    for (let i = 0; i < 14; i++) visibility.sample(frame);
+    assert.equal(visibility.sample({ ...frame, settled: false, delta: 0 }), 1);
+    for (let i = 0; i < 50; i++) assert.equal(visibility.sample({ ...frame, visible: false }), 1);
+    visibility.reset();
+    assert.equal(visibility.sample({ ...frame, visible: false }), 0);
+    assert.equal(visibility.sample({ ...frame, settled: false }), 1);
     assert.equal(visibility.opacity, 1);
 });
 
@@ -236,11 +235,11 @@ test('travel retains props through .30, fades by .52 and returns without entranc
     assert.equal(visibility.sample(frame), 1);
 });
 
-test('quick scroll entry reveals even before delayed menu entrance, with safe cancellation', () => {
+test('quick scroll entry and cancellation never replay an independent entrance delay', () => {
     const visibility = createMenuDecorationVisibility();
-    visibility.sample({ ...frame, settled: false });
+    close(visibility.sample({ ...frame, settled: false }), 1);
     const travelling = { ...frame, phase: 'travel', settled: false };
-    assert.ok(visibility.sample({ ...travelling, travel: 0.05 }) > 0);
+    close(visibility.sample({ ...travelling, travel: 0.05 }), 1);
     close(visibility.sample({ ...travelling, travel: 0.14 }), 1);
     close(visibility.sample({ ...travelling, travel: 0.3 }), 1);
     close(visibility.sample({ ...travelling, travel: 0.52 }), 0);
@@ -248,7 +247,7 @@ test('quick scroll entry reveals even before delayed menu entrance, with safe ca
     const current = interrupted.sample({ ...travelling, travel: 0.07 });
     close(interrupted.sample({ ...travelling, travel: 0.07, direction: -1 }), current);
     close(interrupted.sample({ ...travelling, travel: 0, direction: -1 }), current);
-    assert.ok(interrupted.sample(frame) > current, 'menu completes interrupted entrance');
+    close(interrupted.sample(frame), current);
     const oneFrameReturn = createMenuDecorationVisibility();
     const partial = oneFrameReturn.sample({ ...travelling, travel: 0.05 });
     assert.ok(oneFrameReturn.sample(frame) >= partial, 'direct travel→menu cannot drop to zero');
@@ -260,7 +259,7 @@ test('section/foreign/wrong physical copy/interruption hides and safely recovers
         { selectedIndex: 8 }, { active: false }, { ready: false }]) {
         assert.equal(visibility.sample({ ...frame, skip: true }), 1);
         assert.equal(visibility.sample({ ...frame, ...changed }), 0);
-        assert.equal(visibility.sample(frame), 0);
+        assert.equal(visibility.sample(frame), 1);
     }
     assert.equal(visibility.sample({ ...frame, skip: true }), 1);
 });
@@ -269,8 +268,7 @@ test('reduced-motion/Save Data is immediate static decor; invalid layout inputs 
     const visibility = createMenuDecorationVisibility();
     assert.equal(visibility.sample({ ...frame, skip: true }), 1);
     visibility.sample({ ...frame, phase: 'section' });
-    for (const delta of [NaN, -1, Infinity, 30]) assert.equal(visibility.sample({ ...frame, delta }), 0);
-    assert.ok(visibility.elapsed <= 0.05);
+    for (const delta of [NaN, -1, Infinity, 30]) assert.equal(visibility.sample({ ...frame, delta }), 1);
     assert.deepEqual(createMenuDecorationLayout({ sectionKey: 'missing' }), []);
     for (const sectionKey of ['music', 'mixes', 'code']) {
         const layout = createMenuDecorationLayout({ sectionKey, width: NaN, height: NaN,
@@ -295,25 +293,22 @@ test('parent-owned timeline preserves full opacity across 3→7 and 8→4 physic
     }
 });
 
-test('physical handoff continues a partial reveal once, independent of child callback order', () => {
+test('physical handoff retains immediate visibility independent of child callback order', () => {
     const timeline = createMenuDecorationTimeline();
     timeline.select(3);
     const initial = { ...frame, index: 3, selectedIndex: 3 };
     for (let i = 0; i < 15; i++) timeline.sample(initial);
     const before = timeline.visibility.opacity;
-    const elapsed = timeline.visibility.elapsed;
-    assert.ok(before > 0 && before < 1);
+    assert.equal(before, 1);
     timeline.select(3);
     close(timeline.sample({ ...initial, selectedIndex: 7 }), 0);
-    close(timeline.visibility.elapsed, elapsed);
     const after = timeline.sample({ ...initial, index: 7, selectedIndex: 7 });
-    assert.ok(after > before && after < 1);
-    close(timeline.visibility.elapsed, elapsed + frame.delta);
+    close(after, before);
     close(timeline.sample({ ...initial, selectedIndex: 7 }), 0);
     close(timeline.visibility.opacity, after);
 });
 
-test('actual logical selection changes including About reset entrance, not physical wrap', () => {
+test('logical selection resets the Code motion clock but new props have no entrance delay', () => {
     const timeline = createMenuDecorationTimeline();
     timeline.select(0);
     timeline.sample({ ...frame, skip: true });
@@ -325,7 +320,7 @@ test('actual logical selection changes including About reset entrance, not physi
     close(timeline.visibility.opacity, 0);
     close(timeline.motionClock.elapsed, 0);
     timeline.select(0);
-    close(timeline.sample(frame), 0);
+    close(timeline.sample({ ...frame, settled: false }), 1);
 });
 
 test('Code motion clock transfers physical copies and only the selected copy advances', () => {
@@ -422,6 +417,54 @@ test('optional per-variant cache shares requests and isolates failure without su
     assert.equal(failed.failed, true);
     await Promise.all([cache.start(ready), cache.start(failed)]);
     assert.deepEqual(calls, ['/ready.webp', '/failed.webp']);
+});
+
+test('sprite requests settle within 3500ms and a timed-out result cannot pop in later', async () => {
+    const timers = new Map();
+    let id = 0;
+    let complete;
+    const loaded = { image: { width: 384, height: 384 } };
+    const cache = createMenuDecorationTextureCache(() => new Promise((resolve) => { complete = resolve; }), {
+        timeoutMs: Infinity,
+        setTimer(callback, delay) {
+            assert.equal(delay, 3500);
+            timers.set(++id, callback);
+            return id;
+        },
+        clearTimer(timer) { timers.delete(timer); },
+    });
+    const record = cache.get('/hung.webp');
+    const request = cache.start(record);
+    await Promise.resolve();
+    assert.equal(timers.size, 1);
+    timers.values().next().value();
+    assert.equal(await request, null);
+    assert.equal(record.failed, true);
+    assert.equal(timers.size, 0);
+    complete(loaded);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(record.texture, null);
+    assert.equal(cache.start(record), request);
+});
+
+test('shared startup preparation warms only six unique Music and Code sprites exactly once', async () => {
+    const calls = [];
+    const loaded = { image: { width: 384, height: 384 } };
+    const loadTexture = (src) => { calls.push(src); return Promise.resolve(loaded); };
+    const cache = getMenuDecorationTextureCache(loadTexture);
+    assert.equal(getMenuDecorationTextureCache(loadTexture), cache);
+    assert.equal(calls.length, 0, 'import and cache lookup never start image loading');
+    const first = prepareMenuDecorationAssets(loadTexture);
+    assert.equal(prepareMenuDecorationAssets(loadTexture), first);
+    const textures = await first;
+    assert.equal(textures.length, 6);
+    const sources = [...MENU_DECORATION_ASSETS.music, ...MENU_DECORATION_ASSETS.code].map((asset) => asset.src);
+    assert.deepEqual(calls, sources);
+    for (const source of sources) assert.equal(cache.get(source).texture, loaded);
+    assert.ok(!calls.some((source) => /cassette|vinyl|reel/.test(source)), 'procedural Mixes models have no sprite request');
+    await prepareMenuDecorationAssets(loadTexture);
+    assert.deepEqual(calls, sources);
 });
 
 test('all floor asset records carry measured dimensions, alpha feet and silhouette bounds', () => {

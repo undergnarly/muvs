@@ -7,13 +7,13 @@ import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import MenuAnalogProp from './MenuAnalogProp';
 import { applyMenuPropOpacity } from '../../utils/menuPropSurface';
 import {
-    createMenuDecorationLayout, createMenuDecorationTextureCache, createMenuDecorationTimeline,
+    createMenuDecorationLayout, getMenuDecorationTextureCache, createMenuDecorationTimeline,
     menuDecorationMotion, MENU_DECORATION_ASSETS,
 } from '../../utils/menuDecorations';
 
 const MENU_SPACING = 14;
 const ignoreRaycast = () => {};
-const optionalTextures = createMenuDecorationTextureCache(preloadTexture);
+const optionalTextures = getMenuDecorationTextureCache(preloadTexture);
 
 const shadowTexture = (() => {
     const size = 32;
@@ -43,6 +43,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
     const frameRef = useRef({ delta: 0, active: true, phase: '', index, selectedIndex: -1, ready: false, settled: false, visible: true, skip: false, travel: 0, direction: 1, rendered: false });
     const width = useThree((state) => state.size.width);
     const height = useThree((state) => state.size.height);
+    const gl = useThree((state) => state.gl);
     const layout = useMemo(() => createMenuDecorationLayout({ sectionKey, width, height, hub }), [sectionKey, width, height, hub]);
     const motionOffsets = useMemo(() => layout.map(() => ({ y: 0, yaw: 0, roll: 0 })), [layout]);
     const shadows = useMemo(() => layout.map((prop) => {
@@ -57,8 +58,14 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
     }), [layout]);
     const textureRecords = useMemo(() => layout.map((prop) => prop.model ? null : optionalTextures.get(prop.asset.src)), [layout]);
     useEffect(() => {
-        for (const record of textureRecords) if (record) optionalTextures.start(record);
-    }, [textureRecords]);
+        let cancelled = false;
+        for (const record of textureRecords) if (record) {
+            optionalTextures.start(record).then((texture) => {
+                if (!cancelled && texture?.image && !gl.getContext().isContextLost()) gl.initTexture(texture);
+            });
+        }
+        return () => { cancelled = true; };
+    }, [gl, textureRecords]);
 
     useFrame((_, delta) => {
         const group = groupRef.current;
