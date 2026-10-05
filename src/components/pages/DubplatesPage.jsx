@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowUpRight, Check, ChevronDown, Disc3, Headphones, LoaderCircle, Pause, Play, Search, SkipBack, SkipForward, SlidersHorizontal, Volume2, X } from 'lucide-react';
 import { INITIAL_FILTERS, filterTracks, formatTime, waveformBars } from '../../utils/dubplates';
+import { cancelSplashDrawing, completeSplashDrawing } from '../../utils/splashProgress';
+import { departSplash, finishStartupDive, guardStartupInput } from '../../utils/startupDive';
 import './DubplatesPage.css';
 
 const Icon = ({ playing, size = 18 }) => playing ? <Pause size={size} fill="currentColor" /> : <Play size={size} fill="currentColor" />;
@@ -105,6 +107,28 @@ export default function DubplatesPage() {
     const allVisibleSelected = filtered.length > 0 && filtered.every((track) => selected.has(track.id));
 
     useEffect(() => {
+        window.dispatchEvent(new Event('muvs:app-mounted'));
+        const splash = document.getElementById('splash-screen');
+        if (!splash) return undefined;
+        const unguard = guardStartupInput();
+        let cancelled = false;
+        let departure;
+        completeSplashDrawing().then(async (complete) => {
+            if (!complete || cancelled) return;
+            departure = departSplash(splash);
+            await departure.finished;
+            if (!cancelled) unguard();
+        });
+        return () => {
+            cancelled = true;
+            cancelSplashDrawing();
+            departure?.cancel();
+            unguard();
+            if (departure) { splash.remove(); finishStartupDive(); }
+        };
+    }, []);
+
+    useEffect(() => {
         const previousTitle = document.title;
         document.title = 'Dubplates — MUVS';
         const robots = document.createElement('meta');
@@ -113,8 +137,6 @@ export default function DubplatesPage() {
         const referrer = document.createElement('meta');
         referrer.name = 'referrer'; referrer.content = 'no-referrer';
         document.head.appendChild(referrer);
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.remove();
         return () => { document.title = previousTitle; robots.remove(); referrer.remove(); };
     }, []);
 

@@ -202,10 +202,10 @@ test('late progress during the tag draw cannot prematurely reveal paint', async 
     const finished = drawing.finish();
     drawing.update(90);
     drawing.update(25);
-    clock.advance(219 + SPLASH_DRAWING_BUFFER);
+    clock.advance(SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER - 251);
     assert.deepEqual(paint, []);
     clock.advance(1);
-    assert.deepEqual(paint, [[100, 470 + SPLASH_DRAWING_BUFFER]]);
+    assert.deepEqual(paint, [[100, SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER]]);
     clock.advance(SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER);
     assert.equal(await finished, true);
     assert.equal(clock.pending(), 0);
@@ -216,9 +216,9 @@ test('a slowly completed tag has no repeated tag wait before paint', async () =>
     const paint = [];
     const drawing = createSplashDrawing({ ...clock, reduced: () => false, onPaint: (value) => paint.push([value, clock.now()]) });
     drawing.update(35);
-    clock.advance(1000);
+    clock.advance(SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER);
     const finished = drawing.finish();
-    assert.deepEqual(paint, [[100, 1000]]);
+    assert.deepEqual(paint, [[100, SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER]]);
     clock.advance(SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER);
     assert.equal(await finished, true);
     assert.equal(clock.pending(), 0);
@@ -326,4 +326,29 @@ test('missing, removed or legacy loading markup needs no additional completion w
     assert.equal(legacy.aria(), '100');
     cancelSplashDrawing(null);
     cancelSplashDrawing(legacy.doc);
+});
+
+test('late app mounting uses the original logo clock, not another one-second wait', async () => {
+    const clock = drawingClock(); clock.advance(3000);
+    const events = [];
+    const drawing = createSplashDrawing({ ...clock, tagStartedAt: 0, initialTag: 100, initialPaint: 12,
+        reduced: () => false, onPaint: (value) => events.push([value, clock.now()]) });
+    const finished = drawing.finish();
+    assert.deepEqual(events, [[100, 3000]]);
+    clock.advance(SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER);
+    assert.equal(await finished, true);
+});
+
+test('cached immediate startup respects the remaining logo fade, without restarting it', async () => {
+    const clock = drawingClock(); clock.advance(200);
+    const events = [];
+    const drawing = createSplashDrawing({ ...clock, tagStartedAt: 0, initialTag: 100, initialPaint: 12,
+        reduced: () => false, onPaint: (value) => events.push([value, clock.now()]) });
+    const finished = drawing.finish();
+    clock.advance(SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER - 201);
+    assert.deepEqual(events, []);
+    clock.advance(1);
+    assert.deepEqual(events, [[100, SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER]]);
+    clock.advance(SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER);
+    assert.equal(await finished, true);
 });

@@ -8,7 +8,15 @@ import vm from 'node:vm';
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const earlyScript = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
-function boot({ missing = false, hidden = false } = {}) {
+test('loading backgrounds are opaque and only the post-drawing runtime can blend the background', () => {
+    assert.doesNotMatch(html, /#8f8f8fc2|transition:opacity/);
+    assert.match(html, /id="splash-screen" style="[^"]*background:linear-gradient\(to bottom,#696969,#a3a3a3 22%,#d8d8d8 46%,#fff 64%\)/);
+    assert.match(html, /#splash-plane\{[^}]*background:linear-gradient\([^}]*;opacity:1\}/);
+    assert.match(html, /#splash-screen.departing\{background:none!important\}/);
+    assert.match(html, /<div id="splash-plane"><div id="splash-content">/);
+});
+
+function boot({ missing = false, hidden = false, visibility = 'visible' } = {}) {
     const classes = new Set(hidden ? ['hidden'] : []);
     const timers = new Map();
     const listeners = new Map();
@@ -20,16 +28,17 @@ function boot({ missing = false, hidden = false } = {}) {
     let reloads = 0;
     vm.runInNewContext(earlyScript, {
         location: { pathname: '/login', href: 'https://muvs.dev/login', reload: () => { reloads++; } },
-        document: { getElementById: id => nodes[id] ?? null },
+        document: { get visibilityState() { return visibility; }, getElementById: id => nodes[id] ?? null,
+            addEventListener: (name, handler) => listeners.set(name, handler), removeEventListener: name => listeners.delete(name) },
         window: { addEventListener: (name, handler, options) => listeners.set(name, { handler, options }) },
         setTimeout: (callback, delay) => { timers.set(1, { callback, delay }); return 1; },
         clearTimeout: id => timers.delete(id),
     });
-    return { classes, timers, listeners, progress, status, retry, reloads: () => reloads };
+    return { classes, timers, listeners, progress, status, retry, reloads: () => reloads, setVisibility: value => { visibility = value; } };
 }
 
-test('chrome tag draws first and the inline lime paint is layered above it', () => {
-    assert.ok(html.includes('id="splash-stamp" style="--splash-progress:12%;--splash-tag-progress:34.2857142857%;--splash-paint-progress:0%"'));
+test('chrome tag fades first for one second and the inline lime paint is layered above it', () => {
+    assert.ok(html.includes('id="splash-stamp" style="--splash-progress:12%;--splash-tag-progress:100%;--splash-paint-progress:12%"'));
     assert.ok(html.includes('role="progressbar" aria-label="Loading MUVS"'));
     assert.ok(html.includes('aria-valuenow="12" style="--splash-progress:12%"'));
     assert.ok(html.includes('role="img" aria-label="MUVS"'));
@@ -41,9 +50,23 @@ test('chrome tag draws first and the inline lime paint is layered above it', () 
     assert.ok(!html.includes('<svg'));
     assert.ok(!html.includes('splash-brush-grain'));
     assert.match(html, /<div id="splash-reveal">\s*<div id="splash-logo"[^>]*><\/div>\s*<div id="splash-progress"[^>]*><\/div>\s*<\/div>/);
-    assert.match(html, /@keyframes splash-tag-in\{from\{clip-path:inset\(0 100% 0 0\)\}/);
-    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-logo,#splash-progress\{transition:none;animation:none\}/);
+    assert.match(html, /#splash-screen.intro #splash-logo\{animation:splash-tag-in 1s ease both\}/);
+    assert.match(html, /#splash-screen.intro #splash-progress\{animation:splash-paint-in \.42s ease 1s backwards\}/);
+    assert.match(html, /@keyframes splash-tag-in\{from\{opacity:0\}to\{opacity:1\}\}/);
+    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-logo,#splash-progress\{transition:none;animation:none!important\}/);
     assert.match(html, /#splash-screen.failed #splash-logo\{clip-path:none;transition:none;animation:none\}/);
+});
+
+test('optional Google styles cannot block the inline loader first paint', () => {
+    const fonts = [...html.matchAll(/<link[^>]+href="https:\/\/fonts.googleapis.com\/[^>]+>/g)];
+    assert.equal(fonts.length, 2);
+    fonts.forEach(([link]) => assert.match(link, /rel="preload" as="style" data-nonblocking-font/));
+    const state = boot();
+    const link = { media: 'print', rel: 'preload', matches: () => true };
+    state.listeners.get('load')({ target: link });
+    assert.equal(link.media, 'all');
+    assert.equal(link.rel, 'stylesheet');
+    assert.ok(html.includes("dataset.startedAt = String(performance.now())"));
 });
 
 test('exact supplied chrome logo and spray are inline before the app with no image fetch', () => {
@@ -95,4 +118,29 @@ test('removed or already hidden loading overlay cannot reappear as an error', ()
         assert.equal(state.retry.hidden, true);
         assert.equal(state.status.textContent, 'LOADING');
     }
+});
+
+test('hidden initial tab gets a fresh boot deadline on visibility rather than a false failure', () => {
+    const state = boot({ visibility: 'hidden' });
+    state.timers.get(1).callback();
+    assert.equal(state.classes.has('failed'), false);
+    state.setVisibility('visible'); state.listeners.get('visibilitychange')();
+    assert.equal(state.timers.get(1).delay, 18000);
+    state.timers.get(1).callback();
+    assert.equal(state.classes.has('failed'), true);
+});
+
+test('loader intro starts at its first frame and heavy app/hero work waits until after first paint', async () => {
+    const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].find((match) => match[1].includes('__muvsLoaderPainted'))[1];
+    const frames = []; const classes = new Set(); const stamp = { dataset: {} }; const events = [];
+    const win = { dispatchEvent: event => events.push(event.type) };
+    vm.runInNewContext(script, {
+        window: win, document: { getElementById: id => id === 'splash-stamp' ? stamp : { classList: { add: key => classes.add(key) } } },
+        requestAnimationFrame: fn => frames.push(fn), performance: { now: () => 123 }, Event: class { constructor(type) { this.type = type; } },
+    });
+    assert.equal(classes.has('intro'), false); assert.deepEqual(events, []);
+    frames.shift()(); assert.ok(classes.has('intro')); assert.equal(stamp.dataset.startedAt, '123');
+    assert.deepEqual(events, []); frames.shift()(); await win.__muvsLoaderPainted;
+    assert.deepEqual(events, ['muvs:loader-painted']);
+    assert.ok(html.indexOf('__muvsLoaderPainted') < html.indexOf('<script type="module"'));
 });

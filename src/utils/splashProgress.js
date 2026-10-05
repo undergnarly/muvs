@@ -6,7 +6,7 @@ function boundedProgress(value) {
     return Number.isFinite(number) ? Math.min(100, Math.max(0, number)) : 0;
 }
 
-export const SPLASH_TAG_DURATION = 320;
+export const SPLASH_TAG_DURATION = 1000;
 export const SPLASH_PAINT_DURATION = 420;
 export const SPLASH_DRAWING_BUFFER = 24;
 const drawings = new WeakMap();
@@ -22,6 +22,7 @@ export function splashProgressStages(value) {
 export function createSplashDrawing({
     onTag = () => {}, onPaint = () => {},
     initialTag = 0, initialPaint = 0,
+    tagStartedAt,
     now = () => globalThis.performance?.now?.() ?? Date.now(),
     schedule = setTimeout, cancel = clearTimeout,
     reduced = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
@@ -29,8 +30,10 @@ export function createSplashDrawing({
     let tag = boundedProgress(initialTag);
     let paint = boundedProgress(initialPaint);
     let paintTarget = paint;
-    let tagDeadline = tag && !reduced() ? now() + SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER : 0;
-    let paintDeadline = paint && !reduced() ? now() + SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER : 0;
+    const start = Number.isFinite(tagStartedAt) ? tagStartedAt : now();
+    let tagDeadline = !reduced() && (tag < 100 || Number.isFinite(tagStartedAt))
+        ? start + SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER : 0;
+    let paintDeadline = paint && !reduced() ? Math.max(now(), tagDeadline) + SPLASH_PAINT_DURATION + SPLASH_DRAWING_BUFFER : 0;
     let paintTimer;
     let completionTimer;
     let completion;
@@ -52,7 +55,7 @@ export function createSplashDrawing({
         if (stages.tag > tag) {
             tag = stages.tag;
             onTag(tag);
-            tagDeadline = now() + (skip ? 0 : SPLASH_TAG_DURATION + SPLASH_DRAWING_BUFFER);
+            if (skip) tagDeadline = 0;
         }
         paintTarget = Math.max(paintTarget, stages.paint);
         cancel(paintTimer);
@@ -107,6 +110,7 @@ function drawingFor(stamp, runtime) {
     if (!drawing) {
         drawing = createSplashDrawing({
             ...runtime,
+            tagStartedAt: stamp.dataset?.startedAt === undefined ? undefined : Number(stamp.dataset.startedAt),
             initialTag: stamp.style.getPropertyValue('--splash-tag-progress'),
             initialPaint: stamp.style.getPropertyValue('--splash-paint-progress'),
             onTag: (value) => stamp.style.setProperty('--splash-tag-progress', `${value}%`),

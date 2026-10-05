@@ -40,6 +40,7 @@ import { useData } from './context/DataContext';
 import { waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
 import { settleWithin } from './utils/menuStartupGate';
 import { cancelSplashDrawing, completeSplashDrawing } from './utils/splashProgress';
+import { departSplash, finishStartupDive, guardStartupInput } from './utils/startupDive';
 import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
 
 const StartupFallback = () => (
@@ -98,6 +99,7 @@ function AppRoot() {
         if (!startupFailed) return;
         cancelSplashDrawing();
         document.getElementById('splash-screen')?.remove();
+        finishStartupDive();
         markMenuRevealed();
     }, [startupFailed]);
 
@@ -109,33 +111,40 @@ function AppRoot() {
 
     React.useEffect(() => {
         const splash = document.getElementById('splash-screen');
-        if (!splash) return undefined;
+        if (!splash || startupFailed) return undefined;
 
         let removed = false;
         let cancelled = false;
-        let removeTimer;
+        let departure;
         let routeTimer;
         let completing = false;
+        const unguard = guardStartupInput();
         const hideSplash = async () => {
             if (removed || cancelled) return;
             if (completing) return;
             completing = true;
             const completed = await completeSplashDrawing();
             if (!completed || removed || cancelled) return;
-            removed = true;
             const status = document.getElementById('splash-status');
             if (status) status.textContent = 'READY';
-            splash.classList.add('hidden');
-            removeTimer = setTimeout(() => { splash.remove(); markMenuRevealed(); }, 600);
+            departure = departSplash(splash, markMenuRevealed);
+            await departure.finished;
+            if (cancelled) return;
+            removed = true;
+            unguard();
         };
-        if (location.pathname === '/') {
+        const path = location.pathname;
+        const sceneRoute = path === '/' || /^\/(?:music|mixes|code|about|news|cv|lecture|lecture-text)\/?$/.test(path)
+            || (/^\/[^/]+$/.test(path) && !Object.values(ROUTES).includes(path)
+                && !['/login', '/projects', '/admin', '/dubplates'].includes(path));
+        if (sceneRoute) {
             // Reveal a drawn poster immediately; full video buffers warm behind it.
             // The deadline handles an actual scene/renderer failure only.
             const ready = waitForMenuArtwork().then(() => true);
             settleWithin(ready, 15000).then((success) => {
                 if (cancelled) return;
                 if (!success) setStartupFailed(true);
-                hideSplash();
+                else hideSplash();
             });
         } else {
             routeTimer = setTimeout(hideSplash, 500);
@@ -144,10 +153,11 @@ function AppRoot() {
             cancelled = true;
             cancelSplashDrawing();
             clearTimeout(routeTimer);
-            clearTimeout(removeTimer);
-            if (removed) { splash.remove(); markMenuRevealed(); }
+            departure?.cancel();
+            unguard();
+            if (removed || departure) { splash.remove(); finishStartupDive(); markMenuRevealed(); }
         };
-    }, [location.pathname]);
+    }, [location.pathname, startupFailed]);
 
     // Update favicon dynamically
     React.useEffect(() => {
@@ -197,17 +207,15 @@ function AppRoot() {
     const hideOverlays = scene3DPaths.includes(location.pathname) || isReleasePermalink || location.pathname.startsWith('/dubplates');
     const hideTopBlur = hideOverlays || location.pathname.startsWith('/projects');
 
+    if (startupFailed) return <StartupFallback />;
+
     return (
         <>
             {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
-            <Routes>
+            <MenuSceneBoundary onFailure={() => setStartupFailed(true)}><Routes>
                 <Route path="/dubplates" element={<Suspense fallback={<LoadingFallback />}><DubplatesPage /></Suspense>} />
-                <Route path={ROUTES.HOME} element={startupFailed ? <StartupFallback /> : (
-                    <MenuSceneBoundary onFailure={() => setStartupFailed(true)}>
-                        <Suspense fallback={null}><HomeNewPage /></Suspense>
-                    </MenuSceneBoundary>
-                )} />
+                <Route path={ROUTES.HOME} element={<Suspense fallback={null}><HomeNewPage /></Suspense>} />
                 <Route path={ROUTES.MUSIC} element={<MusicNewPage />} />
                 <Route path={ROUTES.ABOUT} element={<AboutHubPage />} />
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />
@@ -259,7 +267,7 @@ function AppRoot() {
                 </Route>
                 <Route path="/:releaseSlug" element={<ReleasePermalinkRoute />} />
                 <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-            </Routes>
+            </Routes></MenuSceneBoundary>
         </>
     );
 }

@@ -8,6 +8,10 @@ export default defineConfig({
     enforce: 'post',
     generateBundle(_, bundle) {
       const document = bundle['index.html'];
+      if (document) document.source = String(document.source).replace(
+        /<link\b(?=[^>]*rel="stylesheet")(?=[^>]*href="\/assets\/)[^>]*>/g,
+        (link) => link.replace('rel="stylesheet"', 'rel="preload" as="style"').replace('>', ' data-nonblocking-style>'),
+      );
       if (document) this.emitFile({
         type: 'asset',
         fileName: 'dubplates.html',

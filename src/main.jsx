@@ -9,7 +9,7 @@ const SiteProvider = React.lazy(() => import('./context/DataContext').then((modu
 const DubplatesPage = React.lazy(() => import('./components/pages/DubplatesPage'));
 const isDubplates = /^\/dubplates\/?$/.test(window.location.pathname);
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const mount = () => ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <BrowserRouter>
             <React.Suspense fallback={null}>
@@ -18,3 +18,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </BrowserRouter>
     </React.StrictMode>,
 );
+
+Promise.resolve(window.__muvsLoaderPainted).then(mount);
