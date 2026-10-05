@@ -112,18 +112,55 @@ test('Bebas Neue is an unmodified static self-hosted font with its OFL and label
     assert.doesNotMatch(headerCss, /\.sm-toggle[^}]+font-family/s);
 });
 
-test('convex symmetric warp preserves center and increases edge-glyph width progressively', () => {
-    const center = 0;
+test('whole-word horizontal stretch preserves its center and uses the same factor everywhere', () => {
+    const center = 1.5;
     const half = 2;
     const strength = 0.7;
-    assert.equal(warpTitleCoordinate(0, center, half, strength), 0);
-    assert.equal(warpTitleCoordinate(-2, center, half, strength), -warpTitleCoordinate(2, center, half, strength));
+    assert.equal(warpTitleCoordinate(center, center, half, strength), center);
+    assert.ok(Math.abs(warpTitleCoordinate(center - 2, center, half, strength)
+        + warpTitleCoordinate(center + 2, center, half, strength) - center * 2) < 1e-12);
     const width = (x) => warpTitleCoordinate(x + 0.1, center, half, strength)
         - warpTitleCoordinate(x - 0.1, center, half, strength);
-    assert.ok(width(0) < 0.201);
-    assert.ok(width(0.8) > width(0));
-    assert.ok(width(1.8) > width(0.8));
+    for (const position of [center - 1.8, center - 0.8, center, center + 0.8, center + 1.8]) {
+        assert.ok(Math.abs(width(position) - 0.2 * (1 + strength)) < 1e-12);
+    }
     assert.equal(warpTitleCoordinate(2, 0, 0, 1), 2);
+});
+
+test('all glyph widths and letter gaps share one scale during partial and complete stretch', () => {
+    const bounds = new Float32Array([-3, 0, -2.4, 1, -2.2, 0, -0.8, 1,
+        -0.4, 0, 0.4, 1, 0.8, 0, 1.8, 1, 2, 0, 3, 1]);
+    const metrics = measureTitleGlyphs(bounds, [-3, 0, 3, 1]);
+    const target = bounds.slice();
+    for (const progress of [0, 0.1, 0.5, 1]) {
+        const strength = titleStretchStrength(metrics, 9, progress);
+        const factor = 1 + 0.5 * progress;
+        applyTitleGlyphStretch(target, metrics, strength);
+        for (let offset = 0; offset < bounds.length; offset += 4) {
+            const sourceWidth = bounds[offset + 2] - bounds[offset];
+            assert.ok(Math.abs((target[offset + 2] - target[offset]) / sourceWidth - factor) < 1e-6);
+            if (offset + 4 < bounds.length) {
+                const sourceGap = bounds[offset + 4] - bounds[offset + 2];
+                assert.ok(Math.abs((target[offset + 4] - target[offset + 2]) / sourceGap - factor) < 1e-6);
+            }
+        }
+        assert.ok(Math.abs(target[0] + target[target.length - 2]) < 1e-6);
+    }
+});
+
+test('uniform title snapshot survives logical-equivalent physical wraps and interrupted travel', () => {
+    for (const [from, to] of [[3, 7], [8, 4]]) {
+        const timeline = createMenuTitleStretch();
+        const logicalIndex = from % 4;
+        for (let i = 0; i < 10; i++) timeline.sample({ ...frame, index: logicalIndex });
+        const before = timeline.progressFor(logicalIndex);
+        assert.ok(timeline.sample({ ...frame, index: to % 4, menu: false, phase: 'travel' }) > before);
+        const travelling = timeline.progress;
+        assert.ok(timeline.sample({ ...frame, index: logicalIndex, menu: false, phase: 'travel' }) > travelling);
+        const returning = timeline.progress;
+        assert.ok(timeline.sample({ ...frame, index: logicalIndex }) > returning);
+        assert.equal(timeline.progressFor(logicalIndex), timeline.progress);
+    }
 });
 
 test('SDF bounds change only x, do not mutate the source and match the requested visible width', () => {

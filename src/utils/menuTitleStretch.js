@@ -61,9 +61,7 @@ export function menuTitleTargetWidth(hub = {}, aspect = 390 / 844) {
 
 export function warpTitleCoordinate(x, center, halfWidth, strength) {
     if (!(halfWidth > 0) || !Number.isFinite(strength)) return x;
-    const distance = x - center;
-    const normalized = distance / halfWidth;
-    return x + strength * distance * normalized * normalized;
+    return x + strength * (x - center);
 }
 
 export function measureTitleGlyphs(bounds, visibleBounds) {
@@ -72,26 +70,13 @@ export function measureTitleGlyphs(bounds, visibleBounds) {
     if (!(width > 0) || !Number.isFinite(width)) return null;
     const center = (visibleBounds[0] + visibleBounds[2]) / 2;
     const halfWidth = width / 2;
-    let first = 0;
-    let last = 0;
     let minX = Infinity;
     let maxX = -Infinity;
     for (let offset = 0; offset < bounds.length; offset += 4) {
-        if (bounds[offset] < minX) { minX = bounds[offset]; first = offset; }
-        if (bounds[offset + 2] > maxX) { maxX = bounds[offset + 2]; last = offset; }
+        minX = Math.min(minX, bounds[offset]);
+        maxX = Math.max(maxX, bounds[offset + 2]);
     }
-    const visibleDisplacement = (x, offset) => {
-        const left = bounds[offset];
-        const right = bounds[offset + 2];
-        const fraction = (x - left) / (right - left);
-        const movedLeft = warpTitleCoordinate(left, center, halfWidth, 1) - left;
-        const movedRight = warpTitleCoordinate(right, center, halfWidth, 1) - right;
-        return movedLeft + (movedRight - movedLeft) * fraction;
-    };
-    const expansion = visibleDisplacement(visibleBounds[2], last)
-        - visibleDisplacement(visibleBounds[0], first);
-    if (!(expansion > 0) || !Number.isFinite(expansion)) return null;
-    return { source: bounds.slice(), center, halfWidth, width, expansion, minX, maxX };
+    return { source: bounds.slice(), center, halfWidth, width, expansion: width, minX, maxX };
 }
 
 export function titleStretchStrength(metrics, targetWidth, progress) {
