@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import vm from 'node:vm';
 
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
@@ -26,20 +28,39 @@ function boot({ missing = false, hidden = false } = {}) {
     return { classes, timers, listeners, progress, status, retry, reloads: () => reloads };
 }
 
-test('generated paint and original black tag share one inline progressive reveal', () => {
-    assert.ok(html.includes('id="splash-stamp" style="--splash-progress:12%"'));
+test('chrome tag draws first and the inline lime paint is layered above it', () => {
+    assert.ok(html.includes('id="splash-stamp" style="--splash-progress:12%;--splash-tag-progress:34.2857142857%;--splash-paint-progress:0%"'));
     assert.ok(html.includes('role="progressbar" aria-label="Loading MUVS"'));
     assert.ok(html.includes('aria-valuenow="12" style="--splash-progress:12%"'));
     assert.ok(html.includes('role="img" aria-label="MUVS"'));
-    assert.match(html, /#splash-reveal\{[^}]*clip-path:inset\(0 calc\(100% - var\(--splash-progress/);
+    assert.match(html, /#splash-progress\{[^}]*z-index:2;clip-path:inset\(0 calc\(100% - var\(--splash-paint-progress,0%\)\)/);
+    assert.match(html, /#splash-logo\{[^}]*z-index:1;clip-path:inset\(0 calc\(100% - var\(--splash-tag-progress/);
     assert.match(html, /#splash-progress\{--splash-paint-source:url\('data:image\/webp;base64,[A-Za-z0-9+/=]+'\);[^}]*background:var\(--splash-paint-source\) center\/contain no-repeat/);
-    assert.match(html, /#splash-logo\{--splash-logo-source:url\('data:image\/webp;base64,[A-Za-z0-9+/=]+'\);[^}]*background:#000/);
+    assert.match(html, /#splash-logo\{--splash-logo-source:url\('data:image\/webp;base64,[A-Za-z0-9+/=]+'\);[^}]*background:var\(--splash-logo-source\) center\/contain no-repeat/);
     assert.ok(!html.includes('id="splash-bar"'));
     assert.ok(!html.includes('<svg'));
     assert.ok(!html.includes('splash-brush-grain'));
-    assert.match(html, /<div id="splash-reveal">\s*<div id="splash-progress"[^>]*><\/div>\s*<div id="splash-logo"[^>]*><\/div>\s*<\/div>/);
-    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-reveal\{transition:none\}/);
-    assert.match(html, /#splash-screen.failed #splash-reveal\{clip-path:none;transition:none\}/);
+    assert.match(html, /<div id="splash-reveal">\s*<div id="splash-logo"[^>]*><\/div>\s*<div id="splash-progress"[^>]*><\/div>\s*<\/div>/);
+    assert.match(html, /@keyframes splash-tag-in\{from\{clip-path:inset\(0 100% 0 0\)\}/);
+    assert.match(html, /@media\(prefers-reduced-motion:reduce\)[^\n]*#splash-logo,#splash-progress\{transition:none;animation:none\}/);
+    assert.match(html, /#splash-screen.failed #splash-logo\{clip-path:none;transition:none;animation:none\}/);
+});
+
+test('exact supplied chrome logo and spray are inline before the app with no image fetch', () => {
+    const logoStyle = html.match(/#splash-logo\{--splash-logo-source:url\('data:image\/webp;base64,([A-Za-z0-9+/=]+)'\);([^}]*)\}/);
+    assert.ok(logoStyle);
+    const logo = Buffer.from(logoStyle[1], 'base64');
+    assert.equal(logo.length, 45552);
+    assert.ok(logo.length <= 50000);
+    assert.deepEqual(logo, readFileSync(new URL('../../public/images/menu/muvs-y2k-loader-v1.webp', import.meta.url)));
+    assert.equal(createHash('sha256').update(logo).digest('hex'), '6cd8b87a0286ff0f6ce345ed14eaeb8bbf18d8e4c584c7ea61483d481e8466fc');
+    assert.doesNotMatch(logoStyle[2], /(?:mask|filter|background:#000)/);
+    const paintStyle = html.match(/#splash-progress\{--splash-paint-source:url\('data:image\/webp;base64,([A-Za-z0-9+/=]+)'\);/);
+    assert.ok(paintStyle);
+    assert.deepEqual(Buffer.from(paintStyle[1], 'base64'), readFileSync(new URL('../assets/splash/spray-lime-v1.webp', import.meta.url)));
+    const modulePosition = html.indexOf('<script type="module"');
+    assert.ok(html.indexOf(logoStyle[0]) < modulePosition);
+    assert.ok(html.indexOf(paintStyle[0]) < modulePosition);
 });
 
 test('failed early bundle still exposes recovery after 18 seconds and retry reloads', () => {

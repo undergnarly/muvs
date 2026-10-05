@@ -39,7 +39,7 @@ import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 import { waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
 import { settleWithin } from './utils/menuStartupGate';
-import { updateSplashProgress } from './utils/splashProgress';
+import { cancelSplashDrawing, completeSplashDrawing } from './utils/splashProgress';
 import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
 
 const StartupFallback = () => (
@@ -96,6 +96,7 @@ function AppRoot() {
 
     React.useEffect(() => {
         if (!startupFailed) return;
+        cancelSplashDrawing();
         document.getElementById('splash-screen')?.remove();
         markMenuRevealed();
     }, [startupFailed]);
@@ -114,10 +115,14 @@ function AppRoot() {
         let cancelled = false;
         let removeTimer;
         let routeTimer;
-        const hideSplash = () => {
+        let completing = false;
+        const hideSplash = async () => {
             if (removed || cancelled) return;
+            if (completing) return;
+            completing = true;
+            const completed = await completeSplashDrawing();
+            if (!completed || removed || cancelled) return;
             removed = true;
-            updateSplashProgress(100);
             const status = document.getElementById('splash-status');
             if (status) status.textContent = 'READY';
             splash.classList.add('hidden');
@@ -137,6 +142,7 @@ function AppRoot() {
         }
         return () => {
             cancelled = true;
+            cancelSplashDrawing();
             clearTimeout(routeTimer);
             clearTimeout(removeTimer);
             if (removed) { splash.remove(); markMenuRevealed(); }
