@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
+    MENU_TITLE_STRETCH_DURATION, MENU_TITLE_VIEWPORT_FRACTION,
     applyTitleGlyphStretch, createMenuTitleStretch, measureTitleGlyphs,
     menuTitleTargetWidth, titleStretchStrength, warpTitleCoordinate,
 } from './menuTitleStretch.js';
 
 const frame = { delta: 0.02, index: 0, mobile: true, menu: true, ready: true, settled: true, visible: true, skip: false };
+const introFrames = Math.round(MENU_TITLE_STRETCH_DURATION / frame.delta);
 
 const close = (actual, expected, tolerance = 1e-12) => assert.ok(Math.abs(actual - expected) <= tolerance,
     `expected ${actual} to be within ${tolerance} of ${expected}`);
@@ -14,16 +16,16 @@ const advance = (timeline, seconds, overrides = {}) => {
     for (let i = 0; i < Math.round(seconds / frame.delta); i++) timeline.sample({ ...frame, ...overrides });
 };
 
-test('selection stretches immediately before camera settles and finishes in one second', () => {
+test('selection stretches immediately before camera settles and finishes in 1.5 seconds', () => {
     const timeline = createMenuTitleStretch();
     assert.equal(timeline.sample({ ...frame, ready: false }), 0);
     let previous = timeline.sample({ ...frame, settled: false });
     assert.ok(previous > 0);
-    for (let i = 1; i < 50; i++) {
+    for (let i = 1; i < introFrames; i++) {
         const progress = timeline.sample({ ...frame, settled: false });
         assert.ok(progress >= previous && progress <= 1);
         previous = progress;
-        if (i < 49) assert.ok(progress < 1);
+        if (i < introFrames - 1) assert.ok(progress < 1);
     }
     assert.equal(previous, 1);
     assert.equal(timeline.sample(frame), 1);
@@ -34,7 +36,7 @@ test('scroll/travel/section and same-selection return retain the distorted glyph
     for (let i = 0; i < 10; i++) timeline.sample(frame);
     const beforeTravel = timeline.progress;
     assert.ok(timeline.sample({ ...frame, menu: false, phase: 'travel' }) > beforeTravel);
-    for (let i = 0; i < 40; i++) timeline.sample({ ...frame, menu: false, phase: 'section' });
+    for (let i = 0; i < introFrames; i++) timeline.sample({ ...frame, menu: false, phase: 'section' });
     assert.equal(timeline.progress, 1);
     assert.equal(timeline.progressFor(0), 1);
     assert.equal(timeline.sample({ ...frame, menu: false, phase: 'foreign' }), 1);
@@ -49,7 +51,7 @@ test('new logical selection replays incoming only and preserves outgoing ring co
     assert.ok(incoming > 0 && incoming < outgoing);
     assert.equal(timeline.progressFor(0), outgoing);
     assert.equal(timeline.progressFor(1), incoming);
-    for (let i = 0; i < 50; i++) timeline.sample({ ...frame, index: 1 });
+    for (let i = 0; i < introFrames; i++) timeline.sample({ ...frame, index: 1 });
     assert.equal(timeline.progressFor(1), 1);
     assert.equal(timeline.progressFor(0), outgoing);
 });
@@ -88,7 +90,7 @@ test('reduced motion and Save Data finish statically and an initial return trans
     assert.equal(timeline.progressFor(2), 1);
 });
 
-test('80vw target uses the final tuned hub pose including title depth and camera pitch', () => {
+test('milder 74vw target uses the final tuned hub pose including title depth and camera pitch', () => {
     const hub = { camDistMobile: 9, camY: 3, lookY: 2.3, itemY: 2.5, fov: 47 };
     const aspect = 390 / 844;
     const target = menuTitleTargetWidth(hub, aspect);
@@ -96,7 +98,9 @@ test('80vw target uses the final tuned hub pose including title depth and camera
     const pitch = Math.atan2(drop, hub.camDistMobile);
     const depth = (hub.camDistMobile + 1.2) * Math.cos(pitch) + (hub.camY - hub.itemY - 2.25) * Math.sin(pitch);
     const projectedFraction = target / (2 * depth * Math.tan(hub.fov * Math.PI / 360) * aspect);
-    assert.ok(Math.abs(projectedFraction - 0.8) < 1e-12);
+    assert.equal(MENU_TITLE_VIEWPORT_FRACTION, 0.74);
+    assert.equal(MENU_TITLE_STRETCH_DURATION, 1.5);
+    assert.ok(Math.abs(projectedFraction - 0.74) < 1e-12);
     assert.ok(menuTitleTargetWidth(hub, 320 / 740) < target);
     assert.ok(Number.isFinite(menuTitleTargetWidth({ fov: NaN, camDistMobile: Infinity }, NaN)));
 });
@@ -118,7 +122,7 @@ test('Bebas Neue is an unmodified static self-hosted font with its OFL and label
     assert.doesNotMatch(headerCss, /\.sm-toggle[^}]+font-family/s);
 });
 
-test('whole-word horizontal stretch preserves its center and uses the same factor everywhere', () => {
+test('nonlinear horizontal stretch keeps its center nearly unchanged and expands both edges more', () => {
     const center = 1.5;
     const half = 2;
     const strength = 0.7;
@@ -127,34 +131,45 @@ test('whole-word horizontal stretch preserves its center and uses the same facto
         + warpTitleCoordinate(center + 2, center, half, strength) - center * 2) < 1e-12);
     const width = (x) => warpTitleCoordinate(x + 0.1, center, half, strength)
         - warpTitleCoordinate(x - 0.1, center, half, strength);
-    for (const position of [center - 1.8, center - 0.8, center, center + 0.8, center + 1.8]) {
-        assert.ok(Math.abs(width(position) - 0.2 * (1 + strength)) < 1e-12);
-    }
+    const centerWidth = width(center);
+    assert.ok(centerWidth / 0.2 < 1.002);
+    assert.ok(width(center + 0.8) > centerWidth);
+    assert.ok(width(center + 1.8) > width(center + 0.8));
+    assert.ok(Math.abs(width(center - 1.8) - width(center + 1.8)) < 1e-12);
+    assert.ok(Math.abs(width(center - 0.8) - width(center + 0.8)) < 1e-12);
     assert.equal(warpTitleCoordinate(2, 0, 0, 1), 2);
 });
 
-test('all glyph widths and letter gaps share one scale during partial and complete stretch', () => {
+test('edge glyphs and gaps expand more than the middle throughout the entrance without inversion', () => {
     const bounds = new Float32Array([-3, 0, -2.4, 1, -2.2, 0, -0.8, 1,
         -0.4, 0, 0.4, 1, 0.8, 0, 1.8, 1, 2, 0, 3, 1]);
     const metrics = measureTitleGlyphs(bounds, [-3, 0, 3, 1]);
     const target = bounds.slice();
     for (const progress of [0, 0.1, 0.5, 1]) {
         const strength = titleStretchStrength(metrics, 9, progress);
-        const factor = 1 + 0.5 * progress;
         applyTitleGlyphStretch(target, metrics, strength);
+        const ratios = [];
         for (let offset = 0; offset < bounds.length; offset += 4) {
             const sourceWidth = bounds[offset + 2] - bounds[offset];
-            assert.ok(Math.abs((target[offset + 2] - target[offset]) / sourceWidth - factor) < 1e-6);
+            ratios.push((target[offset + 2] - target[offset]) / sourceWidth);
+            assert.ok(target[offset + 2] > target[offset]);
             if (offset + 4 < bounds.length) {
-                const sourceGap = bounds[offset + 4] - bounds[offset + 2];
-                assert.ok(Math.abs((target[offset + 4] - target[offset + 2]) / sourceGap - factor) < 1e-6);
+                assert.ok(target[offset + 4] > target[offset + 2]);
             }
         }
+        if (progress > 0) {
+            assert.ok(ratios[0] > ratios[1] && ratios[1] > ratios[2]);
+            assert.ok(ratios[4] > ratios[3] && ratios[3] > ratios[2]);
+            assert.ok(ratios[2] < 1.01);
+        } else {
+            assert.deepEqual(target, bounds);
+        }
         assert.ok(Math.abs(target[0] + target[target.length - 2]) < 1e-6);
+        close(target[target.length - 2] - target[0], 6 + 3 * progress, 1e-6);
     }
 });
 
-test('uniform title snapshot survives logical-equivalent physical wraps and interrupted travel', () => {
+test('nonlinear title snapshot survives logical-equivalent physical wraps and interrupted travel', () => {
     for (const [from, to] of [[3, 7], [8, 4]]) {
         const timeline = createMenuTitleStretch();
         const logicalIndex = from % 4;
@@ -199,9 +214,9 @@ test('already-wide titles are never compressed and missing metrics leave fonts u
     assert.equal(measureTitleGlyphs(new Float32Array([-2, 0, 2, 1]), [0, 0, 0, 0]), null);
 });
 
-test('breathing begins smoothly at full width only after the one-second intro completes', () => {
+test('breathing begins smoothly at full width only after the 1.5-second intro completes', () => {
     const timeline = createMenuTitleStretch();
-    advance(timeline, 0.98);
+    advance(timeline, MENU_TITLE_STRETCH_DURATION - frame.delta);
     assert.ok(timeline.progress < 1);
     assert.equal(timeline.widthFactorFor(0), 1);
     timeline.sample(frame);
@@ -217,7 +232,7 @@ test('breathing begins smoothly at full width only after the one-second intro co
 
 test('breathing has a 3.8-second cosine cycle with zero-velocity ends and no overshoot', () => {
     const timeline = createMenuTitleStretch();
-    advance(timeline, 1);
+    advance(timeline, MENU_TITLE_STRETCH_DURATION);
     advance(timeline, 0.94);
     const beforeQuarter = timeline.widthFactorFor(0);
     advance(timeline, 0.96);
@@ -236,7 +251,7 @@ test('breathing has a 3.8-second cosine cycle with zero-velocity ends and no ove
 
 test('hidden and not-ready time freeze breathing and resumed frame spikes are bounded', () => {
     const timeline = createMenuTitleStretch();
-    advance(timeline, 1);
+    advance(timeline, MENU_TITLE_STRETCH_DURATION);
     advance(timeline, 0.8);
     const held = timeline.widthFactorFor(0);
     for (let i = 0; i < 100; i++) {
@@ -253,7 +268,7 @@ test('hidden and not-ready time freeze breathing and resumed frame spikes are bo
 
 test('travel and section hold the current breath and return resumes without a first-frame jump', () => {
     const timeline = createMenuTitleStretch();
-    advance(timeline, 1);
+    advance(timeline, MENU_TITLE_STRETCH_DURATION);
     advance(timeline, 1.3);
     const held = timeline.widthFactorFor(0);
     for (const phase of ['travel', 'section', 'foreign']) {
@@ -269,7 +284,7 @@ test('travel and section hold the current breath and return resumes without a fi
 
     const interrupted = createMenuTitleStretch();
     advance(interrupted, 0.2);
-    advance(interrupted, 1, { menu: false, phase: 'travel' });
+    advance(interrupted, MENU_TITLE_STRETCH_DURATION, { menu: false, phase: 'travel' });
     assert.equal(interrupted.progress, 1);
     assert.equal(interrupted.widthFactorFor(0), 1);
     interrupted.sample({ ...frame, delta: 0 });
@@ -282,7 +297,7 @@ test('same logical physical wraps retain breath while a real selection restarts 
     for (const [from, to] of [[3, 7], [8, 4]]) {
         const timeline = createMenuTitleStretch();
         const logicalIndex = from % 4;
-        advance(timeline, 1, { index: logicalIndex });
+        advance(timeline, MENU_TITLE_STRETCH_DURATION, { index: logicalIndex });
         advance(timeline, 1.2, { index: logicalIndex });
         const held = timeline.widthFactorFor(logicalIndex);
         timeline.sample({ ...frame, index: to % 4, delta: 0 });
@@ -339,7 +354,7 @@ test('desktop keeps native title width and freezes rather than clears the mobile
     assert.equal(timeline.widthFactorFor(0), held);
 });
 
-test('breathing multiplies the whole requested width uniformly for narrow and already-wide words', () => {
+test('breathing retains calibrated total width and centered nonlinear shapes for narrow and wide words', () => {
     for (const nativeWidth of [1.2, 3.8, 7]) {
         const center = 0.75;
         const left = center - nativeWidth / 2;
@@ -354,16 +369,15 @@ test('breathing multiplies the whole requested width uniformly for narrow and al
         const baseWidth = Math.max(nativeWidth, requestedWidth);
         for (const widthFactor of [1, 0.975, 0.95, 0.975, 1, 0.95, 1]) {
             const strength = titleStretchStrength(metrics, requestedWidth, 1, widthFactor);
-            const factor = baseWidth * widthFactor / nativeWidth;
             applyTitleGlyphStretch(target, metrics, strength);
             close(target[target.length - 2] - target[0], baseWidth * widthFactor, 1e-6);
             close((target[0] + target[target.length - 2]) / 2, center, 1e-6);
             for (let offset = 0; offset < target.length; offset += 4) {
-                close((target[offset + 2] - target[offset]) / (source[offset + 2] - source[offset]), factor, 1e-6);
+                assert.ok(target[offset + 2] > target[offset]);
                 assert.equal(target[offset + 1], source[offset + 1]);
                 assert.equal(target[offset + 3], source[offset + 3]);
                 if (offset + 4 < target.length) {
-                    close((target[offset + 4] - target[offset + 2]) / (source[offset + 4] - source[offset + 2]), factor, 1e-6);
+                    assert.ok(target[offset + 4] > target[offset + 2]);
                 }
             }
             assert.deepEqual(metrics.source, source);
