@@ -1,13 +1,21 @@
 /* 3D home menu. Base page/canvas layout reuses .home-new-page /
    .home-new-canvas / .home-new-gradient from HomeNewPage.css. */
 
+@font-face {
+    font-family: 'Josefin Sans';
+    src: url('../../assets/fonts/JosefinSans700.woff2?inline') format('woff2');
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
 .mp3d-rich-caption {
     width: max-content;
     max-width: 520px;
-    color: #888888;
-    font-family: Urbanist, sans-serif;
+    color: #222222;
+    font-family: 'Josefin Sans', Urbanist, sans-serif;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0.18em;
     text-align: center;
@@ -16,6 +24,9 @@
 
 .mp3d-rich-caption p,
 .mp3d-rich-caption div { margin: 0; }
+
+.mp3d-rich-caption b,
+.mp3d-rich-caption strong { font-weight: 700; }
 
 .mp3d-counter {
     position: fixed;
@@ -128,6 +139,12 @@
 }
 
 @media (max-width: 600px) {
+    /* Html floor captions are perspective-scaled; leave space for that scale. */
+    .mp3d-menu-caption {
+        max-width: min(330px, 80vw);
+        /* Longer wrapped captions must grow below, not into the artwork. */
+        transform: translateY(25%);
+    }
     .mp3d-ui { display: none; }
     .mp3d-nav { width: 48px; height: 48px; }
     .mp3d-pill { height: 48px; min-width: 0; padding: 0 20px; font-size: 12px; }

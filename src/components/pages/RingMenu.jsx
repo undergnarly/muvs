@@ -251,7 +251,7 @@ const RingItem = ({ item, index, displayIndex, cover, caption, hub, onSelect, ca
                         }}
                     >
                         <div
-                            className="mp3d-rich-caption"
+                            className="mp3d-rich-caption mp3d-menu-caption"
                             dangerouslySetInnerHTML={{
                                 __html: sanitizeCaptionHtml(caption ?? `SECTION 0${displayIndex + 1} — ${item.label}`),
                             }}
