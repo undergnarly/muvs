@@ -163,10 +163,7 @@ export function createObjectVideoCache({
         });
     };
 
-    const rejectPlay = (record, error) => {
-        if (error?.name !== 'NotAllowedError') { fail(record); return; }
-        // iOS/low-power autoplay restrictions are not decode failures. Keep the
-        // prepared source, show its poster, and wait for a bounded recovery signal.
+    const blockPlayback = (record) => {
         pause(record);
         record.playSucceeded = false;
         record.status = 'blocked';
@@ -174,6 +171,11 @@ export function createObjectVideoCache({
         cancel(record.timeout);
         record.timeout = null;
         notify(record);
+    };
+
+    const rejectPlay = (record, error) => {
+        if (error?.name !== 'NotAllowedError') { fail(record); return; }
+        blockPlayback(record);
     };
 
     const play = (record) => {
@@ -222,12 +224,19 @@ export function createObjectVideoCache({
             const error = () => {
                 if (generation === record.generation) fail(record);
             };
+            const paused = () => {
+                if (record.disposed || generation !== record.generation || !video.paused
+                    || (!record.playing && !record.playPending)) return;
+                if (record.wanted && canPlay()) blockPlayback(record);
+                else pause(record);
+            };
             video.addEventListener('loadeddata', ready);
             video.addEventListener('canplay', ready);
             video.addEventListener('seeked', ready);
             video.addEventListener('progress', ready);
             video.addEventListener('canplaythrough', ready);
             video.addEventListener('error', error);
+            video.addEventListener('pause', paused);
             record.removeListeners = () => {
                 video.removeEventListener('loadeddata', ready);
                 video.removeEventListener('canplay', ready);
@@ -235,6 +244,7 @@ export function createObjectVideoCache({
                 video.removeEventListener('progress', ready);
                 video.removeEventListener('canplaythrough', ready);
                 video.removeEventListener('error', error);
+                video.removeEventListener('pause', paused);
             };
             armTimeout(record);
             requestFirstFrame(record);
@@ -368,7 +378,12 @@ export function createObjectVideoCache({
             };
         },
         refresh,
-        retryBlocked() {
+        retryBlocked({ userGesture = false } = {}) {
+            if (userGesture && canPlay()) {
+                for (const record of records.values()) {
+                    if (record.wanted && record.status === 'blocked') record.autoplayRetries = 0;
+                }
+            }
             // A signal may arrive before React restores the selected lease after
             // visibilitychange. Retain it until that selection becomes active.
             recoverySequence += 1;

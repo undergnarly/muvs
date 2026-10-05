@@ -505,6 +505,100 @@ test('a recovery signal after blocking synchronously retries only the active sel
     assert.equal(h.videos.filter((video) => !video.paused).length, 1);
 });
 
+test('a later trusted gesture can recover selected autoplay after automatic retries are exhausted', async () => {
+    let blocked = true;
+    const h = harness({ play: () => blocked ? Promise.reject(autoplayBlocked()) : Promise.resolve() });
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    for (let index = 0; index < 2; index += 1) { h.cache.retryBlocked(); await flush(); }
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 3);
+    blocked = false;
+    h.cache.retryBlocked();
+    await flush();
+    assert.equal(lease.getSnapshot().status, 'blocked');
+    h.cache.retryBlocked({ userGesture: true });
+    assert.equal(h.videos[0].paused, false);
+    await flush();
+    assert.equal(lease.getSnapshot().status, 'ready');
+    assert.equal(h.videos.length, 1);
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 4);
+});
+
+test('trusted gesture recovery never bypasses environment policy or restarts unselected videos', async () => {
+    let blocked = true;
+    const h = harness({ play: () => blocked ? Promise.reject(autoplayBlocked()) : Promise.resolve() });
+    const first = h.cache.acquire(spec('music'));
+    const next = h.cache.acquire(spec('code'));
+    first.setActive(true);
+    h.ready();
+    await flush();
+    for (let index = 0; index < 2; index += 1) { h.cache.retryBlocked(); await flush(); }
+    next.setActive(true);
+    h.ready(1);
+    await flush();
+    for (let index = 0; index < 2; index += 1) { h.cache.retryBlocked(); await flush(); }
+    blocked = false;
+    h.policy(false);
+    h.cache.retryBlocked({ userGesture: true });
+    assert.equal(h.videos.every((video) => video.paused), true);
+    h.policy(true);
+    await flush();
+    assert.equal(next.getSnapshot().status, 'blocked');
+    h.cache.retryBlocked({ userGesture: true });
+    await flush();
+    assert.equal(next.getSnapshot().status, 'ready');
+    assert.equal(first.getSnapshot().status, 'blocked');
+    assert.equal(h.videos[0].paused, true);
+    assert.equal(h.videos.filter((video) => !video.paused).length, 1);
+});
+
+test('a browser-paused selected video can resume on a trusted gesture without reloading', async () => {
+    const h = harness();
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    assert.equal(lease.getSnapshot().status, 'ready');
+    h.videos[0].paused = true;
+    h.videos[0].emit('pause');
+    assert.equal(lease.getSnapshot().status, 'blocked');
+    assert.equal(lease.getSnapshot().texture, null);
+    h.cache.refresh();
+    assert.equal(h.videos[0].paused, true);
+    h.cache.retryBlocked({ userGesture: true });
+    assert.equal(h.videos[0].paused, false);
+    await flush();
+    assert.equal(lease.getSnapshot().status, 'ready');
+    assert.equal(h.videos.length, 1);
+    assert.equal(h.events.filter(([name]) => name === 'load').length, 1);
+    assert.equal(h.events.filter(([name]) => name === 'play').length, 2);
+});
+
+test('cache-owned or stale pause events do not block selection or bypass hidden policy', async () => {
+    const h = harness();
+    const lease = h.cache.acquire(spec());
+    lease.setActive(true);
+    h.ready();
+    await flush();
+    h.videos[0].emit('pause');
+    assert.equal(lease.getSnapshot().status, 'ready');
+    h.policy(false);
+    h.videos[0].emit('pause');
+    assert.equal(lease.getSnapshot().status, 'ready');
+    h.cache.retryBlocked({ userGesture: true });
+    assert.equal(h.videos[0].paused, true);
+    h.policy(true);
+    await flush();
+    assert.equal(h.videos[0].paused, false);
+    assert.equal(lease.getSnapshot().status, 'ready');
+    lease.setActive(false);
+    h.videos[0].emit('pause');
+    assert.equal(lease.getSnapshot().status, 'ready');
+    assert.equal(h.videos[0].paused, true);
+});
+
 test('visibility recovery can precede React selection restore and cannot bypass policy', async () => {
     let blocked = true;
     const h = harness({ play: () => blocked ? Promise.reject(autoplayBlocked()) : Promise.resolve() });

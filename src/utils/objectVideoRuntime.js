@@ -109,7 +109,7 @@ export const subscribeArtworkMotion = (listener) => {
             if (document.visibilityState === 'visible') objectVideoCache.retryBlocked();
         };
         const onInteraction = (event) => {
-            if (event.isTrusted && !event.repeat) objectVideoCache.retryBlocked();
+            if (event.isTrusted && !event.repeat) objectVideoCache.retryBlocked({ userGesture: true });
         };
         const interactions = typeof window.PointerEvent === 'function'
             ? ['pointerup', 'keydown'] : ['touchend', 'mouseup', 'keydown'];

@@ -114,11 +114,12 @@ test('splash preloads own temporary environment watchers before Canvas subscribe
 
 test('shared listeners retry on trusted interaction or visible return only and clean up in StrictMode', () => {
     let retries = 0;
+    const recoveryOptions = [];
     let refreshes = 0;
     let notifications = 0;
     const retryBlocked = objectVideoCache.retryBlocked;
     const refresh = objectVideoCache.refresh;
-    objectVideoCache.retryBlocked = () => { retries += 1; };
+    objectVideoCache.retryBlocked = (options) => { retries += 1; recoveryOptions.push(options); };
     objectVideoCache.refresh = () => { refreshes += 1; };
     const first = subscribeArtworkMotion(() => { notifications += 1; });
     const second = subscribeArtworkMotion(() => { notifications += 1; });
@@ -129,6 +130,7 @@ test('shared listeners retry on trusted interaction or visible return only and c
     assert.equal(retries, 0);
     fakeDocument.emit('pointerup', { isTrusted: true });
     assert.equal(retries, 1);
+    assert.deepEqual(recoveryOptions, [{ userGesture: true }]);
     fakeDocument.visibilityState = 'hidden';
     fakeDocument.emit('visibilitychange');
     assert.equal(retries, 1);
@@ -136,6 +138,7 @@ test('shared listeners retry on trusted interaction or visible return only and c
     fakeDocument.visibilityState = 'visible';
     fakeDocument.emit('visibilitychange');
     assert.equal(retries, 2);
+    assert.deepEqual(recoveryOptions, [{ userGesture: true }, undefined]);
     assert.equal(notifications, 4);
     first();
     assert.equal(fakeDocument.count('pointerup'), 1);
