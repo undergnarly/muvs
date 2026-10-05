@@ -187,7 +187,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled 
     );
 };
 
-const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, stateRef }) => {
+const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, decorationsEnabled, stateRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -223,7 +223,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cove
                         return state?.phase === 'menu' && state.menuIndex === index
                             && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
                     }} />
-                    <MenuDecorations sectionKey={item.key} index={index} hub={hub} stateRef={stateRef} active={motionEnabled} />
+                    <MenuDecorations sectionKey={item.key} index={index} hub={hub} stateRef={stateRef} active={decorationsEnabled} />
                     </group>
                 )}
                 <group>
@@ -265,7 +265,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cove
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, stateRef }) => {
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, decorationsEnabled = videosEnabled, stateRef }) => {
     const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch() }), []);
     const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, phase: '', ready: false, settled: false, visible: true, skip: false });
     useFrame(({ size }, delta) => {
@@ -302,6 +302,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 particlesVisible={particlesVisible}
                 particleSettings={particleSettings}
                 motionEnabled={videosEnabled && i === activeIndex}
+                decorationsEnabled={decorationsEnabled && i === activeIndex}
                 stateRef={stateRef}
             />
         )))}

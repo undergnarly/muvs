@@ -1361,6 +1361,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         captionsVisible={hub.phase === 'menu'}
                         particlesVisible={hub.phase === 'menu'}
                         videosEnabled={hub.phase === 'menu'}
+                        decorationsEnabled={hub.phase === 'menu' || hub.phase === 'travel'}
                         stateRef={hub.stateRef}
                     />
                 </group>
