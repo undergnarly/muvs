@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationVisibility,
+    createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationTimeline, createMenuDecorationVisibility,
     menuDecorationFoot, menuDecorationGroundY, menuDecorationMotion,
     menuDecorationPoint, projectMenuDecoration,
 } from './menuDecorations.js';
@@ -235,4 +235,80 @@ test('reduced-motion/Save Data is immediate static decor; invalid layout inputs 
             seed: Infinity, hub: { fov: NaN, camY: NaN } });
         for (const prop of layout) assert.ok([...prop.position, prop.scale, ...prop.rotation].every(Number.isFinite));
     }
+});
+
+test('parent-owned timeline preserves full opacity across 3→7 and 8→4 physical wraps', () => {
+    for (const [from, to] of [[3, 7], [8, 4]]) {
+        const timeline = createMenuDecorationTimeline();
+        timeline.select(from % 4);
+        close(timeline.sample({ ...frame, index: from, selectedIndex: from, skip: true }), 1);
+        timeline.select(to % 4);
+        for (const index of [to - 4, to + 4]) {
+            close(timeline.sample({ ...frame, index, selectedIndex: to }), 0);
+            assert.equal(timeline.visibility.opacity, 1, 'wrong copy must not reset shared opacity');
+        }
+        close(timeline.sample({ ...frame, index: to, selectedIndex: to }), 1);
+        close(timeline.sample({ ...frame, index: from, selectedIndex: to }), 0);
+        close(timeline.visibility.opacity, 1);
+    }
+});
+
+test('physical handoff continues a partial reveal once, independent of child callback order', () => {
+    const timeline = createMenuDecorationTimeline();
+    timeline.select(3);
+    const initial = { ...frame, index: 3, selectedIndex: 3 };
+    for (let i = 0; i < 15; i++) timeline.sample(initial);
+    const before = timeline.visibility.opacity;
+    const elapsed = timeline.visibility.elapsed;
+    assert.ok(before > 0 && before < 1);
+    timeline.select(3);
+    close(timeline.sample({ ...initial, selectedIndex: 7 }), 0);
+    close(timeline.visibility.elapsed, elapsed);
+    const after = timeline.sample({ ...initial, index: 7, selectedIndex: 7 });
+    assert.ok(after > before && after < 1);
+    close(timeline.visibility.elapsed, elapsed + frame.delta);
+    close(timeline.sample({ ...initial, selectedIndex: 7 }), 0);
+    close(timeline.visibility.opacity, after);
+});
+
+test('actual logical selection changes including About reset entrance, not physical wrap', () => {
+    const timeline = createMenuDecorationTimeline();
+    timeline.select(0);
+    timeline.sample({ ...frame, skip: true });
+    timeline.sampleMotion({ ...frame, rendered: true });
+    timeline.select(0);
+    close(timeline.visibility.opacity, 1);
+    close(timeline.motionClock.elapsed, frame.delta);
+    timeline.select(1);
+    close(timeline.visibility.opacity, 0);
+    close(timeline.motionClock.elapsed, 0);
+    timeline.select(0);
+    close(timeline.sample(frame), 0);
+});
+
+test('Code motion clock transfers physical copies and only the selected copy advances', () => {
+    const timeline = createMenuDecorationTimeline();
+    timeline.select(2);
+    const current = { ...frame, index: 2, selectedIndex: 2, rendered: true };
+    close(timeline.sampleMotion(current), 0.02);
+    timeline.select(2);
+    const wrapped = { ...current, selectedIndex: 6 };
+    close(timeline.sampleMotion(wrapped), 0.02);
+    close(timeline.sampleMotion({ ...wrapped, index: 6 }), 0.04);
+    close(timeline.sampleMotion({ ...wrapped, index: 10 }), 0.04);
+    close(timeline.sampleMotion({ ...wrapped, index: 6, visible: false }), 0.04);
+    close(timeline.sampleMotion({ ...wrapped, index: 6, skip: true }), 0.04);
+});
+
+test('shared timeline still gates phase/reveal/preferences and reverse travel after handoff', () => {
+    const timeline = createMenuDecorationTimeline();
+    timeline.select(0);
+    timeline.sample({ ...frame, skip: true });
+    close(timeline.sample({ ...frame, index: 8, selectedIndex: 8, phase: 'travel', travel: 0.3 }), 1);
+    close(timeline.sample({ ...frame, index: 8, selectedIndex: 8, phase: 'travel', travel: 0.52 }), 0);
+    close(timeline.sample({ ...frame, index: 8, selectedIndex: 8, phase: 'section' }), 0);
+    close(timeline.sample({ ...frame, index: 4, selectedIndex: 4, phase: 'travel', direction: -1, travel: 0.2 }), 1);
+    close(timeline.sample({ ...frame, ready: false }), 0);
+    close(timeline.sample({ ...frame, skip: true }), 1);
+    close(timeline.sample({ ...frame, visible: false }), 1);
 });

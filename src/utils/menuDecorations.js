@@ -186,11 +186,14 @@ export function createMenuDecorationVisibility() {
         opacity: 0,
         baseOpacity: 0,
         elapsed: 0,
+        reset() {
+            this.elapsed = 0;
+            this.baseOpacity = 0;
+            this.opacity = 0;
+        },
         sample(frame) {
             if (!frame.active || (frame.phase !== 'menu' && frame.phase !== 'travel') || frame.index !== frame.selectedIndex || !frame.ready) {
-                this.elapsed = 0;
-                this.baseOpacity = 0;
-                this.opacity = 0;
+                this.reset();
                 return 0;
             }
             if (!frame.visible) return this.opacity;
@@ -224,6 +227,28 @@ export function createMenuDecorationClock() {
         sample(frame) {
             if (frame.visible && frame.rendered && !frame.skip) this.elapsed += clamp(finite(frame.delta, 0), 0, 0.05);
             return this.elapsed;
+        },
+    };
+}
+
+export function createMenuDecorationTimeline() {
+    return {
+        logicalIndex: -1,
+        visibility: createMenuDecorationVisibility(),
+        motionClock: createMenuDecorationClock(),
+        select(logicalIndex) {
+            if (this.logicalIndex === logicalIndex) return;
+            this.logicalIndex = logicalIndex;
+            this.visibility.reset();
+            this.motionClock.elapsed = 0;
+        },
+        sample(frame) {
+            if (frame.index !== frame.selectedIndex) return 0;
+            return this.visibility.sample(frame);
+        },
+        sampleMotion(frame) {
+            if (frame.index !== frame.selectedIndex) return this.motionClock.elapsed;
+            return this.motionClock.sample(frame);
         },
     };
 }

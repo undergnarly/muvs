@@ -5,7 +5,7 @@ import { useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { hasMenuBeenRevealed } from '../../utils/menuStartup';
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import {
-    createMenuDecorationClock, createMenuDecorationLayout, createMenuDecorationVisibility,
+    createMenuDecorationLayout, createMenuDecorationTimeline,
     menuDecorationMotion, MENU_DECORATION_ASSETS,
 } from '../../utils/menuDecorations';
 
@@ -31,13 +31,12 @@ const shadowTexture = (() => {
     return texture;
 })();
 
-function LoadedDecorations({ sectionKey, index, hub, stateRef }) {
+function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
     const groupRef = useRef(null);
     const materialsRef = useRef([]);
     const shadowsRef = useRef([]);
     const meshesRef = useRef([]);
-    const visibility = useMemo(() => createMenuDecorationVisibility(), []);
-    const motionClock = useMemo(() => createMenuDecorationClock(), []);
+    const decorationTimeline = useMemo(() => timeline || createMenuDecorationTimeline(), [timeline]);
     const frameRef = useRef({ delta: 0, active: true, phase: '', index, selectedIndex: -1, ready: false, settled: false, visible: true, skip: false, travel: 0, direction: 1, rendered: false });
     const width = useThree((state) => state.size.width);
     const height = useThree((state) => state.size.height);
@@ -66,7 +65,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef }) {
         frame.skip = Boolean(preferences & 12);
         frame.travel = state?.tt;
         frame.direction = state?.dir;
-        const opacity = visibility.sample(frame);
+        const opacity = decorationTimeline.sample(frame);
         group.visible = Boolean(texture && frame.visible && opacity > 0);
         for (let i = 0; i < materialsRef.current.length; i++) {
             const material = materialsRef.current[i];
@@ -76,7 +75,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef }) {
         }
         if (sectionKey === 'code' && group.visible) {
             frame.rendered = true;
-            const elapsed = motionClock.sample(frame);
+            const elapsed = decorationTimeline.sampleMotion(frame);
             for (let i = 0; i < layout.length; i++) {
                 const mesh = meshesRef.current[i];
                 if (!mesh) continue;
@@ -122,7 +121,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef }) {
     );
 }
 
-export default function MenuDecorations({ sectionKey, index, hub, stateRef, active = false }) {
+export default function MenuDecorations({ sectionKey, index, hub, stateRef, timeline, active = false }) {
     if (!active || !MENU_DECORATION_ASSETS[sectionKey]) return null;
-    return <LoadedDecorations sectionKey={sectionKey} index={index} hub={hub} stateRef={stateRef} />;
+    return <LoadedDecorations sectionKey={sectionKey} index={index} hub={hub} stateRef={stateRef} timeline={timeline} />;
 }

@@ -12,6 +12,7 @@ import { getObjectFallbackSrc } from '../../data/menuArtwork';
 import { hasMenuBeenRevealed, markMenuArtworkRendered } from '../../utils/menuStartup';
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import { createMenuTitleStretch } from '../../utils/menuTitleStretch';
+import { createMenuDecorationTimeline } from '../../utils/menuDecorations';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import { FONT_REGULAR } from '../../data/menuFonts';
 import MenuTitle from './MenuTitle';
@@ -187,7 +188,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled 
     );
 };
 
-const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, decorationsEnabled, stateRef }) => {
+const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, decorationsEnabled, stateRef }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -223,7 +224,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, displayIndex, cove
                         return state?.phase === 'menu' && state.menuIndex === index
                             && Math.abs(state.angle - index * HUB_SPACING) < 0.025;
                     }} />
-                    <MenuDecorations sectionKey={item.key} index={index} hub={hub} stateRef={stateRef} active={decorationsEnabled} />
+                    <MenuDecorations sectionKey={item.key} index={index} hub={hub} stateRef={stateRef} timeline={decorationTimeline} active={decorationsEnabled} />
                     </group>
                 )}
                 <group>
@@ -267,6 +268,7 @@ const LOOP_COPIES = [-1, 0, 1];
 
 export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, decorationsEnabled = videosEnabled, stateRef }) => {
     const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch() }), []);
+    const decorationTimeline = useMemo(() => createMenuDecorationTimeline(), []);
     const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, phase: '', ready: false, settled: false, visible: true, skip: false });
     useFrame(({ size }, delta) => {
         const state = stateRef?.current;
@@ -282,6 +284,8 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
         frame.visible = !(preferences & 2);
         frame.skip = Boolean(preferences & 12);
         titleTimeline.current.sample(frame);
+        decorationTimeline.select(frame.index);
+        if (!decorationsEnabled || !frame.ready || (frame.phase !== 'menu' && frame.phase !== 'travel')) decorationTimeline.visibility.reset();
     }, -1);
     return (
     <>
@@ -293,6 +297,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 index={i + (copy + 1) * HUB_COUNT}
                 logicalIndex={i}
                 titleTimeline={titleTimeline}
+                decorationTimeline={decorationTimeline}
                 displayIndex={hubDisplayIndex(i)}
                 cover={covers?.[i]}
                 caption={captions?.[item.key]}
