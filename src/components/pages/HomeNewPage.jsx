@@ -2545,7 +2545,7 @@ export const Scene3DShell = ({
             music: MENU_ARTWORK[0],
             mixes: '/images/menu/mixes-trans.webp',
             code: '/images/menu/code2.webp',
-            about: null,
+            about: MENU_ARTWORK[3],
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
