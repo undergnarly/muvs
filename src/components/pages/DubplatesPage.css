@@ -72,9 +72,12 @@
 .dp-track-title h2 { font-size: 19px; font-weight: 700; letter-spacing: -.03em; line-height: 1.2; overflow-wrap: anywhere; }
 .dp-type { font-size: 9px; font-weight: 700; padding: 3px 6px; border: 1px solid rgba(23, 23, 23, .25); border-radius: 3px; }
 .dp-artist { margin-top: 3px; font-size: 13px; color: #454545; overflow-wrap: anywhere; }
-.dp-track-tags { display: flex; gap: 6px 10px; flex-wrap: wrap; margin-top: 9px; color: var(--dp-muted); font-size: 11px; }
-.dp-track-tags span { max-width: 100%; overflow-wrap: anywhere; }
-.dp-track-tags span + span { border-left: 1px solid #aaa; padding-left: 10px; }
+.dp-track-context { display: flex; gap: 6px 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; color: var(--dp-muted); font-size: 11px; }
+.dp-track-context > span { max-width: 100%; overflow-wrap: anywhere; }
+.dp-stage { border: 1px solid #777; padding: 3px 6px; border-radius: 3px; color: #333; font-weight: 600; }
+.dp-track-tags { grid-column: 3 / -1; display: flex; gap: 6px; flex-wrap: wrap; margin-top: -10px; font-size: 11px; }
+.dp-track-tags span { max-width: 100%; overflow-wrap: anywhere; background: #171717; color: #fff; padding: 5px 9px; border-radius: 3px; line-height: 1.35; font-weight: 600; }
+.dp-track-meta .dp-loudness { font-variant-numeric: tabular-nums; font-size: 10px; white-space: normal; line-height: 1.4; }
 .dp-track-notes { font-size: 11px; margin-top: 8px; color: #494949; }
 .dp-track-notes summary { cursor: pointer; }
 .dp-track-notes p { margin-top: 7px; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 70ch; }
@@ -97,6 +100,7 @@
 .dp-empty p { color: var(--dp-muted); font-size: 14px; max-width: 34ch; }
 .dp-secondary { border: 1px solid #777 !important; border-radius: 5px; padding: 10px 18px; font-weight: 600 !important; }
 .dp-library-end { border-top: 1px solid var(--dp-line); text-align: center; padding: 32px 0; color: #666; font-size: 12px; }
+.dp-library-end small { display: block; margin-top: 8px; font-size: 11px; }
 .dp-player { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: #f3f3f3; border-top: 1px solid #ccc; padding-bottom: env(safe-area-inset-bottom); }
 .dp-player-inner { display: flex; align-items: center; gap: 28px; min-height: 94px; }
 .dp-now-playing { display: flex; align-items: center; gap: 12px; width: 240px; min-width: 0; }
@@ -132,6 +136,11 @@
 .dp-format-options small { display: block; font-size: 11px; line-height: 1.4; color: #626262; margin-top: 6px; }
 .dp-format-options .is-selected { border-color: #171717; background: #fff; }
 .dp-format-options .is-unavailable { opacity: .45; cursor: not-allowed; }
+.dp-delivery-options { display: grid; gap: 9px; border: 0; margin: 18px 0; padding: 0; font-size: 13px; }
+.dp-delivery-options legend { font-weight: 600; margin-bottom: 10px; }
+.dp-delivery-options label { display: flex; gap: 10px; align-items: center; cursor: pointer; min-height: 36px; }
+.dp-delivery-options input { accent-color: #171717; width: 17px; height: 17px; }
+.dp-delivery-options small { color: #626262; margin-left: 7px; font-size: 11px; }
 .dp-export-dialog .dp-format-note { font-size: 12px; margin-bottom: 12px; }
 .dp-export-tracklist { max-height: 165px; overflow-y: auto; border-block: 1px solid #d1d1d1; margin-block: 20px; padding-block: 5px; }
 .dp-export-tracklist > div { display: flex; justify-content: space-between; gap: 20px; padding: 9px 0; font-size: 13px; }
@@ -166,7 +175,7 @@
     .dp-intro p { margin-top: 12px; font-size: 14px; }
     .dp-library-count { display: none; }
     .dp-toolbar-main { min-height: 62px; gap: 12px; flex-wrap: wrap; padding-block: 9px; }
-    .dp-search { flex-basis: calc(100% - 105px); }
+    .dp-search { flex-basis: calc(100% - 116px); }
     .dp-search input { font-size: 14px; }
     .dp-search input::placeholder { font-size: 12px; }
     .dp-filter-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px !important; border: 1px solid #aaa !important; border-radius: 4px; padding: 9px 10px; }
@@ -182,6 +191,7 @@
     .dp-bpm input { width: calc((100% - 25px) / 2); padding-bottom: 7px; }
     .dp-bpm legend { margin-bottom: 5px; }
     .dp-clear-filters { justify-self: start; min-height: 32px; }
+    .dp-empty button { scroll-margin-block: min(48svh, 340px) 125px; }
     .dp-list-heading { min-height: 60px; font-size: 11px; gap: 12px; }
     .dp-list-heading > div { gap: 10px; }
     .dp-select-all { gap: 7px; }
@@ -196,8 +206,8 @@
     .dp-track-title h2 { font-size: 17px; }
     .dp-type { font-size: 8px; padding: 2px 4px; }
     .dp-artist { font-size: 12px; }
-    .dp-track-tags { font-size: 10px; gap: 5px 8px; margin-top: 6px; }
-    .dp-track-tags span + span { padding-left: 8px; }
+    .dp-track-context { font-size: 10px; gap: 5px 8px; margin-top: 6px; }
+    .dp-track-tags { grid-row: 3; grid-column: 2 / -1; font-size: 10px; gap: 5px; margin-top: -4px; }
     .dp-track-meta { grid-column: 4; grid-row: 1; align-self: start; padding-top: 3px; }
     .dp-track-meta strong { font-size: 17px; }
     .dp-track-meta > span { font-size: 8px; white-space: normal; line-height: 1.5; }

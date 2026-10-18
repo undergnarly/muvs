@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { INITIAL_FILTERS, filterTracks, formatTime, waveformBars } from './dubplates.js';
+import { INITIAL_FILTERS, filterTracks, formatTime, waveformBars, trackTags, loudnessLabel } from './dubplates.js';
 
 const tracks = [
     { id: 'a', title: 'Shanti', artist: 'MUVS', type: 'dubplate', genre: 'Dub', releaseTitle: 'Veiled', bpm: 140, releaseDate: '2026-09-01' },
@@ -29,4 +29,17 @@ test('time and real waveform peaks are bounded, no synthetic waveform', () => {
     assert.deepEqual(waveformBars([]), []);
     assert.deepEqual(waveformBars([0, .5, .2, 1], 2), [.5, 1]);
     assert.deepEqual(waveformBars([-1, 3, NaN]), [0, 1, 0]);
+});
+
+test('multiple tags combine with legacy genre, deduplicate and support search, tag and stage filters', () => {
+    const track = { ...tracks[0], tags: ['Jungle', ' Drum and Bass ', 'dub', 'JUNGLE', null], productionStage: 'sketch' };
+    assert.deepEqual(trackTags(track), ['Dub', 'Jungle', 'Drum and Bass']);
+    assert.deepEqual(trackTags({ genre: ' Dub ' }), ['Dub']);
+    for (const extra of [{ query: 'drum and bass' }, { genre: 'jungle' }, { genre: 'Dub', stage: 'sketch' }]) {
+        assert.deepEqual(filterTracks([track], { ...INITIAL_FILTERS, ...extra }), [track]);
+    }
+    assert.deepEqual(filterTracks([track], { ...INITIAL_FILTERS, stage: 'mastered' }), []);
+    assert.equal(loudnessLabel(-10.24), '-10.2 LUFS-I');
+    assert.equal(loudnessLabel(0), '0.0 LUFS-I');
+    for (const value of [null, undefined, '', '-12', NaN, Infinity]) assert.equal(loudnessLabel(value), '');
 });

@@ -1,12 +1,31 @@
-export const INITIAL_FILTERS = { query: '', type: '', genre: '', release: '', bpmMin: '', bpmMax: '', sort: 'newest' };
+export const INITIAL_FILTERS = { query: '', type: '', genre: '', release: '', stage: '', bpmMin: '', bpmMax: '', sort: 'newest' };
+
+export const PRODUCTION_STAGES = { sketch: 'Sketch', mixed: 'Mixed', mastered: 'Mastered' };
+
+export function trackTags(track) {
+    const seen = new Set();
+    return [track.genre, ...(Array.isArray(track.tags) ? track.tags : [])].filter((tag) => {
+        if (typeof tag !== 'string' || !tag.trim()) return false;
+        const normalized = tag.trim().toLocaleLowerCase();
+        if (seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+    }).map(tag => tag.trim());
+}
+
+export function loudnessLabel(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} LUFS-I` : '';
+}
 
 export function filterTracks(tracks, filters) {
     const query = filters.query.trim().toLocaleLowerCase();
     const result = tracks.filter((track) => {
-        const searchable = [track.title, track.artist, track.releaseTitle].join(' ').toLocaleLowerCase();
+        const tags = trackTags(track);
+        const searchable = [track.title, track.artist, track.releaseTitle, ...tags].join(' ').toLocaleLowerCase();
         return (!query || searchable.includes(query))
             && (!filters.type || track.type === filters.type)
-            && (!filters.genre || track.genre === filters.genre)
+            && (!filters.genre || tags.some(tag => tag.toLocaleLowerCase() === filters.genre.toLocaleLowerCase()))
+            && (!filters.stage || track.productionStage === filters.stage)
             && (!filters.release || track.releaseTitle === filters.release)
             && (filters.bpmMin === '' || (track.bpm != null && track.bpm >= Number(filters.bpmMin)))
             && (filters.bpmMax === '' || (track.bpm != null && track.bpm <= Number(filters.bpmMax)));
