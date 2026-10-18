@@ -8,6 +8,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const ffmpegStatic = require("ffmpeg-static");
+const { createAnalytics } = require("./dubplates-analytics");
 
 const ID = /^[a-f0-9]{32}$/;
 // Leave multipart headroom below Cloudflare's baseline 100 MB request limit.
@@ -17,6 +18,7 @@ const MAX_EXPORT = 1024 * 1024 * 1024;
 const MAX_STORAGE = 10 * 1024 * 1024 * 1024;
 const MAX_TRACKS = 2000;
 const MAX_ASSETS = 2000;
+const MAX_ANALYSIS_QUEUE = 12;
 const FORMAT_MIMES = { wav: "audio/wav", mp3: "audio/mpeg" };
 const ERROR_PROCESSING = "Audio could not be processed. Upload a valid WAV or MP3, up to 30 minutes.";
 const uuid = () => crypto.randomBytes(16).toString("hex");
@@ -39,7 +41,23 @@ function validCover(value) {
   return !value.includes("..") && !value.includes("//") && !value.startsWith("/uploads/audio/");
 }
 
-function validateTrack(body, assets) {
+function normalizeTags(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 12) throw fail(400, "Choose up to 12 tags.");
+  const seen = new Set();
+  return value.map((tag) => {
+    if (typeof tag !== "string" || tag.length > 80 || /[\u0000-\u001f\u007f]/.test(tag)) throw fail(400, "Tags must be 1–80 characters.");
+    const cleaned = tag.trim().replace(/\s+/g, " ");
+    if (!cleaned) throw fail(400, "Tags cannot be empty.");
+    return cleaned;
+  }).filter((tag) => {
+    const key = tag.toLocaleLowerCase("en");
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
+function validateTrack(body, assets, previous = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw fail(400, "Invalid track.");
   const track = {
     title: textField(body, "title", 160, true),
@@ -54,7 +72,13 @@ function validateTrack(body, assets) {
     published: body.published,
     assetId: body.assetId || null,
     bpm: body.bpm === "" || body.bpm == null ? null : Number(body.bpm),
+    tags: normalizeTags(body.tags === undefined ? previous.tags : body.tags),
+    rating: body.rating === undefined ? previous.rating ?? null : body.rating,
+    productionStage: body.productionStage === undefined ? previous.productionStage ?? null : body.productionStage,
   };
+  if (track.rating !== null && (typeof track.rating !== "number" || !Number.isFinite(track.rating)
+      || track.rating < 0 || track.rating > 10)) throw fail(400, "Rating must be a number between 0 and 10.");
+  if (track.productionStage !== null && !["sketch", "mixed", "mastered"].includes(track.productionStage)) throw fail(400, "Choose Sketch, Mixed or Mastered.");
   if (!["dubplate", "release"].includes(track.type)) throw fail(400, "Choose Dubplate or Release.");
   if (typeof track.published !== "boolean") throw fail(400, "Invalid publication status.");
   if (track.bpm !== null && (!Number.isFinite(track.bpm) || track.bpm < 20 || track.bpm > 400)) {
@@ -81,10 +105,27 @@ function audioKind(header) {
   return null;
 }
 
-function safeFilename(track, index, format) {
-  const name = [track.artist, track.title].filter(Boolean).join(" - ").normalize("NFKC")
-    .replace(/[^\p{L}\p{N} _-]/gu, "").trim().slice(0, 120) || "Track";
-  return `${String(index + 1).padStart(2, "0")} - ${name}.${format}`;
+function safeFilename(track, format) {
+  let name = [track.artist, track.title].filter(Boolean).join(" - ").normalize("NFKC")
+    .replace(/[^\p{L}\p{N} _()-]/gu, "").trim().slice(0, 120) || "Track";
+  while (Buffer.byteLength(name, "utf8") > 180) name = Array.from(name).slice(0, -1).join("");
+  if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) name = `_${name}`;
+  return `${name}.${format}`;
+}
+
+function exportFilenames(entries, format) {
+  const used = new Set();
+  return entries.map(({ track }) => {
+    const original = safeFilename(track, format);
+    let name = original;
+    let collision = 1;
+    while (used.has(name.toLocaleLowerCase("en"))) {
+      collision += 1;
+      name = `${original.slice(0, -(format.length + 1))} (${collision}).${format}`;
+    }
+    used.add(name.toLocaleLowerCase("en"));
+    return name;
+  });
 }
 
 function peaksFromBins(bins, count = 256) {
@@ -101,7 +142,7 @@ function peaksFromBins(bins, count = 256) {
 
 // A forced demuxer + protocol whitelist keeps uploaded files from becoming playlists or network requests.
 function ffmpegInput(kind, source) {
-  return ["-nostdin", "-hide_banner", "-loglevel", "error", "-threads", "1", "-protocol_whitelist", "file,pipe",
+  return ["-nostdin", "-hide_banner", "-loglevel", "error", "-threads", "1", "-filter_threads", "1", "-filter_complex_threads", "1", "-protocol_whitelist", "file,pipe",
     "-f", kind, "-i", source, "-map", "0:a:0", "-vn", "-sn", "-dn", "-t", String(MAX_DURATION + 1)];
 }
 
@@ -149,14 +190,43 @@ async function analyzeAudio(executable, kind, source) {
   return { duration: Math.round(duration * 1000) / 1000, peaks: peaksFromBins(bins) };
 }
 
+// Measure the original channels/full frequency range. The filter writes only to
+// a null sink: neither the master nor its downloadable preview is normalized.
+async function analyzeLoudness(executable, kind, source) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(executable, [...ffmpegInput(kind, source), "-loglevel", "info", "-af",
+      "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-threads", "1", "-f", "null", "-"],
+    { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+    let output = "";
+    let stopped = false;
+    const timer = setTimeout(() => { stopped = true; child.kill("SIGKILL"); }, 10 * 60_000);
+    child.stderr.on("data", (chunk) => { output = (output + chunk.toString("utf8")).slice(-65536); });
+    child.once("error", () => { clearTimeout(timer); reject(new Error(ERROR_PROCESSING)); });
+    child.once("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0 || stopped) return reject(new Error(ERROR_PROCESSING));
+      const matches = [...output.matchAll(/\{\s*"input_i"\s*:[\s\S]*?\}/g)];
+      try {
+        const value = JSON.parse(matches.at(-1)?.[0] || "{}").input_i;
+        if (value === "-inf") return resolve(null);
+        const number = Number(value);
+        if (typeof value !== "string" || !Number.isFinite(number) || number < -200 || number > 100) throw new Error();
+        return resolve(Math.round(number * 10) / 10);
+      } catch { return reject(new Error(ERROR_PROCESSING)); }
+    });
+  });
+}
+
 module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdminSession, ffmpeg = ffmpegStatic }) {
   const router = express.Router();
   const root = path.resolve(dataDir, "dubplates");
   const assetRoot = path.join(root, "assets");
   const incoming = path.join(root, "incoming");
   const catalogFile = path.join(root, "catalog.json");
+  const analyticsFile = path.join(root, "analytics.json");
   fs.mkdirSync(assetRoot, { recursive: true });
   fs.mkdirSync(incoming, { recursive: true });
+  const analytics = createAnalytics(analyticsFile);
   const catalog = fs.existsSync(catalogFile)
     ? JSON.parse(fs.readFileSync(catalogFile, "utf8")) : { version: 1, tracks: [], assets: {} };
   if (catalog.version !== 1 || !Array.isArray(catalog.tracks) || !catalog.assets || typeof catalog.assets !== "object") {
@@ -177,6 +247,7 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
       asset.error = "Processing was interrupted. Please upload the audio again.";
       fs.rmSync(path.join(assetRoot, id), { recursive: true, force: true });
     }
+    if (asset.status === "ready" && ["processing", "pending"].includes(asset.loudnessStatus)) asset.loudnessStatus = "pending";
   }
   persist();
 
@@ -209,10 +280,15 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
   }
   function trackView(track, admin = false) {
     const asset = catalog.assets[track.assetId];
-    const { assetId, deletedAt, ...metadata } = track;
+    const { assetId, deletedAt, rating, ...metadata } = track;
     return {
       ...metadata,
-      ...(admin ? { assetId: assetId || null, assetStatus: asset?.status || null } : {}),
+      tags: Array.isArray(track.tags) ? track.tags.filter((tag) => typeof tag === "string").slice(0, 12) : [],
+      productionStage: ["sketch", "mixed", "mastered"].includes(track.productionStage) ? track.productionStage : null,
+      integratedLufs: Number.isFinite(asset?.integratedLufs) ? asset.integratedLufs : null,
+      loudnessStatus: asset?.loudnessStatus || "pending",
+      ...(admin ? { assetId: assetId || null, assetStatus: asset?.status || null,
+        rating: typeof rating === "number" && Number.isFinite(rating) && rating >= 0 && rating <= 10 ? rating : null } : {}),
       duration: asset?.status === "ready" ? asset.duration : 0,
       peaks: asset?.status === "ready" ? asset.peaks : [],
       formats: asset?.status === "ready" ? asset.formats : [],
@@ -235,9 +311,20 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
     processing = true;
     try {
       while (queue.length) {
-        const { id, kind } = queue.shift();
+        const { id, kind, loudnessOnly = false } = queue.shift();
         const source = assetPath(id, kind);
         const asset = catalog.assets[id];
+        if (loudnessOnly) {
+          asset.loudnessStatus = "processing";
+          persist();
+          try {
+            asset.integratedLufs = await analyzeLoudness(ffmpeg, kind, source);
+            asset.loudnessStatus = asset.integratedLufs === null ? "unavailable" : "ready";
+          } catch { asset.integratedLufs = null; asset.loudnessStatus = "error"; }
+          asset.updatedAt = iso();
+          persist();
+          continue;
+        }
         try {
           const analysis = await analyzeAudio(ffmpeg, kind, source);
           if (kind === "wav") {
@@ -246,7 +333,13 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
               "-b:a", "320k", "-ar", "44100", "-ac", "2", "-threads", "1", "-y", temp]);
             await fsp.rename(temp, assetPath(id, "mp3"));
           }
-          Object.assign(asset, analysis, { status: "ready", formats: kind === "wav" ? ["wav", "mp3"] : ["mp3"], updatedAt: iso() });
+          let integratedLufs = null;
+          let loudnessStatus = "error";
+          try {
+            integratedLufs = await analyzeLoudness(ffmpeg, kind, source);
+            loudnessStatus = integratedLufs === null ? "unavailable" : "ready";
+          } catch { /* A measurement failure never discards a valid original or blocks publication. */ }
+          Object.assign(asset, analysis, { integratedLufs, loudnessStatus, status: "ready", formats: kind === "wav" ? ["wav", "mp3"] : ["mp3"], updatedAt: iso() });
           persist();
         } catch {
           await fsp.rm(path.join(assetRoot, id), { recursive: true, force: true });
@@ -259,6 +352,47 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
 
   router.get("/", (_req, res) => res.json({ tracks: catalog.tracks.filter(isPublished).map((track) => trackView(track)) }));
   router.get("/admin/tracks", requireAdmin, (_req, res) => res.json({ tracks: catalog.tracks.filter((track) => !track.deletedAt).map((track) => trackView(track, true)) }));
+  router.get("/admin/stats", requireAdmin, (_req, res) => res.json(analytics.snapshot(catalog.tracks.filter((track) => !track.deletedAt))));
+  router.post("/events", (req, res) => {
+    if (hasAdminSession(req)) return res.sendStatus(204);
+    rate(req, "listen", 120, 60_000);
+    const { trackId, type, sessionId } = req.body || {};
+    if (type !== "listen" || typeof sessionId !== "string" || !ID.test(sessionId)
+        || typeof trackId !== "string" || !ID.test(trackId)) throw fail(400, "Invalid listening event.");
+    const track = liveTrack(trackId);
+    if (!track || !isPublished(track)) throw fail(404, "Track not found.");
+    analytics.listen(trackId, sessionId);
+    return res.sendStatus(204);
+  });
+  router.post("/admin/loudness", requireAdmin, (req, res) => {
+    rate(req, "loudness", 30, 60_000);
+    const ids = req.body?.ids;
+    if (ids !== undefined && (!Array.isArray(ids) || !ids.length || ids.length > MAX_ASSETS
+        || !ids.every((id) => typeof id === "string" && ID.test(id)) || new Set(ids).size !== ids.length)) throw fail(400, "Choose valid audio assets.");
+    const wanted = ids || Object.keys(catalog.assets).filter((id) => catalog.assets[id]?.status === "ready"
+      && !["ready", "unavailable"].includes(catalog.assets[id].loudnessStatus));
+    if (ids?.some((id) => catalog.assets[id]?.status !== "ready")) throw fail(404, "Ready audio not found.");
+    const waiting = new Set(queue.map((job) => job.id));
+    let queued = 0;
+    const queuedIds = [];
+    let pending = 0;
+    let skipped = 0;
+    for (const id of wanted) {
+      const asset = catalog.assets[id];
+      if (waiting.has(id) || asset.loudnessStatus === "processing") { skipped += 1; continue; }
+      if (queue.length >= MAX_ANALYSIS_QUEUE) { pending += 1; continue; }
+      // Prefer the original WAV; MP3-only originals are measured honestly as MP3.
+      const kind = asset.formats?.includes("wav") ? "wav" : "mp3";
+      if (!fs.existsSync(assetPath(id, kind))) { asset.loudnessStatus = "error"; skipped += 1; continue; }
+      asset.loudnessStatus = "pending";
+      queue.push({ id, kind, loudnessOnly: true });
+      queued += 1;
+      queuedIds.push(id);
+    }
+    persist();
+    void drain().catch(() => { /* Preserve ready originals on every measurement failure. */ });
+    return res.status(202).json({ queued, queuedIds, pending, skipped });
+  });
 
   const upload = multer({
     storage: multer.diskStorage({ destination: incoming, filename: (_req, _file, done) => done(null, `${uuid()}.upload`) }),
@@ -298,7 +432,7 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
         stagedId = id;
         await fsp.mkdir(path.join(assetRoot, id));
         await fsp.rename(req.file.path, assetPath(id, kind));
-        catalog.assets[id] = { id, status: "processing", createdAt: iso(), updatedAt: iso(), formats: [] };
+        catalog.assets[id] = { id, status: "processing", loudnessStatus: "processing", integratedLufs: null, createdAt: iso(), updatedAt: iso(), formats: [] };
         persist();
         queue.push({ id, kind });
         queued = true;
@@ -321,7 +455,8 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
     const asset = ID.test(req.params.id) ? catalog.assets[req.params.id] : null;
     if (!asset) return res.status(404).json({ error: "Audio not found." });
     const { id, status, error, duration, peaks, formats } = asset;
-    return res.json({ id, status, ...(error ? { error } : {}), ...(status === "ready" ? { duration, peaks, formats } : {}) });
+    return res.json({ id, status, integratedLufs: Number.isFinite(asset.integratedLufs) ? asset.integratedLufs : null,
+      loudnessStatus: asset.loudnessStatus || "pending", ...(error ? { error } : {}), ...(status === "ready" ? { duration, peaks, formats } : {}) });
   });
   router.post("/admin/tracks", requireAdmin, (req, res) => {
     if (catalog.tracks.length >= MAX_TRACKS) throw fail(409, "Track limit reached. Contact the site owner.");
@@ -335,8 +470,14 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
     const track = liveTrack(req.params.id);
     if (!track) throw fail(404, "Track not found.");
     const previous = { ...track };
-    Object.assign(track, validateTrack(req.body, catalog.assets), { updatedAt: iso() });
-    try { persist(); } catch (error) { Object.assign(track, previous); throw error; }
+    Object.assign(track, validateTrack(req.body, catalog.assets, track), { updatedAt: iso() });
+    try { persist(); } catch (error) {
+      // A legacy object may not own the newly introduced keys. Restore its exact
+      // shape, not just old values, when an atomic persistence attempt fails.
+      for (const key of Object.keys(track)) delete track[key];
+      Object.assign(track, previous);
+      throw error;
+    }
     res.json({ track: trackView(track, true) });
   });
   router.delete("/admin/tracks/:id", requireAdmin, (req, res) => {
@@ -391,21 +532,31 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
   }
   router.post("/exports", (req, res) => {
     rate(req, "export", 8, 60_000);
-    const { ids, format } = req.body || {};
-    exportTracks(ids, format);
+    const { ids, format, delivery = "zip" } = req.body || {};
+    if (!["zip", "file"].includes(delivery) || (delivery === "file" && (!Array.isArray(ids) || ids.length !== 1))) throw fail(400, "Direct download requires exactly one track.");
+    const entries = exportTracks(ids, format);
     for (const [id, ticket] of tickets) if (ticket.expires <= Date.now()) tickets.delete(id);
     if (tickets.size >= 500) throw fail(429, "Export queue is full. Try again shortly.");
     const id = crypto.randomBytes(24).toString("hex");
     const expires = Date.now() + 5 * 60_000;
-    tickets.set(id, { ids, format, expires, ip: req.ip });
-    res.json({ downloadUrl: `/api/dubplates/exports/${id}`, expiresAt: new Date(expires).toISOString() });
+    const filename = delivery === "file" ? safeFilename(entries[0].track, format) : `MUVS-Dubplates-${format.toUpperCase()}.zip`;
+    tickets.set(id, { ids, format, delivery, expires, ip: req.ip, admin: Boolean(hasAdminSession(req)) });
+    res.json({ downloadUrl: `/api/dubplates/exports/${id}`, expiresAt: new Date(expires).toISOString(), filename, delivery });
   });
-  router.get("/exports/:ticket", async (req, res) => {
+  router.get("/exports/:ticket", async (req, res, next) => {
     const ticket = /^[a-f0-9]{48}$/.test(req.params.ticket) && tickets.get(req.params.ticket);
     if (!ticket || ticket.expires < Date.now() || ticket.ip !== req.ip) throw fail(404, "Download expired. Please export again.");
-    exportTracks(ticket.ids, ticket.format);
+    const initialEntries = exportTracks(ticket.ids, ticket.format);
+    if (req.get("range")) throw fail(416, "Export downloads do not support partial ranges. Export again to download the complete file.");
+    const filename = ticket.delivery === "file" ? safeFilename(initialEntries[0].track, ticket.format) : `MUVS-Dubplates-${ticket.format.toUpperCase()}.zip`;
+    if (req.method === "HEAD") {
+      res.type(ticket.delivery === "file" ? FORMAT_MIMES[ticket.format] : "application/zip");
+      res.attachment(filename);
+      if (ticket.delivery === "file") res.set("Content-Length", String(fs.statSync(initialEntries[0].filename).size));
+      return res.end();
+    }
     if (activeExports >= 2 || ipExports.has(req.ip)) throw fail(429, "Another export is running. Try again shortly.");
-    const { ZipArchive } = await import("archiver");
+    const ZipArchive = ticket.delivery === "zip" ? (await import("archiver")).ZipArchive : null;
     // Import can yield: re-check before reserving an export slot.
     if (!tickets.has(req.params.ticket) || ticket.expires < Date.now()) throw fail(404, "Download expired. Please export again.");
     if (activeExports >= 2 || ipExports.has(req.ip)) throw fail(429, "Another export is running. Try again shortly.");
@@ -413,18 +564,29 @@ module.exports = function createDubplatesRouter({ dataDir, requireAdmin, hasAdmi
     activeExports += 1;
     ipExports.set(req.ip, true);
     tickets.delete(req.params.ticket);
-    const archive = new ZipArchive({ store: true });
+    const archive = ZipArchive ? new ZipArchive({ store: true }) : null;
     res.setTimeout(15 * 60_000, () => res.destroy());
-    res.status(200).set({ "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="MUVS-Dubplates-${ticket.format.toUpperCase()}.zip"` });
+    res.status(200).type(ticket.delivery === "file" ? FORMAT_MIMES[ticket.format] : "application/zip");
+    res.attachment(filename);
+    res.once("finish", () => {
+      if (res.statusCode === 200 && !req.aborted && !ticket.admin && !hasAdminSession(req)) {
+        try { analytics.download(ticket.ids, ticket.format, ticket.delivery); }
+        catch { console.error("Dubplates download analytics could not be saved."); }
+      }
+    });
     res.once("close", () => {
       activeExports -= 1;
       ipExports.delete(req.ip);
-      archive.abort();
+      archive?.abort();
+    });
+    if (!archive) return res.sendFile(entries[0].filename, { cacheControl: false, lastModified: false, acceptRanges: false }, (error) => {
+      if (error && !res.headersSent) next(fail(404, "Audio unavailable."));
     });
     archive.once("error", () => res.destroy());
     archive.on("warning", () => res.destroy());
     archive.pipe(res);
-    entries.forEach(({ track, filename }, index) => archive.file(filename, { name: safeFilename(track, index, ticket.format) }));
+    const names = exportFilenames(entries, ticket.format);
+    entries.forEach(({ filename: audioFilename }, index) => archive.file(audioFilename, { name: names[index] }));
     void archive.finalize().catch(() => res.destroy());
   });
   router.use((error, _req, res, _next) => {
@@ -445,3 +607,6 @@ module.exports.audioKind = audioKind;
 module.exports.safeFilename = safeFilename;
 module.exports.peaksFromBins = peaksFromBins;
 module.exports.analyzeAudio = analyzeAudio;
+module.exports.analyzeLoudness = analyzeLoudness;
+module.exports.exportFilenames = exportFilenames;
+module.exports.normalizeTags = normalizeTags;
