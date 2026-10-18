@@ -45,3 +45,11 @@ Curated composition/chrome loader revision completed: `phases/02-object-loops/02
 Physical floor/breathing title revision completed: `phases/02-object-loops/02-15-PLAN.md` — world-scale rocks, actual textured cassette/record/reel geometry with exact floor support and refined mobile foreground, uniform centered5%/3.8s breathing after the existing mobile title intro.178 tests, mobile/desktop/grid/native-touch/preferences/failure and actual live video/bundle/CMS verification. Summary: `phases/02-object-loops/02-15-SUMMARY.md`.
 - [x]02-16 — Opaque priority Y2K/spray loader, synchronized downward entrance, gentler edge titles and simultaneous prepared decoration reveal;195tests/mobile/deep/recovery/live verified.
 - [x]02-17 — Occasional one-second loading mesh, randomized8–13second quiet gaps, lifecycle/preferences safety;203tests/mobile/desktop/recovery/live verified.
+
+## Phase 03 — Dubplates metadata and interest
+
+- [x] Backward-compatible tags/private ratings/stages, whole-source LUFS-I and private persistent aggregate download/listen statistics.
+- [x] Library/admin extensions, direct one-track download, unnumbered collision-safe archive names, responsive filtering/export recovery.
+- [x]226tests, independent review, mobile/desktop/live deployment and all22asset measurements verified; original21track metadata/audio and general CMS preserved.
+
+Plan/summary: `phases/03-dubplates-insights/03-01-PLAN.md`, `03-01-SUMMARY.md`.
