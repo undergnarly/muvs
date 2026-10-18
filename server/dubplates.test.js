@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const express = require("express");
 const createRouter = require("./dubplates");
 const { validateTrack, validCover, audioKind, safeFilename, peaksFromBins, exportFilenames, normalizeTags, analyzeLoudness } = createRouter;
@@ -42,8 +43,7 @@ async function fixture(t, before, routerOptions = {}) {
   return { request, admin, json, directory, base };
 }
 
-function wavFixture(duration = 0.3) {
-  const rate = 44100;
+function wavFixture(duration = 0.3, rate = 44100) {
   const count = Math.round(duration * rate);
   const data = Buffer.alloc(44 + count * 2);
   data.write("RIFF", 0); data.writeUInt32LE(data.length - 8, 4); data.write("WAVEfmt ", 8);
@@ -486,4 +486,63 @@ test("legacy backfill queue is bounded and never resets catalog metadata or orig
   assert.equal(tracks.length, 14);
   assert.ok(tracks.every((track) => track.assetStatus === "ready" && track.rating === 8.5 && track.productionStage === "mixed"));
   assert.deepEqual(await fsp.readFile(path.join(context.directory, "dubplates", "assets", fixtureId(1001), "audio.wav")), before);
+});
+
+test("measurement-only EBU R128 validates mono/stereo, whole-file gating and honest null cases", async (t) => {
+  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), "muvs-lufs-parity-"));
+  t.after(() => fsp.rm(directory, { recursive: true, force: true }));
+  const mono = wavFixture(2);
+  const stereo = Buffer.alloc(44 + (mono.length - 44) * 2);
+  mono.copy(stereo, 0, 0, 44);
+  stereo.writeUInt32LE(stereo.length - 8, 4);
+  stereo.writeUInt16LE(2, 22);
+  stereo.writeUInt32LE(44100 * 4, 28);
+  stereo.writeUInt16LE(4, 32);
+  stereo.writeUInt32LE(stereo.length - 44, 40);
+  for (let source = 44, target = 44; source < mono.length; source += 2, target += 4) {
+    const sample = mono.readInt16LE(source);
+    stereo.writeInt16LE(sample, target);
+    stereo.writeInt16LE(-sample, target + 2);
+  }
+  const silent = wavFixture(2); silent.fill(0, 44);
+  const quiet = wavFixture(2);
+  for (let offset = 44; offset < quiet.length; offset += 2) quiet.writeInt16LE(Math.round(quiet.readInt16LE(offset) / 24000), offset);
+  const lowRate = wavFixture(6, 8000);
+  lowRate.copy(lowRate, 44 + (lowRate.length - 44) / 2, 44, 44 + (lowRate.length - 44) / 2);
+  for (const [name, bytes, measurable] of [
+    ["mono", mono, true], ["stereo-opposite-phase", stereo, true],
+    ["low-rate-constant", lowRate, true], ["silent", silent, false],
+    ["short", wavFixture(0.1), false], ["below-absolute-gate", quiet, false],
+  ]) {
+    const filename = path.join(directory, `${name}.wav`);
+    await fsp.writeFile(filename, bytes);
+    const reference = spawnSync(ffmpeg, ["-nostdin", "-hide_banner", "-nostats", "-loglevel", "info",
+      "-threads", "1", "-filter_threads", "1", "-protocol_whitelist", "file,pipe", "-f", "wav", "-i", filename,
+      "-map", "0:a:0", "-vn", "-sn", "-dn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-threads", "1", "-f", "null", "-"], { encoding: "utf8" });
+    assert.equal(reference.status, 0, name);
+    const printed = reference.stderr.match(/"input_i"\s*:\s*"([^"]+)"/)?.[1];
+    const old = printed === "-inf" ? null : Number(printed);
+    const measured = await analyzeLoudness(ffmpeg, "wav", filename);
+    if (measurable) {
+      assert.ok(Number.isFinite(measured) && Number.isFinite(old), name);
+      if (name === "low-rate-constant") {
+        // Native low-rate K-weighting and loudnorm's 192k resampled meter need
+        // not be identical; keep scanning the real input rather than the 8k
+        // waveform proxy or changing channels/sample rate to match a normalizer.
+        assert.ok(Math.abs(measured - (-6.2)) <= 0.20001, `${name}: ebur=${measured}`);
+      } else assert.ok(Math.abs(measured - old) <= 0.10001, `${name}: ebur=${measured}, loudnorm=${old}`);
+    } else {
+      assert.equal(old, null, `${name} reference is unmeasurable`);
+      assert.equal(measured, null, `${name} must not become a fabricated -70 LUFS`);
+    }
+    assert.deepEqual(await fsp.readFile(filename), bytes, `${name} original unchanged`);
+  }
+  // Normalizers with lookahead can feed their buffered tail into their input
+  // meter again during flushing. A measurement-only scan must instead weight
+  // this original six-second, two-level signal once, not over-weight its quiet tail.
+  const stepped = wavFixture(6);
+  const filename = path.join(directory, "whole-file-level-step.wav");
+  await fsp.writeFile(filename, stepped);
+  assert.equal(await analyzeLoudness(ffmpeg, "wav", filename), -9);
+  assert.deepEqual(await fsp.readFile(filename), stepped);
 });

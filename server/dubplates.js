@@ -190,12 +190,13 @@ async function analyzeAudio(executable, kind, source) {
   return { duration: Math.round(duration * 1000) / 1000, peaks: peaksFromBins(bins) };
 }
 
-// Measure the original channels/full frequency range. The filter writes only to
-// a null sink: neither the master nor its downloadable preview is normalized.
+// Scan the original channels/full frequency range without normalization or
+// true-peak oversampling. Audio passes unchanged to a null sink; masters and
+// previews are never rewritten. https://ffmpeg.org/ffmpeg-filters.html#ebur128
 async function analyzeLoudness(executable, kind, source) {
   return new Promise((resolve, reject) => {
-    const child = spawn(executable, [...ffmpegInput(kind, source), "-loglevel", "info", "-af",
-      "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-threads", "1", "-f", "null", "-"],
+    const child = spawn(executable, [...ffmpegInput(kind, source), "-nostats", "-loglevel", "info", "-af",
+      "ebur128=peak=none:framelog=verbose", "-threads", "1", "-f", "null", "-"],
     { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
     let output = "";
     let stopped = false;
@@ -205,12 +206,18 @@ async function analyzeLoudness(executable, kind, source) {
     child.once("close", (code) => {
       clearTimeout(timer);
       if (code !== 0 || stopped) return reject(new Error(ERROR_PROCESSING));
-      const matches = [...output.matchAll(/\{\s*"input_i"\s*:[\s\S]*?\}/g)];
+      const matches = [...output.matchAll(/Summary:\s*Integrated loudness:\s*I:\s*(-?(?:\d+(?:\.\d+)?|inf))\s+LUFS\s+Threshold:\s*(-?(?:\d+(?:\.\d+)?|inf))\s+LUFS/g)];
       try {
-        const value = JSON.parse(matches.at(-1)?.[0] || "{}").input_i;
+        const match = matches.at(-1);
+        const value = match?.[1];
+        const threshold = Number(match?.[2]);
         if (value === "-inf") return resolve(null);
         const number = Number(value);
-        if (typeof value !== "string" || !Number.isFinite(number) || number < -200 || number > 100) throw new Error();
+        if (!Number.isFinite(number) || !Number.isFinite(threshold) || number < -200 || number > 100) throw new Error();
+        // FFmpeg's scanner prints its -70/0 initialization sentinel when no
+        // 400ms block passes the absolute gate (silence, very short/quiet input).
+        // A genuine near-gate result has a measured relative threshold instead.
+        if (number === -70 && threshold === 0) return resolve(null);
         return resolve(Math.round(number * 10) / 10);
       } catch { return reject(new Error(ERROR_PROCESSING)); }
     });
