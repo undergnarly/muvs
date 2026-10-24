@@ -14,6 +14,10 @@
     pointer-events: auto;
 }
 
+.staggered-menu-wrapper[data-open] { pointer-events: auto; }
+.staggered-menu-panel[inert], .sm-submenu-clip[inert] { pointer-events: none; }
+.sm-logo:focus-visible { outline: 2px solid var(--sm-accent, #ccff00); outline-offset: 4px; }
+
 .staggered-menu-header {
     position: absolute;
     top: 0;
@@ -300,8 +304,8 @@
 
 .sm-panel-item:focus-visible,
 .sm-submenu-item:focus-visible {
-    outline: 1px solid var(--sm-accent, #ccff00);
-    outline-offset: 3px;
+    outline: 2px solid var(--sm-accent, #ccff00);
+    outline-offset: -2px;
 }
 
 .sm-panel-itemChevron {
@@ -401,7 +405,7 @@
 
 .sm-submenu-itemMeta {
     overflow: hidden;
-    color: rgba(255, 255, 255, 0.36);
+    color: rgba(255, 255, 255, 0.62);
     font-size: 8px;
     font-weight: 500;
     line-height: 1;

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { keyboardSeek } from '../../utils/playerSeek';
 import './AlbumPlayer.css';
 
 const getTrackUrl = (t) => t?.audioFile || t?.audioUrl || t?.audio || t?.url || '';
@@ -49,6 +50,10 @@ const BurgerIcon = () => (
 const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleaseSelect, compact = false }) => {
     const audioRef = useRef(null);
     const playOnLoadRef = useRef(false);
+    const expandableRef = useRef(null);
+    const collapseRef = useRef(null);
+    const browseRef = useRef(null);
+    const detailsId = `${useId()}-playlist`;
 
     const tracks = (release?.tracks || []).filter((track) => Boolean(getTrackUrl(track)));
     const cover = release?.coverImage || release?.cover || '';
@@ -63,6 +68,10 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
     const [collapseOverride, setCollapseOverride] = useState({ mode: compact, value: compact });
     const [showReleases, setShowReleases] = useState(false);
     const collapsed = collapseOverride.mode === compact ? collapseOverride.value : compact;
+
+    useEffect(() => {
+        if (collapsed && expandableRef.current?.contains(document.activeElement)) collapseRef.current?.focus({ preventScroll: true });
+    }, [collapsed]);
 
     const count = tracks.length;
     const track = count ? tracks[Math.min(index, count - 1)] : null;
@@ -158,11 +167,25 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
 
     const seek = useCallback((e) => {
         const a = audioRef.current;
-        if (!a || !a.duration) return;
+        if (!a || !Number.isFinite(a.duration) || a.duration <= 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const rel = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         a.currentTime = rel * a.duration;
         setProgress(rel);
+        setCurrent(a.currentTime);
+        e.currentTarget.focus({ preventScroll: true });
+    }, []);
+
+    const seekKey = useCallback((event) => {
+        const a = audioRef.current;
+        if (!a) return;
+        const position = keyboardSeek(event.key, a.duration > 0 ? a.currentTime / a.duration : 0, a.duration);
+        if (position === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        a.currentTime = position * a.duration;
+        setProgress(position);
+        setCurrent(a.currentTime);
     }, []);
 
     const toggleMute = useCallback(() => {
@@ -178,8 +201,9 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
     }, [collapsed, compact]);
 
     const toggleBurger = useCallback(() => {
+        if (collapsed) setCollapseOverride({ mode: compact, value: false });
         setShowReleases(r => !r);
-    }, []);
+    }, [collapsed, compact]);
 
     if (!count) return null;
 
@@ -192,11 +216,16 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
         <div
             className="ap-seek"
             role="slider"
+            tabIndex={0}
             aria-label="Track position"
+            aria-orientation="horizontal"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
+            aria-valuetext={`${fmt(current)} of ${fmt(duration)}`}
+            aria-disabled={!Number.isFinite(duration) || duration <= 0}
             onClick={seek}
+            onKeyDown={seekKey}
         >
             <div className="ap-seek-track">
                 <div className="ap-seek-fill" style={{ width: `${progress * 100}%` }} />
@@ -216,14 +245,17 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
             <span className="ap-time">{fmt(current)} / {fmt(duration)}</span>
             {hasBurger && (
                 <button
+                    ref={browseRef}
                     className={`ap-btn ap-btn--sm${showReleases ? ' ap-btn--active' : ''}`}
                     onClick={toggleBurger}
                     aria-label="Browse releases"
+                    aria-expanded={showReleases && !collapsed}
+                    aria-controls={detailsId}
                 >
                     <BurgerIcon />
                 </button>
             )}
-            <button className="ap-btn ap-btn--sm" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand player' : 'Collapse player'}>
+            <button ref={collapseRef} className="ap-btn ap-btn--sm" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand player' : 'Collapse player'} aria-expanded={!collapsed} aria-controls={detailsId}>
                 {collapsed ? <ExpandIcon /> : <CollapseIcon />}
             </button>
         </div>
@@ -231,7 +263,7 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
 
     return (
         <div className={`ap${collapsed ? ' ap--collapsed' : ''}`}>
-            <div className="ap-expandable" aria-hidden={collapsed}>
+            <div ref={expandableRef} id={detailsId} className="ap-expandable" aria-hidden={collapsed} inert={collapsed}>
                 <div className="ap-expandable-inner">
                     <div className="ap-top">
                         {cover && !showReleases && (
@@ -240,32 +272,33 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
                             </div>
                         )}
                         {showReleases ? (
-                            <ul className="ap-list" role="listbox" aria-label="Releases">
+                            <ul className="ap-list" aria-label="Releases">
                                 {releases.map((r, i) => (
-                                    <li
-                                        key={r.id || i}
+                                    <li key={r.id || i}>
+                                    <button
+                                        type="button"
                                         className={`ap-row${i === currentReleaseIndex ? ' active' : ''}`}
-                                        onClick={() => { onReleaseSelect?.(i); setShowReleases(false); }}
-                                        role="option"
-                                        aria-selected={i === currentReleaseIndex}
+                                        onClick={() => { onReleaseSelect?.(i); setShowReleases(false); browseRef.current?.focus({ preventScroll: true }); }}
+                                        aria-current={i === currentReleaseIndex ? 'true' : undefined}
                                     >
                                         <span className="ap-row-title">
                                             {[r.artists, r.title].filter(Boolean).join(' — ')}
                                         </span>
-                                    </li>
+                                    </button></li>
                                 ))}
                             </ul>
                         ) : (
-                            <ul className="ap-list" role="listbox" aria-label={liveTitle}>
+                            <ul className="ap-list" aria-label="Tracks">
                                 {tracks.map((t, i) => {
                                     const active = i === index;
                                     return (
-                                        <li
-                                            key={t.id || i}
+                                        <li key={t.id || i}>
+                                        <button
+                                            type="button"
                                             className={`ap-row${active ? ' active' : ''}`}
                                             onClick={() => playIndex(i)}
-                                            role="option"
-                                            aria-selected={active}
+                                            aria-current={active ? 'true' : undefined}
+                                            aria-pressed={active && playing}
                                         >
                                             <span className="ap-row-title">
                                                 {`${t.artist || release?.artists || ''} — ${getTrackTitle(t, i)}`.replace(/^—\s*/, '').trim()}
@@ -273,7 +306,7 @@ const AlbumPlayer = ({ release, releases = [], currentReleaseIndex = 0, onReleas
                                             {active && playing && (
                                                 <span className="ap-eq" aria-hidden="true"><i /><i /><i /></span>
                                             )}
-                                        </li>
+                                        </button></li>
                                     );
                                 })}
                             </ul>

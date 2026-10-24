@@ -4,6 +4,7 @@ import Header from '../layout/Header';
 import SplitText from '../ui/SplitText';
 
 import { useData } from '../../context/DataContext';
+import { sanitizeRichHtml } from '../../utils/safeHtml';
 
 const NewsPage = () => {
     const { news, newsSettings } = useData();
@@ -111,7 +112,7 @@ const NewsPage = () => {
                         )}
                         <div
                             style={{ lineHeight: '1.8', color: 'var(--color-text-dim)', fontSize: '18px' }}
-                            dangerouslySetInnerHTML={{ __html: item.excerpt }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(item.excerpt) }}
                         ></div>
                     </div>
                 ))}

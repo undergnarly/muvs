@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import Button from '../ui/Button';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import ProjectDetails from './ProjectDetails';
+import { sanitizeRichHtml } from '../../utils/safeHtml';
 import './ProjectSlide.css';
 
 const ProjectSlide = ({ project, priority = false, allProjects, onNavigate }) => {
@@ -93,7 +94,7 @@ const ProjectSlide = ({ project, priority = false, allProjects, onNavigate }) =>
                 {project.description && (
                     <div
                         className="project-short-description"
-                        dangerouslySetInnerHTML={{ __html: project.description }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(project.description) }}
                     />
                 )}
                 {project.liveUrl && project.liveUrl.trim() !== '' && (

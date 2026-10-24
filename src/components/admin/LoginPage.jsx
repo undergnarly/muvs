@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import Button from '../ui/Button';
+import './LoginPage.css';
 
 const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [invalidPin, setInvalidPin] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const inputRef = useRef(null);
+    const passwordId = useId();
+    const helpId = `${passwordId}-help`;
+    const errorId = `${passwordId}-error`;
+
+    useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
+    useEffect(() => {
+        if (error && !submitting) inputRef.current?.focus({ preventScroll: true });
+    }, [error, submitting]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        if (submitting) return;
         setError('');
+        setInvalidPin(false);
 
         if (!password.trim()) {
             setError('Enter PIN');
+            setInvalidPin(true);
             return;
         }
 
@@ -27,6 +41,7 @@ const LoginPage = () => {
             if (!response.ok) {
                 if (response.status === 401) {
                     setError('Invalid PIN');
+                    setInvalidPin(true);
                     return;
                 }
                 throw new Error(`PIN validation failed with ${response.status}`);
@@ -42,50 +57,38 @@ const LoginPage = () => {
     };
 
     return (
-        <div style={{
-            height: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--color-bg-dark)',
-            color: 'var(--color-text-light)'
-        }}>
-            <form onSubmit={handleLogin} style={{
-                padding: '40px',
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-                width: '300px'
-            }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Admin Access</h2>
+        <main className="admin-login">
+            <form className="admin-login-form" onSubmit={handleLogin} noValidate aria-busy={submitting} aria-describedby={error ? errorId : helpId}>
+                <h1>Admin Access</h1>
+                <p id={helpId} className="admin-login-help">Enter your admin PIN to continue.</p>
+                <label htmlFor={passwordId}>PIN</label>
                 <input
+                    ref={inputRef}
+                    id={passwordId}
+                    name="password"
                     type="password"
+                    autoComplete="current-password"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); setInvalidPin(false); }}
                     placeholder="Enter PIN"
                     disabled={submitting}
-                    style={{
-                        padding: '12px',
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '8px',
-                        color: 'white',
-                        outline: 'none'
-                    }}
+                    aria-invalid={invalidPin}
+                    aria-describedby={error ? `${helpId} ${errorId}` : helpId}
                 />
-                {error && <div style={{ color: 'red', fontSize: '14px', textAlign: 'center' }}>{error}</div>}
+                {error && <p id={errorId} className="admin-login-error" role="alert">{error}</p>}
                 <Button
                     variant="accent"
                     type="submit"
-                    style={{ width: '100%', justifyContent: 'center' }}
                     disabled={submitting}
                 >
                     {submitting ? 'Checking…' : 'Login'}
                 </Button>
             </form>
-        </div>
+        </main>
     );
 };
 

@@ -1,21 +1,23 @@
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, useLocation, useParams } from 'react-router-dom';
 
-// Public Pages - Static Import for maximum speed and smooth transitions
-import AboutPage from './components/pages/AboutPage';
-import NewsPage from './components/pages/NewsPage';
+// Keep the main 3D world and its static recovery routes immediately available.
 import MusicPage from './components/pages/MusicPage';
 import MixesPage from './components/pages/MixesPage';
 import CodePage from './components/pages/CodePage';
-import LecturePage from './components/pages/LecturePage';
-import LectureTextPage from './components/pages/LectureTextPage';
-import CVPage from './components/pages/CVPage';
-import TestPage from './components/pages/TestPage';
 import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage, AboutHubPage } from './components/pages/HomeNewPage';
 import NewsPage3D from './components/pages/NewsPage3D';
 import CVPage3D from './components/pages/CVPage3D';
 import LecturePage3D from './components/pages/LecturePage3D';
 import LectureTextPage3D from './components/pages/LectureTextPage3D';
+
+// Optional legacy reading/demo routes do not participate in the first 3D view.
+const AboutPage = React.lazy(() => import('./components/pages/AboutPage'));
+const NewsPage = React.lazy(() => import('./components/pages/NewsPage'));
+const CVPage = React.lazy(() => import('./components/pages/CVPage'));
+const LecturePage = React.lazy(() => import('./components/pages/LecturePage'));
+const LectureTextPage = React.lazy(() => import('./components/pages/LectureTextPage'));
+const TestPage = React.lazy(() => import('./components/pages/TestPage'));
 
 // Admin Pages - Lazy Load (Keep heavy admin libs out of main bundle)
 const LoginPage = React.lazy(() => import('./components/admin/LoginPage'));
@@ -36,6 +38,7 @@ const DubplatesManager = React.lazy(() => import('./components/admin/DubplatesMa
 import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
 import FilmLeakOverlay from './components/layout/FilmLeakOverlay';
+import PublicSeo from './components/layout/PublicSeo';
 import { dispatchFilmTransition } from './utils/filmLeak';
 import { isSceneFilmRoute, normalizeSceneFilmPath } from './utils/sceneFilmTransition';
 import { ROUTES } from './utils/constants';
@@ -71,6 +74,12 @@ const LoadingFallback = () => (
     <div style={{ height: '100vh', width: '100vw', background: 'var(--color-bg-dark)' }} />
 );
 
+const NotFoundPage = () => (
+    <main style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center' }}>
+        <div><h1>Page not found</h1><p>This page is not available.</p><a href="/">Back to MUVS</a></div>
+    </main>
+);
+
 const normalizeReleaseSlug = (value) => (value || '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -85,12 +94,12 @@ const ReleasePermalinkRoute = () => {
         && normalizeReleaseSlug(release.slug || release.title) === slug
     ));
 
-    if (isLoaded && !releaseExists) return <Navigate to={ROUTES.HOME} replace />;
+    if (isLoaded && !releaseExists) return <NotFoundPage />;
     return <MusicNewPage releaseSlug={slug} />;
 };
 
 function AppRoot() {
-    const { trackVisit, siteSettings, releases } = useData();
+    const { siteSettings, releases, mixes, projects, news, about, siteSettingsReady } = useData();
     const location = useLocation();
     const filmPath = normalizeSceneFilmPath(location.pathname);
     const filmPrivate = /^\/(?:admin|login)(?:\/|$)/.test(filmPath);
@@ -119,11 +128,6 @@ function AppRoot() {
 
 
     React.useEffect(() => {
-        // Track visit with current path and referrer
-        if (!location.pathname.startsWith('/dubplates')) trackVisit(location.pathname, document.referrer);
-    }, [location.pathname]);
-
-    React.useEffect(() => {
         const splash = document.getElementById('splash-screen');
         if (!splash || startupFailed) return undefined;
 
@@ -148,9 +152,8 @@ function AppRoot() {
             unguard();
         };
         const path = location.pathname;
-        const sceneRoute = path === '/' || /^\/(?:music|mixes|code|about|news|cv|lecture|lecture-text)\/?$/.test(path)
-            || (/^\/[^/]+$/.test(path) && !Object.values(ROUTES).includes(path)
-                && !['/login', '/projects', '/admin', '/dubplates'].includes(path));
+        const sceneRoute = isSceneFilmRoute(path, releases || [])
+            || /^\/(?:news|cv|lecture|lecture-text)\/?$/i.test(path);
         if (sceneRoute) {
             // Reveal a drawn poster immediately; full video buffers warm behind it.
             // The deadline handles an actual scene/renderer failure only.
@@ -171,6 +174,9 @@ function AppRoot() {
             unguard();
             if (removed || departure) { splash.remove(); finishStartupDive(); markMenuRevealed(); }
         };
+    // Public data is loaded before AppRoot mounts; later CMS edits must not
+    // restart the user's completed splash animation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname, startupFailed]);
 
     // Update favicon dynamically
@@ -188,19 +194,6 @@ function AppRoot() {
             }
         }
     }, [siteSettings?.favicon]);
-
-    // Update document title and meta description
-    React.useEffect(() => {
-        if (location.pathname.startsWith('/dubplates')) return;
-        if (siteSettings?.siteName) {
-            document.title = `${siteSettings.siteName} | ${siteSettings.siteDescription || 'Audio • Visual • Code'}`;
-        }
-
-        const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription && siteSettings?.siteDescription) {
-            metaDescription.content = siteSettings.siteDescription;
-        }
-    }, [siteSettings?.siteName, siteSettings?.siteDescription, location.pathname]);
 
     const scene3DPaths = [
         ROUTES.HOME,
@@ -226,6 +219,7 @@ function AppRoot() {
 
     return (
         <>
+            <PublicSeo data={{ releases, mixes, projects, news, about, siteSettings }} ready={siteSettingsReady} />
             {!filmInScene && !filmPrivate && !filmPath.startsWith('/dubplates') && <FilmLeakOverlay routeKey={filmPath} settings={siteSettings?.visualEffects} />}
             {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
@@ -242,14 +236,14 @@ function AppRoot() {
                 <Route path={ROUTES.CV} element={<CVPage3D />} />
                 <Route path={ROUTES.HOME_OLD} element={<MusicPage />} />
                 <Route path={ROUTES.MUSIC_OLD} element={<MusicPage />} />
-                <Route path={ROUTES.ABOUT_OLD} element={<AboutPage />} />
-                <Route path={ROUTES.NEWS_OLD} element={<NewsPage />} />
+                <Route path={ROUTES.ABOUT_OLD} element={<Suspense fallback={<LoadingFallback />}><AboutPage /></Suspense>} />
+                <Route path={ROUTES.NEWS_OLD} element={<Suspense fallback={<LoadingFallback />}><NewsPage /></Suspense>} />
                 <Route path={ROUTES.MIXES_OLD} element={<MixesPage />} />
                 <Route path={ROUTES.CODE_OLD} element={<CodePage />} />
-                <Route path={ROUTES.LECTURE_OLD} element={<LecturePage />} />
-                <Route path={ROUTES.LECTURE_TEXT_OLD} element={<LectureTextPage />} />
-                <Route path={ROUTES.CV_OLD} element={<CVPage />} />
-                <Route path={ROUTES.TEST} element={<TestPage />} />
+                <Route path={ROUTES.LECTURE_OLD} element={<Suspense fallback={<LoadingFallback />}><LecturePage /></Suspense>} />
+                <Route path={ROUTES.LECTURE_TEXT_OLD} element={<Suspense fallback={<LoadingFallback />}><LectureTextPage /></Suspense>} />
+                <Route path={ROUTES.CV_OLD} element={<Suspense fallback={<LoadingFallback />}><CVPage /></Suspense>} />
+                <Route path={ROUTES.TEST} element={<Suspense fallback={<LoadingFallback />}><TestPage /></Suspense>} />
                 <Route path="/projects/meditation" element={
                     <Suspense fallback={<LoadingFallback />}>
                         <MeditationProjectPage />
@@ -282,7 +276,7 @@ function AppRoot() {
                     <Route path="settings" element={<AdminSettings />} />
                 </Route>
                 <Route path="/:releaseSlug" element={<ReleasePermalinkRoute />} />
-                <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+                <Route path="*" element={<NotFoundPage />} />
             </Routes></MenuSceneBoundary>
         </>
     );

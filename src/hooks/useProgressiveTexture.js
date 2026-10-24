@@ -56,6 +56,9 @@ export const preloadImage = (source, priority = 'low') => {
 
     const promise = new Promise((resolve) => {
         const image = new Image();
+        // Match Three's TextureLoader and the document's anonymous preloads.
+        // A no-CORS Image request cannot consume an anonymous preload.
+        image.crossOrigin = 'anonymous';
         image.decoding = 'async';
         image.fetchPriority = priority;
         image.onload = () => resolve(true);

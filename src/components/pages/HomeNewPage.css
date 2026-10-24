@@ -413,6 +413,12 @@ body.home-new-active {
     cursor: pointer;
 }
 
+.hn-player-wave:focus-visible, .hn-player-track:focus-visible,
+.hn-dot:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+}
+
 .hn-player-bar {
     flex: 1;
     background: rgba(255, 255, 255, 0.32);
@@ -479,6 +485,11 @@ body.home-new-active {
 .hn-player-tracks::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
 
 .hn-player-track {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font: inherit;
     display: grid;
     grid-template-columns: 28px 1fr auto;
     align-items: center;

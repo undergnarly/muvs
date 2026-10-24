@@ -1,0 +1,7 @@
+.legacy-contact { width: 100%; max-width: 600px; margin: 32px auto 0; padding: 24px; background: rgb(45 45 45); border-radius: 12px; border: 1px solid rgba(255,255,255,.05); }
+.legacy-contact h3 { margin: 0 0 12px; color: var(--color-text-light); font-size: 16px; line-height: 1.4; text-transform: uppercase; letter-spacing: .05em; }
+.legacy-contact p { margin: 0 0 18px; color: #d0d0d0; font-size: 14px; line-height: 1.5; }
+.legacy-contact-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.legacy-contact .btn { min-height: 44px; max-width: 100%; overflow-wrap: anywhere; }
+.legacy-contact .btn:focus-visible { outline: 2px solid var(--color-accent, #ccff00); outline-offset: 3px; }
+@media (max-width: 360px) { .legacy-contact { padding: 20px; } .legacy-contact-links { flex-direction: column; align-items: stretch; } }

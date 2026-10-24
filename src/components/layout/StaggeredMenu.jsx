@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
 import { useData } from '../../context/DataContext';
+import { isPlainMenuClick, menuFocusables, menuTabTarget } from '../../utils/menuAccessibility';
 import './StaggeredMenu.css';
 
 const toSlug = (value) => String(value || '')
@@ -22,6 +23,45 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
     const [expandedItem, setExpandedItem] = useState(null);
     const [logoAccentEnd, setLogoAccentEnd] = useState(() => logoAccentUntil);
     const navigate = useNavigate();
+    const wrapperRef = useRef(null);
+    const panelRef = useRef(null);
+    const toggleRef = useRef(null);
+    const navigationTimer = useRef(null);
+    const prefix = useId();
+    const panelId = `${prefix}-main-menu`;
+
+    useEffect(() => () => window.clearTimeout(navigationTimer.current), []);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const previous = document.activeElement;
+        const toggle = toggleRef.current;
+        const focusFirst = () => (menuFocusables(panelRef.current)[0] || toggleRef.current)?.focus({ preventScroll: true });
+        focusFirst();
+        const onKeyDown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                setExpandedItem(null);
+                setOpen(false);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const next = menuTabTarget(menuFocusables(wrapperRef.current), document.activeElement, event.shiftKey);
+            if (next) { event.preventDefault(); next.focus({ preventScroll: true }); }
+        };
+        const onFocus = event => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) focusFirst();
+        };
+        document.addEventListener('keydown', onKeyDown, true);
+        document.addEventListener('focusin', onFocus);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown, true);
+            document.removeEventListener('focusin', onFocus);
+            const target = previous?.isConnected && !previous.closest?.('[inert]') ? previous : toggle;
+            if (target?.isConnected) target.focus({ preventScroll: true });
+        };
+    }, [open]);
 
     useEffect(() => {
         if (logoAccentEnd <= Date.now()) return undefined;
@@ -88,25 +128,29 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
     ], [mixes, projects, releases]);
 
     const handleLinkClick = (e, path) => {
+        if (!isPlainMenuClick(e)) return;
         e.preventDefault();
-        const currentPath = `${location.pathname}${location.search}`;
+        const currentPath = `${window.location.pathname}${window.location.search}`;
         if (currentPath === path) {
             toggleMenu();
             return;
         }
         setExpandedItem(null);
         toggleMenu();
-        setTimeout(() => {
+        window.clearTimeout(navigationTimer.current);
+        navigationTimer.current = window.setTimeout(() => {
             navigate(path);
         }, 700);
     };
 
     const toggleMenu = () => {
+        window.clearTimeout(navigationTimer.current);
         if (open) setExpandedItem(null);
         setOpen(!open);
     };
 
     const handleMenuItemClick = (e, item) => {
+        if (!isPlainMenuClick(e)) return;
         if (!item.children.length) {
             handleLinkClick(e, item.path);
             return;
@@ -117,8 +161,10 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
     };
 
     const handleLogoClick = (e) => {
+        if (!isPlainMenuClick(e)) return;
         e.preventDefault();
         e.stopPropagation();
+        window.clearTimeout(navigationTimer.current);
 
         logoAccentUntil = Date.now() + 3000;
         setLogoAccentEnd(logoAccentUntil);
@@ -129,13 +175,14 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
             toggleMenu();
         }
 
-        if (location.pathname !== homePath) {
+        if (window.location.pathname !== homePath || window.location.search) {
             navigate(homePath);
         }
     };
 
     return (
         <div
+            ref={wrapperRef}
             className={`staggered-menu-wrapper${isDark && !open ? ' sm-dark' : ''}`}
             style={{ '--sm-accent': accentColor }}
             data-position={position}
@@ -163,16 +210,18 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                 <a
                     href={ROUTES.HOME || '/'}
                     className={`sm-logo${logoAccentEnd > Date.now() ? ' is-animating' : ''}`}
-                    aria-label="Logo"
+                    aria-label="MUVS home"
                     onClick={handleLogoClick}
                 >
                     <div className="sm-logo-img" />
                 </a>
                 <div className="sm-menu-control">
                     <motion.button
+                        ref={toggleRef}
                         className="sm-toggle"
                         aria-label={open ? 'Close menu' : 'Open menu'}
                         aria-expanded={open}
+                        aria-controls={panelId}
                         onClick={toggleMenu}
                         type="button"
                         animate={{ color: open ? openMenuButtonColor : menuButtonColor }}
@@ -213,6 +262,7 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                 className={`sm-swipe-label${swipeHintTarget === 'MENU' ? ' is-clickable' : ''}`}
                                 type="button"
                                 aria-label={swipeHintTarget === 'MENU' ? 'Open menu' : undefined}
+                                aria-controls={swipeHintTarget === 'MENU' ? panelId : undefined}
                                 disabled={swipeHintTarget !== 'MENU'}
                                 onClick={swipeHintTarget === 'MENU' ? toggleMenu : undefined}
                                 aria-live="polite"
@@ -237,8 +287,12 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
             </header>
 
             <motion.aside
+                ref={panelRef}
+                id={panelId}
                 className="staggered-menu-panel"
+                aria-label="Main navigation"
                 aria-hidden={!open}
+                inert={!open}
                 initial={{ x: '100%' }}
                 animate={{ x: open ? '0%' : '100%' }}
                 transition={{
@@ -256,12 +310,13 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                 || it.children.some((child) => child.path === `${location.pathname}${location.search}`);
                             return (
                             <li className={`sm-panel-itemWrap${expanded ? ' is-expanded' : ''}`} key={it.label}>
-                                <button
+                                <a
                                     className={`sm-panel-item${active ? ' active' : ''}`}
+                                    href={it.path}
                                     onClick={(e) => handleMenuItemClick(e, it)}
-                                    type="button"
                                     aria-expanded={expandable ? expanded : undefined}
-                                    aria-controls={expandable ? `sm-submenu-${it.key}` : undefined}
+                                    aria-controls={expandable ? `${prefix}-sm-submenu-${it.key}` : undefined}
+                                    aria-current={location.pathname === it.path ? 'page' : undefined}
                                 >
                                     <motion.span
                                         className="sm-panel-itemLabel"
@@ -290,15 +345,15 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                             </svg>
                                         </motion.span>
                                     )}
-                                </button>
-                                <AnimatePresence initial={false}>
-                                    {expanded && (
+                                </a>
+                                {expandable && (
                                         <motion.div
-                                            id={`sm-submenu-${it.key}`}
+                                            id={`${prefix}-sm-submenu-${it.key}`}
                                             className="sm-submenu-clip"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
+                                            inert={!open || !expanded}
+                                            aria-hidden={!expanded}
+                                            initial={false}
+                                            animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
                                             transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }}
                                         >
                                             <div className="sm-submenu-scroll">
@@ -308,12 +363,13 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                                         href={child.path}
                                                         className={`sm-submenu-item${child.path === `${location.pathname}${location.search}` ? ' active' : ''}`}
                                                         onClick={(e) => handleLinkClick(e, child.path)}
-                                                        initial={{ opacity: 0, x: 18 }}
-                                                        animate={{ opacity: 1, x: 0 }}
+                                                        aria-current={child.path === `${location.pathname}${location.search}` ? 'page' : undefined}
+                                                        initial={false}
+                                                        animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : 18 }}
                                                         transition={{
                                                             duration: 0.45,
                                                             ease: [0.19, 1, 0.22, 1],
-                                                            delay: 0.08 + childIndex * 0.045,
+                                                            delay: expanded ? 0.08 + childIndex * 0.045 : 0,
                                                         }}
                                                     >
                                                         <span className="sm-submenu-itemIndex">{String(childIndex + 1).padStart(2, '0')}</span>
@@ -326,7 +382,6 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                             </div>
                                         </motion.div>
                                     )}
-                                </AnimatePresence>
                             </li>
                             );
                         })}
@@ -361,7 +416,7 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                                             delay: open ? 0.5 + (idx * 0.05) : 0
                                         }}
                                     >
-                                        <s.icon size={24} />
+                                        <s.icon size={24} aria-hidden="true" focusable="false" />
                                     </motion.a>
                                 </li>
                             ))}

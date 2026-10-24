@@ -1,13 +1,15 @@
+import { sanitizeRichHtml } from './safeHtml.js';
+
 /**
  * Fixes anchor tags that don't have href attributes
  * Converts <a>url</a> to <a href="url">url</a>
  * Also ensures URLs have proper protocol (http/https)
  */
 export const fixLinks = (html) => {
-    if (!html) return html;
+    if (!html) return '';
 
     // Replace <a>text</a> with <a href="text">text</a>
-    return html.replace(/<a>([^<]+)<\/a>/gi, (match, url) => {
+    const repaired = String(html).replace(/<a>([^<]+)<\/a>/gi, (match, url) => {
         // Trim whitespace
         const cleanUrl = url.trim();
 
@@ -16,4 +18,5 @@ export const fixLinks = (html) => {
 
         return `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`;
     });
+    return sanitizeRichHtml(repaired);
 };

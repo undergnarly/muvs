@@ -5,6 +5,7 @@ import BaseSlidePage from '../layout/BaseSlidePage';
 import SplitText from '../ui/SplitText';
 import SocialLinks from '../layout/SocialLinks';
 import ContactForm from '../forms/ContactForm';
+import { sanitizeRichHtml } from '../../utils/safeHtml';
 import './AboutPage.css';
 
 const AboutPage = () => {
@@ -71,7 +72,7 @@ const AboutPage = () => {
             <div className="about-content">
                 <p
                     className="about-text"
-                    dangerouslySetInnerHTML={{ __html: about.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(about.content) }}
                 />
 
                 {/* Social Icons */}

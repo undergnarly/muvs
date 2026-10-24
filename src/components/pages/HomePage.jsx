@@ -2,6 +2,7 @@ import React from 'react';
 import { useData } from '../../context/DataContext';
 import BaseSlidePage from '../layout/BaseSlidePage';
 import SplitText from '../ui/SplitText';
+import { sanitizeRichHtml } from '../../utils/safeHtml';
 import './HomePage.css';
 
 const HomePage = () => {
@@ -22,7 +23,7 @@ const HomePage = () => {
 
     const DetailContent = (
         <div className="home-details-container">
-            <p className="home-bio" dangerouslySetInnerHTML={{ __html: siteSettings?.homepageBio || 'Digital craftsman exploring the intersection of sound, data, and visual aesthetics.' }} />
+            <p className="home-bio" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(siteSettings?.homepageBio || 'Digital craftsman exploring the intersection of sound, data, and visual aesthetics.') }} />
         </div>
     );
 

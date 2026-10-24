@@ -4,7 +4,7 @@ import { getMenuObjectLoops, getObjectLoop, getObjectPosterSrc, isObjectPosterRe
 
 test('restored Music uses its matching prior poster and single-lizard loop', () => {
     const canonical = '/images/menu/music2.webp';
-    assert.equal(getObjectPosterSrc(canonical), '/videos/objects/music-v3-poster.webp');
+    assert.equal(getObjectPosterSrc(canonical), '/videos/objects/music-v3-poster-q90.webp');
     assert.equal(getObjectLoop(canonical).videoSrc, '/videos/objects/music-v3.mp4');
     assert.equal(getObjectLoop('/images/menu/music-20261005.webp'), null);
     assert.equal(isObjectPosterReady({ image: { currentSrc: `https://muvs.dev${getObjectPosterSrc(canonical)}` } }, canonical), true);
@@ -14,7 +14,7 @@ test('restored Music uses its matching prior poster and single-lizard loop', () 
 test('all three menu loops provide exact-first-frame posters alongside video and alpha', () => {
     for (const canonical of ['/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp']) {
         const loop = getObjectLoop(canonical);
-        assert.match(loop.posterSrc, /-v[34]-(?:decoded-)?poster\.webp$/);
+        assert.match(loop.posterSrc, /-v[34]-(?:decoded-)?poster-q90\.webp$/);
         assert.match(loop.videoSrc, /-v[34]\.mp4$/);
         assert.match(loop.alphaMaskSrc, /-alpha\.png$/);
     }
@@ -41,7 +41,7 @@ test('Desktop replacements use version-matched decoded posters, video and origin
         ['/uploads/1783951707737-ai-agents_trans.webp', 'agents-v2'],
     ]) {
         assert.deepEqual(getObjectLoop(canonical), {
-            posterSrc: `/videos/objects/${stem}-decoded-poster.webp`,
+            posterSrc: `/videos/objects/${stem}-decoded-poster-q90.webp`,
             videoSrc: `/videos/objects/${stem}.mp4`,
             alphaMaskSrc: `/videos/objects/${stem}-alpha.png`, width: 720, height: 720,
         });

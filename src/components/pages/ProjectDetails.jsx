@@ -39,6 +39,8 @@ const itemVariants = {
 const ProjectDetails = ({ project, allProjects, onNavigate }) => {
     const { siteSettings } = useData();
     const gradientSettings = siteSettings?.gradientSettings || {};
+    const technologies = Array.isArray(project.technologies) ? project.technologies : [];
+    const features = Array.isArray(project.features) ? project.features : [];
 
     return (
         <motion.div
@@ -62,18 +64,18 @@ const ProjectDetails = ({ project, allProjects, onNavigate }) => {
                 <motion.h2 className="project-title-lg" variants={itemVariants}>{project.title}</motion.h2>
 
                 <motion.div className="project-tech-stack" variants={itemVariants}>
-                    {project.technologies.map(tech => (
+                    {technologies.map(tech => (
                         <TechTag key={tech} label={tech} />
                     ))}
                 </motion.div>
 
                 <motion.div className="project-description" variants={itemVariants} dangerouslySetInnerHTML={{ __html: fixLinks(project.fullDescription) }}></motion.div>
 
-                {project.features && (
+                {features.length > 0 && (
                     <motion.div className="project-features" variants={itemVariants}>
                         <motion.h3 variants={itemVariants}>Key Features</motion.h3>
                         <ul>
-                            {project.features.map((feature, idx) => (
+                            {features.map((feature, idx) => (
                                 <li key={idx} dangerouslySetInnerHTML={{ __html: fixLinks('&bull; ' + feature) }}></li>
                             ))}
                         </ul>

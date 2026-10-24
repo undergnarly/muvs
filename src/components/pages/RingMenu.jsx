@@ -13,6 +13,7 @@ import { hasMenuBeenRevealed, markMenuArtworkRendered } from '../../utils/menuSt
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import { createMenuTitleStretch } from '../../utils/menuTitleStretch';
 import { createMenuDecorationTimeline, menuDecorationGroundY } from '../../utils/menuDecorations';
+import { menuParticleVisible } from '../../utils/menuParticleVisibility';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import SpriteShadow from '../media/SpriteShadow';
 import { FONT_REGULAR } from '../../data/menuFonts';
@@ -83,7 +84,7 @@ const particleRandom = (index, salt) => {
     return value - Math.floor(value);
 };
 
-const MusicInsectParticles = ({ seed = 0 }) => {
+const MusicInsectParticles = ({ seed = 0, index, stateRef }) => {
     const ref = React.useRef(null);
     const dummy = useMemo(() => new THREE.Object3D(), []);
     const insects = useMemo(() => Array.from({ length: 26 }, (_, index) => ({
@@ -98,8 +99,12 @@ const MusicInsectParticles = ({ seed = 0 }) => {
 
     useFrame(({ clock }) => {
         if (!ref.current) return;
+        const visible = menuParticleVisible(index, stateRef?.current, getArtworkMotionSnapshot(), hasMenuBeenRevealed());
+        ref.current.visible = visible;
+        if (!visible) return;
         const time = clock.elapsedTime;
-        insects.forEach((insect, index) => {
+        for (let index = 0; index < insects.length; index++) {
+            const insect = insects[index];
             const motion = time * insect.speed + insect.phase;
             dummy.position.set(
                 insect.x + Math.sin(motion * 1.7) * insect.drift + Math.sin(motion * 0.43) * 0.16,
@@ -111,19 +116,19 @@ const MusicInsectParticles = ({ seed = 0 }) => {
             dummy.rotation.set(motion * 0.15, motion, Math.sin(motion) * 0.7);
             dummy.updateMatrix();
             ref.current.setMatrixAt(index, dummy.matrix);
-        });
+        }
         ref.current.instanceMatrix.needsUpdate = true;
     });
 
     return (
-        <instancedMesh ref={ref} args={[null, null, insects.length]} frustumCulled={false}>
+        <instancedMesh ref={ref} args={[null, null, insects.length]} frustumCulled={false} visible={false}>
             <sphereGeometry args={[1, 5, 4]} />
             <meshBasicMaterial color="#1b160f" transparent opacity={0.72} depthWrite={false} />
         </instancedMesh>
     );
 };
 
-const MixesBronzeParticles = ({ seed = 0 }) => {
+const MixesBronzeParticles = ({ seed = 0, index, stateRef }) => {
     const ref = React.useRef(null);
     const dummy = useMemo(() => new THREE.Object3D(), []);
     const particles = useMemo(() => Array.from({ length: 34 }, (_, index) => ({
@@ -137,8 +142,12 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
 
     useFrame(({ clock }) => {
         if (!ref.current) return;
+        const visible = menuParticleVisible(index, stateRef?.current, getArtworkMotionSnapshot(), hasMenuBeenRevealed());
+        ref.current.visible = visible;
+        if (!visible) return;
         const time = clock.elapsedTime;
-        particles.forEach((particle, index) => {
+        for (let index = 0; index < particles.length; index++) {
+            const particle = particles[index];
             const y = ((particle.y + 2.1 + time * particle.speed) % 5.2) - 2.1;
             dummy.position.set(
                 particle.x + Math.sin(time * 0.23 + particle.phase) * 0.18,
@@ -150,12 +159,12 @@ const MixesBronzeParticles = ({ seed = 0 }) => {
             dummy.rotation.set(0, 0, 0);
             dummy.updateMatrix();
             ref.current.setMatrixAt(index, dummy.matrix);
-        });
+        }
         ref.current.instanceMatrix.needsUpdate = true;
     });
 
     return (
-        <instancedMesh ref={ref} args={[null, null, particles.length]} frustumCulled={false}>
+        <instancedMesh ref={ref} args={[null, null, particles.length]} frustumCulled={false} visible={false}>
             <sphereGeometry args={[1, 6, 5]} />
             <meshBasicMaterial color="#a86f3d" transparent opacity={0.68} depthWrite={false} />
         </instancedMesh>
@@ -237,10 +246,10 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline
                 )}
                 <group>
                     {particlesVisible && item.key === 'music' && particleSettings?.music !== false && (
-                        <MusicInsectParticles seed={index * 13} />
+                        <MusicInsectParticles seed={index * 13} index={index} stateRef={stateRef} />
                     )}
                     {particlesVisible && item.key === 'mixes' && particleSettings?.mixes !== false && (
-                        <MixesBronzeParticles seed={index * 17} />
+                        <MixesBronzeParticles seed={index * 17} index={index} stateRef={stateRef} />
                     )}
                 </group>
             </group>

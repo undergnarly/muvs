@@ -13,6 +13,9 @@ import { beginSceneMotion, cancelSceneMotion, reportSceneMotionPose } from '../.
 import { createHandheldCamera } from '../../utils/handheldCamera';
 import { normalizeVisualEffects } from '../../utils/visualEffects';
 import { sceneDampingAlpha, sceneMotionDelta, sceneTransitionDuration } from '../../utils/visualMotionTiming';
+import { startSettlingFrame } from '../../utils/settlingFrame';
+import { keyboardSeek } from '../../utils/playerSeek';
+import { scenePublicPath } from '../../utils/scenePublicPath';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
@@ -20,11 +23,12 @@ import SpriteShadow from '../media/SpriteShadow';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
+import { sanitizeRichHtml } from '../../utils/safeHtml';
 import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveTexture';
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc } from '../../data/objectLoops';
 import { MENU_ARTWORK, getObjectFallbackSrc } from '../../data/menuArtwork';
-import { markMenuArtworkRendered } from '../../utils/menuStartup';
+import { markMenuArtworkRendered, waitForMenuArtwork } from '../../utils/menuStartup';
 import { getStartupDiveProgress } from '../../utils/startupDive';
 import { applyStartupDivePose } from '../../utils/startupDivePose';
 import { createCenteredCameraFrame, sampleCenteredHubFrame, sampleCenteredFlatFrame, captureHubTravelLane, hubCameraLane, rebaseHiddenHubLane } from '../../utils/centeredSectionCamera';
@@ -48,6 +52,8 @@ const stripHtml = (html) =>
         .trim();
 
 const RELEASE_SPACING = 14;
+const ownsSceneGesture = event => !document.querySelector('.staggered-menu-panel[aria-hidden="false"]')
+    && !event.target?.closest?.('.hn-player, .ap, input, textarea, select, [contenteditable], [role="slider"]');
 // Matches body font-family (Urbanist). Same family at multiple weights so
 // drei Text renders with the same look as DOM elements.
 const FONT_HANDWRITTEN = '/fonts/yuliana.ttf';
@@ -297,6 +303,7 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
             }
         };
         const onWheel = (e) => {
+            if (!ownsSceneGesture(e)) return;
             // Only handle vertical-dominant scroll; horizontal goes to release switcher.
             if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
             e.preventDefault();
@@ -308,7 +315,10 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
         };
         let touchY = null;
         let touchX = null;
-        const onTouchStart = (e) => { touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; };
+        const onTouchStart = (e) => {
+            if (!ownsSceneGesture(e) || e.touches.length !== 1) { touchY = null; touchX = null; return; }
+            touchY = e.touches[0].clientY; touchX = e.touches[0].clientX;
+        };
         const onTouchEnd = (e) => {
             if (touchY == null) return;
             const endY = e.changedTouches[0]?.clientY ?? touchY;
@@ -322,6 +332,7 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
             touchY = null; touchX = null;
         };
         const onKey = (e) => {
+            if (!ownsSceneGesture(e)) return;
             if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
                 e.preventDefault();
@@ -343,22 +354,13 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
         };
     }, [numStops, enabled]);
 
-    useEffect(() => {
-        let raf;
-        let previousTime = performance.now();
-        const tick = (now) => {
-            const delta = document.hidden ? 0 : (now - previousTime) / 1000;
-            previousTime = now;
-            const damping = sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds);
-            const target = numStops <= 1 ? 0 : indexRef.current / (numStops - 1);
-            const cur = progressRef.current;
-            const next = cur + (target - cur) * damping;
-            progressRef.current = Math.abs(target - next) < 0.0005 ? target : next;
-            raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [numStops, visualEffectsRef]);
+    useEffect(() => startSettlingFrame({
+        read: () => progressRef.current,
+        target: () => numStops <= 1 ? 0 : indexRef.current / (numStops - 1),
+        write: value => { progressRef.current = value; },
+        alpha: delta => sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds),
+        epsilon: .0005,
+    }), [currentIndex, numStops, visualEffectsRef]);
 
     return { progressRef, currentIndex, goTo };
 };
@@ -392,6 +394,7 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
         if (!enabled) return undefined;
         let lastWheel = 0;
         const onWheel = (e) => {
+            if (!ownsSceneGesture(e)) return;
             if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
             e.preventDefault();
             const now = Date.now();
@@ -408,7 +411,10 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
             }
         };
         let touchY = null; let touchX = null;
-        const onTouchStart = (e) => { touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; };
+        const onTouchStart = (e) => {
+            if (!ownsSceneGesture(e) || e.touches.length !== 1) { touchY = null; touchX = null; return; }
+            touchY = e.touches[0].clientY; touchX = e.touches[0].clientX;
+        };
         const onTouchEnd = (e) => {
             if (touchX == null) return;
             const endY = e.changedTouches[0]?.clientY ?? touchY;
@@ -428,6 +434,7 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
             touchY = null; touchX = null;
         };
         const onKey = (e) => {
+            if (!ownsSceneGesture(e)) return;
             if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
@@ -457,22 +464,13 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
         };
     }, [count, enabled]);
 
-    useEffect(() => {
-        let raf;
-        let previousTime = performance.now();
-        const tick = (now) => {
-            const delta = document.hidden ? 0 : (now - previousTime) / 1000;
-            previousTime = now;
-            const damping = sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds, RELEASE_SPACING, .001);
-            const target = indexRef.current * RELEASE_SPACING;
-            const cur = offsetRef.current;
-            const next = cur + (target - cur) * damping;
-            offsetRef.current = Math.abs(target - next) < 0.001 ? target : next;
-            raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [visualEffectsRef]);
+    useEffect(() => startSettlingFrame({
+        read: () => offsetRef.current,
+        target: () => indexRef.current * RELEASE_SPACING,
+        write: value => { offsetRef.current = value; },
+        alpha: delta => sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds, RELEASE_SPACING, .001),
+        epsilon: .001,
+    }), [current, visualEffectsRef]);
 
     return {
         offsetRef,
@@ -584,7 +582,7 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
                 >
                     <div
                         className="hn-floor-rich"
-                        dangerouslySetInnerHTML={{ __html: html }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(html) }}
                     />
                 </Html>
             ) : !richText ? (
@@ -734,6 +732,7 @@ const FloorPhotoSheet = ({ sheet, index, loadFull }) => {
 
     const restPos = useMemo(() => new THREE.Vector3(sheet.x, sheet.y, index * 0.01), [sheet.x, sheet.y, index]);
     const restQuat = useMemo(() => new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, sheet.r)), [sheet.r]);
+    const scratch = useMemo(() => ({ worldPosition: new THREE.Vector3(), targetRotation: new THREE.Quaternion() }), []);
 
     useFrame(() => {
         const obj = groupRef.current;
@@ -742,14 +741,14 @@ const FloorPhotoSheet = ({ sheet, index, loadFull }) => {
         if (!parent) return;
         if (active) {
             tmpVec.set(0, -0.1, -1.6).applyQuaternion(camera.quaternion);
-            const wp = camera.getWorldPosition(new THREE.Vector3()).add(tmpVec);
+            const wp = camera.getWorldPosition(scratch.worldPosition).add(tmpVec);
             parent.updateMatrixWorld();
-            const local = parent.worldToLocal(wp.clone());
+            const local = parent.worldToLocal(wp);
             obj.position.lerp(local, 0.14);
-            const parentWQ = parent.getWorldQuaternion(new THREE.Quaternion());
-            const target = parentWQ.clone().invert().multiply(camera.quaternion);
+            const target = parent.getWorldQuaternion(scratch.targetRotation).invert().multiply(camera.quaternion);
             obj.quaternion.slerp(target, 0.14);
         } else {
+            if (obj.position.distanceToSquared(restPos) < 1e-10 && obj.quaternion.angleTo(restQuat) < 1e-5) return;
             obj.position.lerp(restPos, 0.16);
             obj.quaternion.slerp(restQuat, 0.16);
         }
@@ -1632,6 +1631,13 @@ const Player = ({ release }) => {
         const rel = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         player.seek(rel);
     };
+    const onWaveKeyDown = (event) => {
+        const next = keyboardSeek(event.key, player.progress, player.duration);
+        if (next === null || !player.currentUrl) return;
+        event.preventDefault();
+        event.stopPropagation();
+        player.seek(next);
+    };
 
     return (
         <div className={`hn-player${expanded ? ' expanded' : ''}`}>
@@ -1657,14 +1663,17 @@ const Player = ({ release }) => {
                                     return (
                                         <li
                                             key={t.id || i}
-                                            className={`hn-player-track${active ? ' active' : ''}${!url ? ' disabled' : ''}`}
-                                            onClick={() => url && player.playIndex(i)}
                                         >
+                                            <button type="button" disabled={!url}
+                                                className={`hn-player-track${active ? ' active' : ''}${!url ? ' disabled' : ''}`}
+                                                aria-current={active ? 'true' : undefined}
+                                                onClick={() => player.playIndex(i)}>
                                             <span className="hn-player-track-num">{String(i + 1).padStart(2, '0')}</span>
                                             <span className="hn-player-track-title">{getTrackTitle(t, i)}</span>
                                             <span className="hn-player-track-meta">
                                                 {active && player.playing ? <PlayingPulse /> : (t.duration || formatTime(active ? player.duration : 0) || '')}
                                             </span>
+                                            </button>
                                         </li>
                                     );
                                 })}
@@ -1705,7 +1714,11 @@ const Player = ({ release }) => {
                             aria-valuemin={0}
                             aria-valuemax={1}
                             aria-valuenow={player.progress}
+                            aria-valuetext={`${formatTime(player.progress * player.duration)} of ${formatTime(player.duration)}`}
+                            tabIndex={player.currentUrl ? 0 : -1}
+                            aria-disabled={!player.currentUrl}
                             onClick={player.currentUrl ? onWaveClick : undefined}
+                            onKeyDown={onWaveKeyDown}
                         >
                             {bars.map((h, i) => {
                                 const pos = (i + 0.5) / bars.length;
@@ -2154,7 +2167,7 @@ const DebugPanel = ({
 };
 
 const StopIndicator = ({ count, currentIndex, goTo, startIndex = 0 }) => (
-    <div className="hn-dots" aria-hidden="true">
+    <nav className="hn-dots" aria-label="Scene stops">
         {Array.from({ length: Math.max(0, count - startIndex) }).map((_, offset) => {
             const i = offset + startIndex;
             return (
@@ -2163,10 +2176,11 @@ const StopIndicator = ({ count, currentIndex, goTo, startIndex = 0 }) => (
                 className={`hn-dot ${currentIndex === i ? 'active' : ''}`}
                 onClick={() => goTo(i)}
                 aria-label={`Go to stop ${i + 1}`}
+                aria-current={currentIndex === i ? 'step' : undefined}
             />
             );
         })}
-    </div>
+    </nav>
 );
 
 // ================ shell ================
@@ -2543,6 +2557,7 @@ export const Scene3DShell = ({
         };
 
         const onWheel = (e) => {
+            if (!ownsSceneGesture(e)) return;
             e.preventDefault();
             const ax = Math.abs(e.deltaX);
             const ay = Math.abs(e.deltaY);
@@ -2565,7 +2580,7 @@ export const Scene3DShell = ({
         let touchY = null;
         let touchX = null;
         const onTouchStart = (e) => {
-            if (e.touches.length > 1) { touchY = null; touchX = null; return; }
+            if (!ownsSceneGesture(e) || e.touches.length > 1) { touchY = null; touchX = null; return; }
             touchY = e.touches[0].clientY;
             touchX = e.touches[0].clientX;
         };
@@ -2588,6 +2603,7 @@ export const Scene3DShell = ({
         };
 
         const onKey = (e) => {
+            if (!ownsSceneGesture(e)) return;
             if (e.target?.closest?.('button, a, input, textarea, select, [contenteditable]')) return;
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
@@ -2634,25 +2650,26 @@ export const Scene3DShell = ({
     }, [hub, displayItems]);
 
     useEffect(() => {
-        (hubCovers || []).filter(Boolean).forEach((url) => {
-            preloadImage(getObjectPosterSrc(url), 'high');
-        });
-    }, [hubCovers]);
-
-    useEffect(() => {
-        [displayItems[0], mixesItems[0], codeItems[0], aboutItems[0]]
-            .map(primaryItemImage)
-            .filter(Boolean)
-            .forEach((url) => preloadImage(url, 'low'));
+        let cancelled = false;
+        // The exact menu posters/video/props are already warming. Optional
+        // below-menu CMS covers must not compete with the first scene's assets.
+        waitForMenuArtwork().then(() => {
+            if (cancelled) return;
+            [displayItems[0], mixesItems[0], codeItems[0], aboutItems[0]]
+                .map(primaryItemImage).filter(Boolean)
+                .forEach((url) => preloadImage(url, 'low'));
+        }).catch(() => {});
+        return () => { cancelled = true; };
     }, [aboutItems, codeItems, displayItems, mixesItems]);
 
     useEffect(() => {
+        if (hub && hubPhase !== 'section') return;
         const center = effectiveMixes ? mixIndex : releaseSwitcher.current;
         [center - 1, center, center + 1]
             .filter((index) => index >= 0 && index < effectiveItems.length)
             .flatMap((index) => itemImageUrls(effectiveItems[index]))
             .forEach((url) => preloadImage(url, 'auto'));
-    }, [effectiveItems, effectiveMixes, mixIndex, releaseSwitcher.current]);
+    }, [effectiveItems, effectiveMixes, hub, hubPhase, mixIndex, releaseSwitcher.current]);
 
     const hubProps = hub ? {
         cfg: cfg.hub || DEFAULT_HUB,
@@ -2685,16 +2702,17 @@ export const Scene3DShell = ({
         if (idx >= 0) releaseSwitcher.jumpTo(idx);
     }, [activeKey, effectiveItems, initialItemSlug, initialReleaseSlug, releaseSwitcher]);
 
-    // Keep the selected music release as a canonical root-level permalink.
+    // Keep head/share links aligned with native scene navigation, including a
+    // return to the central menu. replaceState avoids remounting the canvas.
     useEffect(() => {
-        if (activeKey !== 'music' || (hub && hubPhase !== 'section')) return;
-        const slug = toSlug(effectiveItems[releaseSwitcher.current]);
-        if (!slug) return;
-        const next = `/${encodeURIComponent(slug)}${window.location.search}`;
+        const next = scenePublicPath({ hub, phase: hubPhase, section: activeKey,
+            item: effectiveMixes ? currentMix : currentRelease, search: window.location.search });
+        if (!next) return;
         if (`${window.location.pathname}${window.location.search}` !== next || window.location.hash) {
             window.history.replaceState(null, '', next);
+            window.dispatchEvent(new Event('muvs:permalink-change'));
         }
-    }, [activeKey, effectiveItems, hub, hubPhase, releaseSwitcher.current]);
+    }, [activeKey, currentMix, currentRelease, effectiveMixes, hub, hubPhase]);
 
     useEffect(() => {
         const requestedSlug = toSlug({ slug: initialItemSlug });
