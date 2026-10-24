@@ -64,3 +64,5 @@ Plan/summary: `phases/04-living-background/04-01-PLAN.md`, `04-01-SUMMARY.md`.
 - [x] 04-02 phone review — replace mainHUDglints with actualworld-space neutral softcircles, realperspective/cameraparallax/depth/rise and56wrap; fix barelyvisibleSVGgrain and preserveitthroughfloor; libraryquietneutralcircles.237tests/independentreviews/DPR3nativejourney/live/data-invariance verified.
 
 Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMARY.md`.
+
+- [x]04-03 — Supplied Grainient field/fine grain, white actualworld discs, cached existing-mainrenderer and lightweight library, opaque matched loader;244tests/independentreview/mobile/desktop/GPU/lifecycle/live/resource/data invariance verified. See04-03 plan/summary.

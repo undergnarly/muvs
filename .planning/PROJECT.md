@@ -2,7 +2,7 @@
 
 Existing artist / creative-development website at muvs.dev. Worktree: C:\Projects\Muvs (never OneDrive). Preserve existing public releases, 3D navigation, admin data and unrelated server applications.
 
-Visual direction2026-10-24 (04-02 supersedes04-01): preserve gray-to-white gradients/sculptural artwork, add perceptible photographic grain and neutral translucent softly edged circular floaters, not glowing points. Main particles must exist in the actual3Dworld and move/project with the existing camera, not viewport-fixed DOM. One bounded instanced field inexistingCanvas, worldrise/depth/parallax/occlusion, no newrenderer. Static grain remains through floorviews. Dubplates stays a lightweight non-3D library with quieter neutral rising CSScircles behindcontent. Keep nav/captions/player readable, respect reduced-motion/Save-Data/hidden tabs, retain priority opaque logo/spray startup. See04-02 summary for verified implementation.
+Visual direction2026-10-24 (04-03 supersedes04-02 colors/background): exact user-supplied Grainient gray preset from https://pastebin.com/PrK8xek7, Oklab/silk field and fine animated grain; LIGHT WHITE translucent softly edged circular floaters, not dark discs or point glints. Main particles remain actual3Dworld objects with perspective/parallax/depth/rise/wrap inexistingCanvas; newcached background reuses same renderer. Fine grain remains through whitefloorviews, static with reduced/SaveData and paused hidden. Dubplates stays a lightweight separate non-Three library with shared tinyWebGL2 Grainient and white rising CSScircles, opaque CSSfallback. Keep nav/captions/player readable, retain priority opaque logo/spray startup. See04-03 plan/summary.
 
 ## Active addition: Dubplates
 
