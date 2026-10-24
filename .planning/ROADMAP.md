@@ -74,3 +74,5 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 - [x]04-06 — Auto-added compatible server dependency security patch:5inherited advisories resolved, constraints unchanged,277fulltests/19server/independentreview/production audit0/Linuxruntime/publicAPI/data invariance verified. See04-06 plan/summary. Frontend dependency audit debt remains out of scope.
 
 - [x]04-07 — Motion-synchronous brighter film/100ms exit, centred return/reentry preserving selected item, continuous subtle idle handheld;304tests/independent44-test review/320+390+desktop/native/slow-media/preferences/live/resource/data invariance verified. See04-07 plan/summary.
+
+- [x]04-08 — Saved admin Visual style controls for transitions/light/dust/handheld, bounded shared schema and lightweight library config, truthful/concurrent-safe saves and cold-load recovery;331tests/independentreview/isolatedactualAPIpersist+auth+restart/responsive/native/failure/reset/live/resource/data invariance verified. See04-08 plan/summary.
