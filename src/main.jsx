@@ -7,7 +7,7 @@ import './styles/global.css';
 const App = React.lazy(() => import('./AppRoot.jsx'));
 const SiteProvider = React.lazy(() => import('./context/DataContext').then((module) => ({ default: module.DataProvider })));
 const DubplatesPage = React.lazy(() => import('./components/pages/DubplatesPage'));
-const isDubplates = /^\/dubplates\/?$/.test(window.location.pathname);
+const isDubplates = /^\/dubplates\/?$/i.test(window.location.pathname);
 
 const mount = () => ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

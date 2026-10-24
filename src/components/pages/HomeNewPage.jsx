@@ -8,6 +8,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import SceneGrainient from './SceneGrainient';
 import WorldDust from './WorldDust';
+import FilmLeakOverlay from '../layout/FilmLeakOverlay';
+import { dispatchFilmTransition } from '../../utils/filmLeak';
+import { isSceneFilmTransition } from '../../utils/sceneFilmTransition';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import { useData } from '../../context/DataContext';
@@ -2143,6 +2146,7 @@ export const Scene3DShell = ({
 }) => {
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
+    const filmLocation = useLocation();
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
@@ -2326,6 +2330,15 @@ export const Scene3DShell = ({
         { enabled: sectionControls },
     );
     const currentRelease = effectiveItems[Math.min(releaseSwitcher.current, effectiveItems.length - 1)];
+    const filmReleaseIndex = releaseSwitcher.current;
+    const previousFilmScene = useRef(null);
+    useEffect(() => {
+        const next = { phase: hub ? hubPhase : 'section', ringIndex, activeKey, stop: currentIndex, release: filmReleaseIndex, mix: mixIndex };
+        if (!document.getElementById('splash-screen') && isSceneFilmTransition(previousFilmScene.current, next)) {
+            dispatchFilmTransition();
+        }
+        previousFilmScene.current = next;
+    }, [hub, hubPhase, ringIndex, activeKey, currentIndex, filmReleaseIndex, mixIndex]);
     const tunerItemIndex = effectiveMixes ? mixIndex : releaseSwitcher.current;
     const tunerItem = effectiveMixes ? currentMix : currentRelease;
     const tunerItemKey = tunerItem ? sceneItemKey(tunerItem, tunerItemIndex) : null;
@@ -2695,6 +2708,7 @@ export const Scene3DShell = ({
 
     return (
         <div className="home-new-page">
+            <FilmLeakOverlay routeKey={filmLocation.pathname} />
             {(hub || effectiveItems.length > 0) && (
                 <div className="home-new-canvas">
                     <Canvas

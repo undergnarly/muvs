@@ -1,0 +1,51 @@
+.muvs-film-leak {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    contain: strict;
+}
+
+.muvs-film-leak--library { z-index: 1; }
+
+.muvs-film-leak video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+}
+
+.muvs-film-leak[data-variant="dust"] video { object-fit: cover; }
+
+.muvs-film-leak.is-pulsing { animation: muvs-film-leak-pulse var(--film-leak-duration, 1s) linear both; }
+
+/* Rotate the landscape negative itself, not the page or its controls. dvh
+   follows the mobile browser chrome so no black strip appears at the edges. */
+@media (max-width: 900px) and (orientation: portrait) {
+    .muvs-film-leak[data-variant="dust"] video {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 100vh;
+        height: 100vw;
+        width: 100dvh;
+        height: 100dvw;
+        transform: translate(-50%, -50%) rotate(90deg);
+    }
+}
+
+@keyframes muvs-film-leak-pulse {
+    0% { opacity: 0; animation-timing-function: ease-out; }
+    10%, 75% { opacity: var(--film-leak-opacity, .5); }
+    75% { animation-timing-function: ease-in; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .muvs-film-leak { display: none; animation: none; }
+}

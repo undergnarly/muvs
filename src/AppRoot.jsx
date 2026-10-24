@@ -35,6 +35,9 @@ const DubplatesManager = React.lazy(() => import('./components/admin/DubplatesMa
 
 import TopBlur from './components/layout/TopBlur';
 import PageGradient from './components/layout/PageGradient';
+import FilmLeakOverlay from './components/layout/FilmLeakOverlay';
+import { dispatchFilmTransition } from './utils/filmLeak';
+import { isSceneFilmRoute, normalizeSceneFilmPath } from './utils/sceneFilmTransition';
 import { ROUTES } from './utils/constants';
 import { useData } from './context/DataContext';
 import { waitForMenuArtwork, markMenuRevealed } from './utils/menuStartup';
@@ -89,7 +92,18 @@ const ReleasePermalinkRoute = () => {
 function AppRoot() {
     const { trackVisit, siteSettings, releases } = useData();
     const location = useLocation();
+    const filmPath = normalizeSceneFilmPath(location.pathname);
+    const filmPrivate = /^\/(?:admin|login)(?:\/|$)/.test(filmPath);
+    const previousFilmPath = React.useRef(filmPath);
     const [startupFailed, setStartupFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        const changed = previousFilmPath.current !== filmPath;
+        previousFilmPath.current = filmPath;
+        if (changed && !document.getElementById('splash-screen') && !filmPrivate) {
+            dispatchFilmTransition();
+        }
+    }, [filmPath, filmPrivate]);
 
     React.useEffect(() => {
         window.dispatchEvent(new Event('muvs:app-mounted'));
@@ -199,18 +213,20 @@ function AppRoot() {
         ROUTES.LECTURE,
         ROUTES.LECTURE_TEXT,
     ];
-    const currentPathSlug = normalizeReleaseSlug(location.pathname.replace(/^\//, ''));
-    const isReleasePermalink = !location.pathname.slice(1).includes('/') && (releases || []).some((release) => (
+    const currentPathSlug = normalizeReleaseSlug(filmPath.slice(1));
+    const isReleasePermalink = !filmPath.slice(1).includes('/') && (releases || []).some((release) => (
         release.active !== false
         && normalizeReleaseSlug(release.slug || release.title) === currentPathSlug
     ));
-    const hideOverlays = scene3DPaths.includes(location.pathname) || isReleasePermalink || location.pathname.startsWith('/dubplates');
-    const hideTopBlur = hideOverlays || location.pathname.startsWith('/projects');
+    const hideOverlays = scene3DPaths.includes(filmPath) || isReleasePermalink || filmPath.startsWith('/dubplates');
+    const hideTopBlur = hideOverlays || filmPath.startsWith('/projects');
+    const filmInScene = isSceneFilmRoute(location.pathname, releases || []);
 
     if (startupFailed) return <StartupFallback />;
 
     return (
         <>
+            {!filmInScene && !filmPrivate && !filmPath.startsWith('/dubplates') && <FilmLeakOverlay routeKey={filmPath} />}
             {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <MenuSceneBoundary onFailure={() => setStartupFailed(true)}><Routes>
