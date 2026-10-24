@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowUpRight, Check, ChevronDown, Disc3, Headphones, LoaderCircle, Pause, Play, Search, SkipBack, SkipForward, SlidersHorizontal, Volume2, X } from 'lucide-react';
+import Atmosphere from '../layout/Atmosphere';
 import { INITIAL_FILTERS, PRODUCTION_STAGES, filterTracks, formatTime, waveformBars, trackTags, loudnessLabel } from '../../utils/dubplates';
 import { createListeningMeter, listeningSession } from '../../utils/dubplatesListening';
 import { cancelSplashDrawing, completeSplashDrawing } from '../../utils/splashProgress';
@@ -219,6 +220,7 @@ export default function DubplatesPage() {
     };
 
     return <div className="dp-page">
+        <Atmosphere variant="library" />
         <header className="dp-header dp-container"><a className="dp-logo" href="/" aria-label="MUVS official website"><span /></a><a className="dp-site-link" href="/">Official website <ArrowUpRight size={16} /></a></header>
         <main>
             <section className="dp-intro dp-container"><div><h1>Dubplates<span>.</span></h1><p>A few tracks, passed between friends.</p></div><span className="dp-library-count"><Headphones size={17} />{status === 'ready' ? `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'} to dig into` : 'The listening room'}</span></section>

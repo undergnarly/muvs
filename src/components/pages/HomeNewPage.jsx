@@ -6,6 +6,7 @@ import { Html, Text, useTexture } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
+import Atmosphere from '../layout/Atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import { useData } from '../../context/DataContext';
@@ -2733,9 +2734,9 @@ export const Scene3DShell = ({
                 </div>
             )}
 
-            <div
+            <Atmosphere
                 className={`home-new-gradient${sectionControls && currentIndex > 0 ? ' is-floor-view' : ''}`}
-                aria-hidden="true"
+                paused={!!(sectionControls && currentIndex > 0)}
             />
             <Header
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}

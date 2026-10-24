@@ -1,0 +1,58 @@
+.muvs-atmosphere {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    contain: strict;
+}
+
+.muvs-atmosphere--front { z-index: 3; transition: opacity .45s ease; }
+.muvs-atmosphere--front.is-muted { opacity: 0; }
+.muvs-atmosphere--library { position: fixed; z-index: 0; }
+
+.muvs-grain {
+    position: absolute;
+    inset: 0;
+    opacity: .075;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch' seed='11'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cpath fill='%23808080' filter='url(%23grain)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+}
+
+.muvs-dust {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .75), rgba(255, 255, 255, .18) 35%, rgba(255, 255, 255, 0) 72%);
+    animation: muvs-dust-drift var(--dust-duration) cubic-bezier(.45, 0, .55, 1) var(--dust-delay) infinite;
+}
+
+.muvs-dust--far {
+    background: radial-gradient(circle, rgba(255, 255, 255, .8), rgba(255, 255, 255, 0) 75%);
+}
+.muvs-dust--near {
+    background: radial-gradient(ellipse, rgba(255, 255, 255, .2), rgba(255, 255, 255, .075) 30%, rgba(255, 255, 255, 0) 70%);
+}
+.muvs-atmosphere--library .muvs-dust--near {
+    background: radial-gradient(ellipse, rgba(255, 255, 255, .08), rgba(255, 255, 255, .025) 30%, rgba(255, 255, 255, 0) 70%);
+}
+
+.muvs-atmosphere[data-motion='waiting'] .muvs-dust,
+.muvs-atmosphere[data-motion='still'] .muvs-dust { visibility: hidden; animation: none; }
+.muvs-atmosphere[data-motion='paused'] .muvs-dust { animation-play-state: paused; }
+
+@keyframes muvs-dust-drift {
+    0% { transform: translate3d(0, 0, 0) scale(.94); opacity: 0; }
+    18% { opacity: .6; }
+    50% { transform: translate3d(var(--dust-x), var(--dust-y), 0) scale(1); opacity: .8; }
+    82% { opacity: .5; }
+    100% { transform: translate3d(calc(var(--dust-x) * 1.4), calc(var(--dust-y) * 1.4), 0) scale(1.04); opacity: 0; }
+}
+
+@media (max-width: 767px) {
+    .muvs-dust--desktop { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .muvs-atmosphere .muvs-dust { display: none; animation: none; }
+    .muvs-atmosphere--front { transition: none; }
+}

@@ -1,4 +1,6 @@
 .dp-page {
+    position: relative;
+    isolation: isolate;
     --dp-ink: #171717;
     --dp-muted: #5b5b5b;
     --dp-line: rgba(23, 23, 23, .15);
@@ -9,6 +11,7 @@
     font-family: 'Urbanist', sans-serif;
     font-size: 15px;
 }
+.dp-page > header, .dp-page > main { position: relative; z-index: 1; }
 .dp-page button, .dp-page input, .dp-page select { font: inherit; color: inherit; }
 .dp-page button { -webkit-tap-highlight-color: transparent; }
 .dp-page button:disabled { cursor: not-allowed; opacity: .42; }
