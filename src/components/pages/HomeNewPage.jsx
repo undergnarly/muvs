@@ -17,6 +17,7 @@ import { startSettlingFrame } from '../../utils/settlingFrame';
 import { initialSectionApproached, sectionApproachReducer } from '../../utils/sectionApproach';
 import { keyboardSeek } from '../../utils/playerSeek';
 import { scenePublicPath } from '../../utils/scenePublicPath';
+import { phoneTextFitScale } from '../../utils/phoneTextFit';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
@@ -488,8 +489,47 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, shadowSettings }) => {
+const usePhoneTextFit = (fits, enabled = true) => {
+    const viewportWidth = useThree(state => state.size.width);
+    const scratch = useMemo(() => new THREE.Matrix4(), []);
+    useFrame(({ camera }) => {
+        for (const fit of fits.current) {
+            const object = fit.object;
+            if (!object) continue;
+            if (!enabled || viewportWidth > 640) {
+                if (object.scale.x !== 1) object.scale.setScalar(1);
+                continue;
+            }
+            if (!fit.ready) continue;
+            let ancestor = object, visible = true;
+            while (ancestor) { if (!ancestor.visible) { visible = false; break; } ancestor = ancestor.parent; }
+            if (!visible) continue;
+            object.updateWorldMatrix(true, false);
+            const world = object.matrixWorld.elements;
+            const view = camera.matrixWorldInverse.elements;
+            // Ignore horizontal item offsets when finding nominal centered
+            // depth. Width must stay stable while sibling titles slide past.
+            const depth = -(view[2] * camera.matrixWorld.elements[12] + view[6] * world[13] + view[10] * world[14] + view[14]);
+            scratch.multiplyMatrices(camera.matrixWorldInverse, object.matrixWorld);
+            const scale = phoneTextFitScale(fit.bounds, scratch.elements, camera.projectionMatrix.elements[0], depth, viewportWidth, object.scale.x);
+            if (Math.abs(scale - object.scale.x) > .00005) {
+                object.scale.setScalar(scale);
+                object.updateWorldMatrix(false, false);
+            }
+        }
+    });
+};
+
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, shadowSettings, fitPhoneText = false }) => {
     const meshRef = useRef(null);
+    const textFits = useRef([0, 1].map(() => ({ object: null, bounds: new Float32Array(4), ready: false })));
+    usePhoneTextFit(textFits, fitPhoneText);
+    const measureTitle = useCallback(object => {
+        textFits.current[0].object = object; textFits.current[0].bounds.set(object.textRenderInfo.blockBounds); textFits.current[0].ready = true;
+    }, [textFits]);
+    const measureSubtitle = useCallback(object => {
+        textFits.current[1].object = object; textFits.current[1].bounds.set(object.textRenderInfo.blockBounds); textFits.current[1].ready = true;
+    }, [textFits]);
     const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, {
         loadFull, fallback: getObjectFallbackSrc(release.coverImage) || FALLBACK_COVER,
     });
@@ -510,6 +550,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
         <group position={[x, 2.6, 0]}>
             <group>
                 <Text
+                    onSync={measureTitle}
                     position={[0, billboard.titleY, billboard.titleZ]}
                     fontSize={releaseTextSize(release.title3dSize, billboard.titleSize)}
                     color="#ffffff"
@@ -524,6 +565,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
                 </Text>
 
                 <Text
+                    onSync={measureSubtitle}
                     position={[0, billboard.artistY, billboard.artistZ]}
                     fontSize={releaseTextSize(release.artist3dSize, billboard.artistSize)}
                     color="#ffffff"
@@ -608,16 +650,38 @@ const FloorText = ({ release, x, z, richText = false, fullDescriptionOnly = fals
 };
 
 const CodeShortDescription = ({ release, x, codeCaption = DEFAULT_CODE_CAPTION }) => {
-    if (!release.description) return null;
     const caption = {
         ...DEFAULT_CODE_CAPTION,
         ...codeCaption,
         pos: { ...DEFAULT_CODE_CAPTION.pos, ...(codeCaption?.pos || {}) },
     };
+    const fits = useRef([{ object: null, bounds: new Float32Array(4), ready: false }]);
+    const captionObserver = useRef(null);
+    const setCaptionNode = useCallback(node => {
+        captionObserver.current?.disconnect();
+        captionObserver.current = null;
+        const fit = fits.current[0];
+        fit.ready = false;
+        if (!node) return;
+        const measure = (width, height) => {
+            const ratio = caption.scale / 400;
+            fit.bounds.set([-width * ratio / 2, -height * ratio / 2, width * ratio / 2, height * ratio / 2]);
+            fit.ready = width > 0 && height > 0;
+        };
+        measure(node.offsetWidth, node.offsetHeight);
+        captionObserver.current = new ResizeObserver(entries => {
+            const rectangle = entries[0]?.contentRect;
+            if (rectangle) measure(rectangle.width, rectangle.height);
+        });
+        captionObserver.current.observe(node);
+    }, [caption.scale]);
+    useEffect(() => () => captionObserver.current?.disconnect(), []);
+    usePhoneTextFit(fits);
+    if (!release.description) return null;
     return (
         <group>
         <group position={[x + caption.pos.x, caption.pos.y, caption.pos.z]}>
-            <group rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(caption.tilt), 0, THREE.MathUtils.degToRad(caption.rotation)]}>
+            <group ref={object => { fits.current[0].object = object; }} rotation={[-Math.PI / 2 + THREE.MathUtils.degToRad(caption.tilt), 0, THREE.MathUtils.degToRad(caption.rotation)]}>
                 <Html
                     transform
                     center
@@ -626,6 +690,7 @@ const CodeShortDescription = ({ release, x, codeCaption = DEFAULT_CODE_CAPTION }
                     zIndexRange={[5, 0]}
                 >
                     <div
+                        ref={setCaptionNode}
                         className="mp3d-rich-caption hn-code-short"
                         style={{
                             width: `${caption.width}px`,
@@ -1345,6 +1410,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionA
                             release={release}
                             x={index * RELEASE_SPACING}
                             billboard={billboard}
+                            fitPhoneText={showCodeCaption}
                             hideCover={!!tvMix}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                             motionEnabled={artworkMotion && index === activeItemIndex}
