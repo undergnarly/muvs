@@ -53,3 +53,10 @@ Physical floor/breathing title revision completed: `phases/02-object-loops/02-15
 - [x]226tests, independent review, mobile/desktop/live deployment and all22asset measurements verified; original21track metadata/audio and general CMS preserved.
 
 Plan/summary: `phases/03-dubplates-insights/03-01-PLAN.md`, `03-01-SUMMARY.md`.
+
+## Phase 04 — Living background
+
+- [x] Shared fine static grain and three-scale suspended white light, main3D gradient and lightweight Dubplates; compositor motion and preference/visibility/floor/startup safety.
+- [x]231tests, independent review,320/390/1440 visual/native-input/recovery/performance and live release/data-invariance verification.
+
+Plan/summary: `phases/04-living-background/04-01-PLAN.md`, `04-01-SUMMARY.md`.

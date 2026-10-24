@@ -2,6 +2,8 @@
 
 Existing artist / creative-development website at muvs.dev. Worktree: C:\Projects\Muvs (never OneDrive). Preserve existing public releases, 3D navigation, admin data and unrelated server applications.
 
+Visual direction2026-10-24: preserve gray-to-white gradients and sculptural artwork, add fine photographic grain and sparse slow suspended white dust at multiple apparent depths. Shared lightweight CSS/DOM atmosphere, not another WebGL scene; quieter behind Dubplates content. Keep navigation/captions/player readable, respect reduced-motion/Save-Data/hidden tabs, and do not compromise priority logo/spray startup. See phase04-01 summary for verified implementation.
+
 ## Active addition: Dubplates
 
 Unlisted, password-free track library for producers and friends at `/dubplates`. No public navigation or sitemap entry. Noindex is discovery control, not access control; anyone with a URL can share/download published tracks. Admin-only publishing through `/admin/dubplates`.
