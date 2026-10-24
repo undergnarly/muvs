@@ -72,3 +72,5 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 - [x]04-05 — Grain12Hz, supplied short film light leaks and dust/scratches, native shared player, transition priority/random idle/portrait rotation/loading and preference safety;275tests/review/mobile/desktop/native/lifecycle/live/resources/data invariance verified. See04-05 plan/summary/assets.
 
 - [x]04-06 — Auto-added compatible server dependency security patch:5inherited advisories resolved, constraints unchanged,277fulltests/19server/independentreview/production audit0/Linuxruntime/publicAPI/data invariance verified. See04-06 plan/summary. Frontend dependency audit debt remains out of scope.
+
+- [x]04-07 — Motion-synchronous brighter film/100ms exit, centred return/reentry preserving selected item, continuous subtle idle handheld;304tests/independent44-test review/320+390+desktop/native/slow-media/preferences/live/resource/data invariance verified. See04-07 plan/summary.

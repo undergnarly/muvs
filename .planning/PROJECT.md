@@ -6,6 +6,8 @@ Visual direction2026-10-24: exact user-supplied Grainient gray field from https:
 
 ## Active addition: Dubplates
 
+2026-10-24 motion override04-07: managed3Dnavigation light leaks are slightly brighter(.7), begin synchronously on accepted input and last through base camera/world movement, then fade100ms; idle light/dust schedules unchanged. Camera keeps a central lane across section return/reentry, preserving selected item. Continuous barely noticeable handheld also runs in idle/static3Dshots, independent of navigation settling; disabled by motion/data preferences and hidden/loading state. See04-07-SUMMARY.md.
+
 Unlisted, password-free track library for producers and friends at `/dubplates`. No public navigation or sitemap entry. Noindex is discovery control, not access control; anyone with a URL can share/download published tracks. Admin-only publishing through `/admin/dubplates`.
 
 Browse/search/filter by title/artist, type, genre, BPM and EP/release; sort newest/oldest/title/BPM. Real waveform seeking, one audio player, persistent selection and WAV/MP3 ZIP export. WAV masters generate MP3 previews/downloads; MP3 uploads never masquerade as lossless WAV. Keep track data and masters separate from the site's general public data payload.
