@@ -29,7 +29,8 @@ body.home-new-active {
     inset: 0;
     pointer-events: none;
     z-index: 1;
-    background: linear-gradient(to bottom, #696969, #a3a3a3 22%, #d8d8d8 46%, #fff 64%);
+    /* Opaque fallback before WebGL; settled Grainient is rendered in Scene. */
+    background: linear-gradient(179deg, #393939, #696969 10%, #adadad 20%, #bababa 30%, #ccc 40%, #d9d9d9 50%, #d8d8d8 70%, #e1e1e1 80%, #fff 90%);
     opacity: 1;
     transition: opacity 0.45s ease;
 }

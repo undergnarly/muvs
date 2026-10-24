@@ -10,26 +10,18 @@
 .muvs-atmosphere--scene { z-index: 1; }
 .muvs-atmosphere--library { position: fixed; z-index: -1; }
 
-.muvs-grain {
-    position: absolute;
-    inset: 0;
-    opacity: .08;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.68' numOctaves='1' stitchTiles='stitch' seed='11'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='3' intercept='-1'/%3E%3CfeFuncG type='linear' slope='3' intercept='-1'/%3E%3CfeFuncB type='linear' slope='3' intercept='-1'/%3E%3CfeFuncA type='discrete' tableValues='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Cpath fill='%23808080' filter='url(%23grain)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
-    background-size: 240px 240px;
-}
-
 .muvs-dust {
     position: absolute;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(105, 111, 110, .075) 0 30%, rgba(105, 111, 110, .045) 46%, rgba(105, 111, 110, 0) 72%);
+    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0 30%, rgba(255, 255, 255, .09) 46%, rgba(255, 255, 255, 0) 72%);
     animation: muvs-dust-rise var(--dust-duration) linear var(--dust-delay) infinite;
 }
 
 .muvs-dust--far {
-    background: radial-gradient(circle, rgba(105, 111, 110, .09) 0 37%, rgba(105, 111, 110, .04) 52%, rgba(105, 111, 110, 0) 74%);
+    background: radial-gradient(circle, rgba(255, 255, 255, .13) 0 37%, rgba(255, 255, 255, .06) 52%, rgba(255, 255, 255, 0) 74%);
 }
 .muvs-dust--near {
-    background: radial-gradient(circle, rgba(105, 111, 110, .08) 0 22%, rgba(105, 111, 110, .05) 40%, rgba(105, 111, 110, 0) 73%);
+    background: radial-gradient(circle, rgba(255, 255, 255, .2) 0 22%, rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, 0) 73%);
 }
 
 .muvs-atmosphere[data-motion='waiting'] .muvs-dust,

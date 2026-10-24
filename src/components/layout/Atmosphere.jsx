@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ATMOSPHERE_MOTES, observeAtmosphereMotion } from '../../utils/atmosphere';
+import GrainientBackground from './GrainientBackground';
 import './Atmosphere.css';
 
 const Mote = ({ mote }) => <span
@@ -21,7 +22,7 @@ export default function Atmosphere({ variant = 'scene' }) {
     }, [variant]);
 
     return <div ref={back} className={`muvs-atmosphere muvs-atmosphere--${variant}`} data-motion={variant === 'library' ? 'waiting' : undefined} aria-hidden="true">
-            <div className="muvs-grain" />
+            <GrainientBackground />
             {variant === 'library' && ATMOSPHERE_MOTES.map((mote, index) => <Mote key={index} mote={mote} />)}
         </div>;
 }

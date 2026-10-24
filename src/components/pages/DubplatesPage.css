@@ -6,7 +6,7 @@
     --dp-line: rgba(23, 23, 23, .15);
     min-height: 100svh;
     color: var(--dp-ink);
-    background: linear-gradient(180deg, #696969 0, #a3a3a3 220px, #d8d8d8 440px, #f3f3f3 680px) fixed;
+    background: linear-gradient(179deg, #393939, #696969 10%, #adadad 20%, #bababa 30%, #ccc 40%, #d9d9d9 50%, #d8d8d8 70%, #e1e1e1 80%, #fff 90%) fixed;
     padding-bottom: 122px;
     font-family: 'Urbanist', sans-serif;
     font-size: 15px;
@@ -167,7 +167,7 @@
     .dp-player-progress { flex-direction: column; gap: 9px; }
 }
 @media (max-width: 760px) {
-    .dp-page { padding-bottom: calc(145px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, #696969 0, #a3a3a3 170px, #d8d8d8 360px, #f3f3f3 570px) fixed; }
+    .dp-page { padding-bottom: calc(145px + env(safe-area-inset-bottom)); }
     .dp-container { width: calc(100% - 40px); }
     .dp-header { height: 84px; }
     .dp-logo { width: 86px; height: 44px; }

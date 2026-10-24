@@ -6,7 +6,7 @@ import { Html, Text, useTexture } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
-import Atmosphere from '../layout/Atmosphere';
+import SceneGrainient from './SceneGrainient';
 import WorldDust from './WorldDust';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
@@ -1278,7 +1278,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1337,6 +1337,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
             <fog attach="fog" args={['#ffffff', 14, 32]} />
             <ambientLight intensity={0.75} />
             <directionalLight position={[6, 12, 8]} intensity={0.55} />
+            <SceneGrainient floorView={floorView} />
             <Floor big={!!hub} />
             <WorldDust />
             {hub && (
@@ -2707,6 +2708,7 @@ export const Scene3DShell = ({
                             releases={effectiveItems}
                             activeItemIndex={releaseSwitcher.current}
                             activeItemOnly={activeKey === 'music'}
+                            floorView={!!(sectionControls && currentIndex > 0)}
                             artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
                             hub={hubProps}
                             cfgRef={cfgRef}
@@ -2740,7 +2742,6 @@ export const Scene3DShell = ({
                 className={`home-new-gradient${sectionControls && currentIndex > 0 ? ' is-floor-view' : ''}`}
                 aria-hidden="true"
             />
-            <Atmosphere />
             <Header
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
                 swipeHintTarget={swipeHintTarget}

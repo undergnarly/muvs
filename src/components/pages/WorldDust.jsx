@@ -46,7 +46,7 @@ const fragmentShader = `
         float disc = 1.0 - smoothstep(0.32, 1.0, radius);
         float alpha = disc * vAlpha * uReveal;
         if (alpha < 0.001) discard;
-        gl_FragColor = vec4(vec3(0.23, 0.25, 0.24), alpha);
+        gl_FragColor = vec4(vec3(1.0), alpha);
         #include <colorspace_fragment>
     }
 `;
