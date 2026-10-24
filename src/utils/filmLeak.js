@@ -1,9 +1,11 @@
 export const FILM_TRANSITION_EVENT = 'muvs:scene-transition';
+export const FILM_TRANSITION_END_EVENT = 'muvs:scene-transition-end';
 export const FILM_LEAK_CLIPS = Object.freeze(['a', 'b', 'c', 'd'].map((name) => `/videos/atmosphere/film-leak-${name}-v1.mp4`));
 export const FILM_DUST_CLIPS = Object.freeze(['a', 'b', 'c', 'd'].map((name) => `/videos/atmosphere/film-dust-${name}-v1.mp4`));
 export const FILM_LEAK_DURATION = 1000;
 export const FILM_DUST_DURATION = 2400;
 export const FILM_LEAK_COOLDOWN = 1500;
+const FILM_MANAGED_MAX_DURATION = 8000;
 const FILM_MIN_QUIET = 800;
 
 const unitRandom = (random) => Math.max(0, Math.min(.999999999, Number(random()) || 0));
@@ -20,23 +22,33 @@ let transitionSerial = 0;
 
 export function dispatchFilmTransition(detail, target = globalThis.window, { now = filmNow } = {}) {
     if (!target?.dispatchEvent || !target.CustomEvent) return;
-    pendingTransition = { serial: ++transitionSerial, at: now(), target };
+    pendingTransition = { serial: ++transitionSerial, at: now(), detail, target };
     target.dispatchEvent(new target.CustomEvent(FILM_TRANSITION_EVENT, { detail }));
+}
+
+export function dispatchFilmTransitionEnd(id, target = globalThis.window) {
+    if (pendingTransition?.target === target && pendingTransition.detail?.managed
+        && pendingTransition.detail.id === id) pendingTransition = undefined;
+    if (!target?.dispatchEvent || !target.CustomEvent) return;
+    target.dispatchEvent(new target.CustomEvent(FILM_TRANSITION_END_EVENT, { detail: { id } }));
 }
 
 // One bounded handoff bridges a route event that precedes the lazy scene mount.
 // An already-mounted listener consumes it synchronously, including while blocked.
-export function consumeFilmTransition({ target = globalThis.window, now = filmNow, maxAge = 2000 } = {}) {
-    if (!pendingTransition) return false;
+export function takeFilmTransition({ target = globalThis.window, now = filmNow, maxAge = 2000 } = {}) {
+    if (!pendingTransition) return undefined;
     const age = now() - pendingTransition.at;
     if (!Number.isFinite(age) || age < 0 || age > Math.max(0, Number(maxAge) || 0)) {
         pendingTransition = undefined;
-        return false;
+        return undefined;
     }
-    if (pendingTransition.target !== target) return false;
+    if (pendingTransition.target !== target) return undefined;
+    const { serial, at, detail } = pendingTransition;
     pendingTransition = undefined;
-    return true;
+    return { serial, at, detail };
 }
+
+export const consumeFilmTransition = (options) => Boolean(takeFilmTransition(options));
 
 // Both families share one player and one earliest-deadline timer. Dust keeps a
 // start-to-start cadence; navigation only restarts the quieter light-leak idle.
@@ -54,6 +66,7 @@ export function createFilmLeakController({
     let disposed = false;
     let generation = 0;
     let cancellation;
+    let managed;
     let previousLeak = -1;
     let previousDust = -1;
     let lastStart = -Infinity;
@@ -72,6 +85,26 @@ export function createFilmLeakController({
         idleTimer = undefined;
     };
     const resetGesture = () => { gestureAt = -Infinity; gestureX = gestureY = 0; };
+    const finishManaged = (record = managed) => {
+        if (!record) return;
+        if (record.timer !== undefined) clearTimer(record.timer);
+        record.timer = undefined;
+        if (record.ended) return;
+        record.ended = true;
+        record.resolve();
+        record.motion.abort();
+    };
+    const abortActive = () => {
+        generation++;
+        const previous = cancellation;
+        cancellation = undefined;
+        finishManaged();
+        managed = undefined;
+        if (active) lastEnd = now();
+        active = false;
+        activeKind = undefined;
+        previous?.abort();
+    };
     const scheduleIdle = () => {
         clearIdle();
         if (disposed || mode !== 'running' || active) return;
@@ -85,12 +118,7 @@ export function createFilmLeakController({
     };
     const cancel = () => {
         clearIdle();
-        generation++;
-        cancellation?.abort();
-        cancellation = undefined;
-        if (active) lastEnd = now();
-        active = false;
-        activeKind = undefined;
+        abortActive();
         leakDue = dustDue = Infinity;
         resetGesture();
         stop(mode);
@@ -103,18 +131,12 @@ export function createFilmLeakController({
         if (disposed || mode !== 'running' || !family.length) return false;
         if (navigation) {
             if (stamp - lastTransitionStart < FILM_LEAK_COOLDOWN
-                || (active && (activeKind === 'transition' || activeKind === 'gesture'))) return false;
+                || (active && (managed || activeKind === 'transition' || activeKind === 'gesture'))) return false;
             lastTransitionStart = stamp;
             if (active) {
-                generation++;
-                const previous = cancellation;
-                cancellation = undefined;
-                active = false;
-                activeKind = undefined;
-                lastEnd = stamp;
                 // The media abort listener hides and pauses synchronously. Its
                 // old async finally is invalid before another play can start.
-                previous?.abort();
+                abortActive();
                 if (disposed || mode !== 'running') return false;
             }
         } else if (active || stamp - lastStart < FILM_LEAK_COOLDOWN
@@ -151,6 +173,73 @@ export function createFilmLeakController({
         });
         return true;
     };
+    const endTransition = (id) => {
+        if (disposed || !active || !managed || managed.id !== id || managed.ended) return false;
+        finishManaged();
+        return true;
+    };
+    const armManaged = (record) => {
+        if (record.timer !== undefined) clearTimer(record.timer);
+        record.timer = setTimer(() => {
+            record.timer = undefined;
+            if (managed === record) endTransition(record.id);
+        }, Math.max(0, record.startedAt + FILM_MANAGED_MAX_DURATION - now()));
+    };
+    const beginTransition = (detail) => {
+        const stamp = now();
+        if (disposed || mode !== 'running' || !clips.length || !detail?.managed
+            || detail.id === undefined || detail.id === null) return false;
+        const startedAt = Number.isFinite(detail.startedAt) ? Math.min(stamp, detail.startedAt) : stamp;
+        if (stamp - startedAt >= FILM_MANAGED_MAX_DURATION) return false;
+        // Accepted camera retargets already carry navigation intent. They do
+        // not inherit raw-gesture cooldowns and keep the current clip/hold.
+        if (active && managed && !managed.ended) {
+            managed.id = detail.id;
+            managed.startedAt = startedAt;
+            lastTransitionStart = stamp;
+            armManaged(managed);
+            return true;
+        }
+        clearIdle();
+        if (active) abortActive();
+        if (disposed || mode !== 'running') return false;
+        lastStart = lastTransitionStart = stamp;
+        leakDue = Infinity;
+        active = true;
+        activeKind = 'managed';
+        const token = ++generation;
+        cancellation = new AbortController();
+        let index = Math.floor(unitRandom(random) * clips.length);
+        if (index === previousLeak && clips.length > 1) index = (index + 1) % clips.length;
+        previousLeak = index;
+        const record = { id: detail.id, startedAt, motion: new AbortController(), ended: false, timer: undefined };
+        const ended = new Promise(resolve => { record.resolve = resolve; });
+        managed = record;
+        armManaged(record);
+        const payload = {
+            signal: cancellation.signal, clip: clips[index], variant: 'leak',
+            kind: 'transition', duration: FILM_LEAK_DURATION, random,
+            managed: true, opacity: .7, startedAt, ended, motionSignal: record.motion.signal,
+        };
+        let operation;
+        // Synchronous entry lets the component show its prepared CSS/poster
+        // underlay on the accepted input, independently of video readiness.
+        try { operation = play?.(payload); } catch { /* decorative failure */ }
+        Promise.resolve(operation).catch(() => {
+            // Failed media cannot turn into late navigation or queued flashes.
+        }).finally(() => {
+            if (disposed || generation !== token) return;
+            finishManaged(record);
+            managed = undefined;
+            active = false;
+            activeKind = undefined;
+            cancellation = undefined;
+            lastEnd = now();
+            leakDue = lastEnd + filmLeakIdleDelay(random);
+            scheduleIdle();
+        });
+        return true;
+    };
     return {
         setMode(nextMode) {
             if (disposed || mode === nextMode) return;
@@ -164,6 +253,8 @@ export function createFilmLeakController({
             try { if (warmClip) Promise.resolve(warm(warmClip)).catch(() => {}); } catch { /* optional warmup */ }
             scheduleIdle();
         },
+        beginTransition,
+        endTransition,
         trigger,
         routeChanged(nextRoute) {
             if (!routeSeeded) { routeSeeded = true; route = nextRoute; return false; }

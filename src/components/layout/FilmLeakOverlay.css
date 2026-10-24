@@ -17,10 +17,17 @@
     width: 100%;
     height: 100%;
     object-fit: fill;
+    opacity: 0;
+    transition: opacity 60ms ease-out;
     pointer-events: none;
 }
 
 .muvs-film-leak[data-variant="dust"] video { object-fit: cover; }
+
+.muvs-film-leak[data-managed="true"] {
+    background-image: var(--film-leak-poster, none), radial-gradient(ellipse at 0 28%, #d67c38 0%, #633017 12%, transparent 38%);
+    background-size: 100% 100%;
+}
 
 .muvs-film-leak.is-pulsing { animation: muvs-film-leak-pulse var(--film-leak-duration, 1s) linear both; }
 

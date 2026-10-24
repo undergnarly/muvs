@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    createFilmLeakController, dispatchFilmTransition, consumeFilmTransition,
-    FILM_LEAK_CLIPS, FILM_DUST_CLIPS, FILM_DUST_DURATION, FILM_TRANSITION_EVENT,
+    createFilmLeakController, dispatchFilmTransition, dispatchFilmTransitionEnd,
+    consumeFilmTransition, takeFilmTransition,
+    FILM_LEAK_CLIPS, FILM_DUST_CLIPS, FILM_DUST_DURATION,
+    FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT,
     filmDeadline, filmLeakIdleDelay, filmDustIdleDelay, filmLeakSeek, waitForFilmMedia,
 } from './filmLeak.js';
 
@@ -295,4 +297,124 @@ test('normal synchronous listeners consume the handoff before a late mount can r
     dispatchFilmTransition({}, target, { now: () => 500 });
     assert.equal(consumed, true);
     assert.equal(consumeFilmTransition({ target, now: () => 501 }), false);
+});
+
+test('managed handoff carries the current detail and matching end clears it before any late mount', () => {
+    const emitted = [];
+    const target = { CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } }, dispatchEvent: event => emitted.push(event) };
+    const detail = { managed: true, id: 'menu-1', startedAt: 100 };
+    dispatchFilmTransition(detail, target, { now: () => 100 });
+    const record = takeFilmTransition({ target, now: () => 110 });
+    assert.deepEqual(record.detail, detail); assert.equal(record.at, 100);
+    assert.ok(Number.isInteger(record.serial));
+    assert.equal(takeFilmTransition({ target, now: () => 110 }), undefined);
+    dispatchFilmTransition({ managed: true, id: 'menu-2', startedAt: 200 }, target, { now: () => 200 });
+    dispatchFilmTransitionEnd('menu-1', target);
+    const newer = takeFilmTransition({ target, now: () => 210 });
+    assert.equal(newer.detail.id, 'menu-2'); assert.ok(newer.serial > record.serial);
+    dispatchFilmTransition({ managed: true, id: 'menu-3', startedAt: 300 }, target, { now: () => 300 });
+    dispatchFilmTransitionEnd('menu-3', target);
+    assert.equal(takeFilmTransition({ target, now: () => 301 }), undefined, 'ended motion cannot appear after a late scene mount');
+    assert.equal(emitted.at(-1).type, FILM_TRANSITION_END_EVENT);
+    assert.deepEqual(emitted.at(-1).detail, { id: 'menu-3' });
+});
+
+test('managed navigation invokes play in the accepted call, preempts dust and holds until actual motion ends', async () => {
+    const c = clock(); const played = []; const pulses = []; const open = new Set();
+    const effect = createFilmLeakController({ ...c, random: () => 0, play: args => {
+        assert.equal(open.size, 0);
+        open.add(args); args.signal.addEventListener('abort', () => open.delete(args), { once: true });
+        const pulse = deferred(); pulses.push(pulse); played.push(args);
+        return pulse.promise.finally(() => open.delete(args));
+    } });
+    assert.equal(effect.beginTransition({ managed: true, id: 'blocked', startedAt: 0 }), false);
+    effect.setMode('running'); c.tick(6000); await flush();
+    assert.equal(played[0].variant, 'dust');
+    c.tick(100);
+    assert.equal(effect.beginTransition({ managed: true, id: 'menu', startedAt: 6100 }), true);
+    assert.equal(played.length, 2, 'managed play starts synchronously, not after a decode/microtask');
+    const payload = played[1];
+    assert.equal(played[0].signal.aborted, true); assert.equal(open.size, 1);
+    assert.equal(payload.managed, true); assert.equal(payload.opacity, .7);
+    assert.equal(payload.startedAt, 6100); assert.equal(payload.variant, 'leak');
+    assert.ok(payload.ended instanceof Promise); assert.equal(payload.motionSignal.aborted, false);
+    assert.equal(c.tasks.size, 1, 'only the bounded managed watchdog is active');
+    assert.equal(effect.trigger('transition'), false, 'legacy route callbacks cannot replace managed camera motion');
+    c.tick(1000); assert.equal(effect.endTransition('old-id'), false);
+    assert.equal(effect.endTransition('menu'), true); assert.equal(payload.motionSignal.aborted, true);
+    assert.equal(payload.signal.aborted, false, 'actual end permits component fade before the main operation is aborted');
+    await payload.ended; assert.equal(c.tasks.size, 0);
+    pulses[0].resolve(); await flush(); assert.equal(effect.snapshot().active, true);
+    c.tick(100); pulses[1].resolve(); await flush();
+    assert.equal(effect.snapshot().active, false); assert.equal([...c.tasks.values()][0].due, 12000, 'dust cadence survives managed navigation');
+    effect.dispose();
+});
+
+test('managed retargets extend one hold without restarting media and ignore stale end ids', async () => {
+    const c = clock(); const played = []; const pulse = deferred();
+    const effect = createFilmLeakController({ ...c, random: () => 0, play: args => { played.push(args); return pulse.promise; } });
+    effect.setMode('running');
+    assert.equal(effect.beginTransition({ managed: true, id: 1, startedAt: 0 }), true);
+    assert.equal([...c.tasks.values()][0].due, 8000);
+    c.tick(300); assert.equal(effect.beginTransition({ managed: true, id: 2, startedAt: 300 }), true);
+    assert.equal(played.length, 1); assert.equal(c.tasks.size, 1);
+    assert.equal([...c.tasks.values()][0].due, 8300);
+    assert.equal(effect.endTransition(1), false); assert.equal(played[0].motionSignal.aborted, false);
+    assert.equal(effect.endTransition(2), true); await played[0].ended;
+    assert.equal(played[0].signal.aborted, false); assert.equal(c.tasks.size, 0);
+    c.tick(20); assert.equal(effect.beginTransition({ managed: true, id: 3, startedAt: 320 }), true, 'a newly accepted motion replaces an already ending fade');
+    assert.equal(played.length, 2); assert.equal(played[0].signal.aborted, true);
+    assert.equal(effect.endTransition(2), false); assert.equal(played[1].motionSignal.aborted, false);
+    effect.dispose(); assert.equal(played[1].motionSignal.aborted, true);
+    assert.equal(played[1].signal.aborted, true); assert.equal(c.tasks.size, 0);
+    pulse.resolve(); await flush(); assert.equal(c.tasks.size, 0);
+});
+
+test('motion end before video readiness cancels late presentation without scheduling a delayed leak', async () => {
+    const c = clock(); const decode = deferred(); const fade = deferred(); const played = []; let lateFrames = 0;
+    const effect = createFilmLeakController({ ...c, random: () => 0, play: args => {
+        played.push(args);
+        decode.promise.then(() => { if (!args.motionSignal.aborted && !args.signal.aborted) lateFrames++; });
+        return args.ended.then(() => fade.promise);
+    } });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'quick', startedAt: 0 });
+    assert.equal(played.length, 1); assert.equal(effect.endTransition('quick'), true);
+    assert.equal(played[0].motionSignal.aborted, true); assert.equal(played[0].signal.aborted, false);
+    c.tick(100); fade.resolve(); await flush();
+    assert.equal(effect.snapshot().active, false); assert.equal(c.tasks.size, 1);
+    decode.resolve(); await flush(); assert.equal(lateFrames, 0); assert.equal(played.length, 1);
+    effect.dispose();
+});
+
+test('managed watchdog ends a lost camera transition at eight seconds without shortening its final fade', async () => {
+    const c = clock(); const fade = deferred(); let payload;
+    const effect = createFilmLeakController({ ...c, random: () => 0, play: args => {
+        payload = args; return args.ended.then(() => fade.promise);
+    } });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'lost', startedAt: 0 });
+    c.tick(7999); assert.equal(payload.motionSignal.aborted, false);
+    c.tick(1); assert.equal(payload.motionSignal.aborted, true);
+    assert.equal(payload.signal.aborted, false); await payload.ended;
+    assert.equal(c.tasks.size, 0);
+    c.tick(100); fade.resolve(); await flush();
+    assert.equal(effect.snapshot().active, false); assert.equal(c.tasks.size, 1);
+    effect.dispose();
+});
+
+test('hidden/preferences and StrictMode disposal resolve managed holds and abort every owned signal/timer', async () => {
+    const c = clock(); const played = []; const pending = deferred();
+    const options = { ...c, random: () => 0, play: args => { played.push(args); return pending.promise; } };
+    const first = createFilmLeakController(options);
+    first.setMode('running'); first.beginTransition({ managed: true, id: 'strict', startedAt: 0 });
+    first.dispose(); assert.equal(played[0].signal.aborted, true); assert.equal(played[0].motionSignal.aborted, true);
+    await played[0].ended; assert.equal(c.tasks.size, 0);
+    const second = createFilmLeakController(options);
+    second.setMode('running'); assert.equal(played.length, 1, 'remount never replays the old hold');
+    second.beginTransition({ managed: true, id: 'current', startedAt: 0 });
+    second.setMode('paused'); await played[1].ended;
+    assert.equal(played[1].signal.aborted, true); assert.equal(played[1].motionSignal.aborted, true);
+    assert.equal(c.tasks.size, 0); assert.equal(second.endTransition('current'), false);
+    second.setMode('still'); assert.equal(second.beginTransition({ managed: true, id: 'reduced' }), false);
+    pending.resolve(); await flush(); assert.equal(c.tasks.size, 0);
+    second.dispose();
 });
