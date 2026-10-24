@@ -12,7 +12,7 @@ export const GRAINIENT_SETTINGS = Object.freeze({
     grainSize: 0.5, contrast: 1.29, saturation: 0.18, interactive: false,
 });
 
-export const GRAINIENT_FPS = 6;
+export const GRAINIENT_FPS = 12;
 export const GRAINIENT_GRAIN_SCALE = 2;
 
 // GLSL 300 ES without a version directive. RawShaderMaterial supplies GLSL3;

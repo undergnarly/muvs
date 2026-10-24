@@ -34,18 +34,18 @@ test('Grainient caches the original half-resolution field for each drawing buffe
     assert.deepEqual(grainientFieldSize(NaN, -200), { width: 1, height: 1 });
 });
 
-test('Grainient grain changes four times slower at 6Hz and wraps the same 97 original seeds', () => {
-    assert.equal(GRAINIENT_FPS, 6);
+test('Grainient grain changes twice as fast at 12Hz and wraps the same 97 original seeds', () => {
+    assert.equal(GRAINIENT_FPS, 12);
     assert.equal(grainientFrame(0), 0);
-    for (const seconds of [1 / 24, 2 / 24, 3 / 24, 1 / 6 - 0.000001]) {
-        assert.equal(grainientFrame(seconds), 0, `seed holds until 1/6 second, including ${seconds}`);
+    for (const seconds of [1 / 48, 1 / 24, 1 / 16, 1 / 12 - 0.000001]) {
+        assert.equal(grainientFrame(seconds), 0, `seed holds until 1/12 second, including ${seconds}`);
     }
-    assert.equal(grainientFrame(1 / 6), 1);
-    assert.equal(grainientFrame(2 / 6 - 0.000001), 1);
-    assert.equal(grainientFrame(2 / 6), 2);
-    assert.equal(grainientFrame(96 / 6), 96);
-    assert.equal(grainientFrame(97 / 6), 0);
-    assert.equal(grainientFrame(98 / 6), 1);
+    assert.equal(grainientFrame(1 / 12), 1);
+    assert.equal(grainientFrame(2 / 12 - 0.000001), 1);
+    assert.equal(grainientFrame(2 / 12), 2);
+    assert.equal(grainientFrame(96 / 12), 96);
+    assert.equal(grainientFrame(97 / 12), 0);
+    assert.equal(grainientFrame(98 / 12), 1);
     assert.equal(grainientFrame(-1), 0);
     assert.equal(grainientFrame(Infinity), 0);
     assert.equal(grainientFrame(NaN), 0);
