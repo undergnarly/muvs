@@ -6,14 +6,17 @@ test('sparse deterministic three-depth layout stays bounded and lighter on phone
     assert.equal(ATMOSPHERE_MOTES.length, 16);
     assert.equal(ATMOSPHERE_MOTES.filter((mote) => !mote.desktop).length, 12);
     for (const mote of ATMOSPHERE_MOTES) {
-        assert.ok(mote.x >= 0 && mote.x <= 100 && mote.y >= 0 && mote.y <= 100);
-        assert.ok(mote.duration >= 25 && mote.duration <= 45);
+        assert.ok(mote.x >= 0 && mote.x <= 100);
+        assert.ok(mote.duration >= 74 && mote.duration <= 186);
         assert.ok(mote.delay < 0 && -mote.delay < mote.duration);
-        assert.ok(mote.size <= 106 && Math.abs(mote.dx) <= 54 && Math.abs(mote.dy) <= 82);
+        assert.ok(mote.size >= 14 && mote.size <= 92 && Math.abs(mote.dx) <= 32);
     }
     const sizes = (depth) => ATMOSPHERE_MOTES.filter((mote) => mote.depth === depth).map((mote) => mote.size);
     assert.ok(Math.max(...sizes('far')) < Math.min(...sizes('middle')));
     assert.ok(Math.max(...sizes('middle')) < Math.min(...sizes('near')));
+    const durations = (depth) => ATMOSPHERE_MOTES.filter((mote) => mote.depth === depth).map((mote) => mote.duration);
+    assert.ok(Math.min(...durations('far')) > Math.max(...durations('middle')));
+    assert.ok(Math.min(...durations('middle')) > Math.max(...durations('near')));
 });
 
 test('preferences keep grain only; hidden and floor views pause', () => {
