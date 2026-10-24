@@ -66,3 +66,5 @@ Plan/summary: `phases/04-living-background/04-01-PLAN.md`, `04-01-SUMMARY.md`.
 Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMARY.md`.
 
 - [x]04-03 — Supplied Grainient field/fine grain, white actualworld discs, cached existing-mainrenderer and lightweight library, opaque matched loader;244tests/independentreview/mobile/desktop/GPU/lifecycle/live/resource/data invariance verified. See04-03 plan/summary.
+
+- [x]04-04 — Grain6Hz/2xsize, stronger integrated depth rise/curved paths, subtle world wind from both gesture axes/wheel, library depth wrappers with idleRAFstop;254tests/review/mobile/desktop/native/prefs/live/resource/data invariance verified. See04-04 plan/summary.
