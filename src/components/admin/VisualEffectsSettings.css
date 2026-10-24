@@ -31,14 +31,14 @@
 .visual-effects-settings .ves-field { min-width: 0; }
 .visual-effects-settings .ves-field > label, .visual-effects-settings .ves-range-label > label { display: block; color: #e8e8e8; font-size: 13px; line-height: 1.4; font-weight: 600; }
 .visual-effects-settings .ves-unit { margin-left: 6px; color: var(--ves-muted); font-size: 12px; font-weight: 400; }
-.visual-effects-settings input[type="number"] { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 7px 0 0; padding: 10px 12px; border: 1px solid #505050; border-radius: 5px; background: #111; color: #fff; color-scheme: dark; font: inherit; font-size: 15px; font-variant-numeric: tabular-nums; }
+.visual-effects-settings input[type="number"], .visual-effects-settings select { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 7px 0 0; padding: 10px 12px; border: 1px solid #505050; border-radius: 5px; background: #111; color: #fff; color-scheme: dark; font: inherit; font-size: 15px; font-variant-numeric: tabular-nums; }
 .visual-effects-settings input[type="range"] { display: block; width: 100%; min-width: 0; height: 44px; margin: 7px 0 0; padding: 0; accent-color: var(--color-accent, #ccff00); cursor: pointer; }
 .visual-effects-settings .ves-range-label { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 18px; }
 .visual-effects-settings output { flex: 0 0 auto; color: #f3f3f3; font-size: 13px; line-height: 1.4; font-weight: 700; font-variant-numeric: tabular-nums; }
 .visual-effects-settings .ves-hint { display: block; margin-top: 5px; color: var(--ves-muted); font-size: 12px; line-height: 1.45; }
 .visual-effects-settings .ves-field-error { margin: 6px 0 0; color: #ffb5af; font-size: 12px; line-height: 1.5; }
 .visual-effects-settings input[aria-invalid="true"] { border-color: #ffb5af; }
-.visual-effects-settings input:focus-visible, .visual-effects-settings .btn:focus-visible { outline: 2px solid var(--color-accent, #ccff00); outline-offset: 3px; }
+.visual-effects-settings input:focus-visible, .visual-effects-settings select:focus-visible, .visual-effects-settings .btn:focus-visible { outline: 2px solid var(--color-accent, #ccff00); outline-offset: 3px; }
 .visual-effects-settings .ves-save-area { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--ves-line); }
 .visual-effects-settings .ves-save-status { margin: 0 0 14px; color: var(--ves-muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .visual-effects-settings .ves-save-status.is-error { color: #ffb5af; }

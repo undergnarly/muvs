@@ -57,3 +57,22 @@ test('equivalent typed numbers are not dirty, but toggles, zero strength and rea
     assert.equal(visualEffectsDraftEqual(draft, VISUAL_EFFECTS_DEFAULTS), false);
     assert.deepEqual(validateVisualEffectsDraft(draft), {});
 });
+
+test('custom shadow direction is valid and preserved without snapping to a cardinal preset', () => {
+    const saved = normalizeVisualEffects();
+    assert.equal(saved.shadows.directionDegrees, 143);
+    const draft = normalizeVisualEffects(saved);
+    draft.shadows.directionDegrees = '143';
+    draft.shadows.length = '0.55';
+    assert.deepEqual(validateVisualEffectsDraft(draft), {});
+    assert.equal(visualEffectsDraftEqual(draft, saved), true);
+    draft.shadows.directionDegrees = '143.25';
+    assert.deepEqual(validateVisualEffectsDraft(draft), {});
+    assert.equal(visualEffectsDraftEqual(draft, saved), false);
+    assert.equal(normalizeVisualEffects(draft).shadows.directionDegrees, 143.25);
+    assert.equal(saved.shadows.directionDegrees, 143);
+    draft.shadows.enabled = false;
+    draft.shadows.opacity = 0;
+    draft.shadows.blur = 0;
+    assert.deepEqual(validateVisualEffectsDraft(draft), {});
+});

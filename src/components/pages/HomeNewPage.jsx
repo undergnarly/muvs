@@ -16,6 +16,7 @@ import { sceneDampingAlpha, sceneMotionDelta, sceneTransitionDuration } from '..
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
+import SpriteShadow from '../media/SpriteShadow';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
@@ -488,7 +489,7 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef 
 
 const FALLBACK_COVER = '/images/logo.png';
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, shadowSettings }) => {
     const meshRef = useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(release.coverImage) || FALLBACK_COVER, {
         loadFull, fallback: getObjectFallbackSrc(release.coverImage) || FALLBACK_COVER,
@@ -538,6 +539,8 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
 
             {!hideCover && (
                 <group>
+                    <SpriteShadow posterTexture={tex} alphaMap={video?.alphaMap} width={width} height={height}
+                        position={[0, billboard.coverY, 0]} settings={shadowSettings} />
                     <mesh ref={meshRef} position={[0, billboard.coverY, 0]}
                         onAfterRender={() => { if (tex) markMenuArtworkRendered(); }}>
                         <planeGeometry args={[width, height]} />
@@ -1328,7 +1331,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef, shadowSettings }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1348,6 +1351,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             hideCover={!!tvMix}
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                             motionEnabled={artworkMotion && index === activeItemIndex}
+                            shadowSettings={shadowSettings}
                             isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
                                 && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
@@ -1406,6 +1410,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                         videosEnabled={hub.phase === 'menu'}
                         decorationsEnabled={hub.phase === 'menu' || hub.phase === 'travel'}
                         stateRef={hub.stateRef}
+                        shadowSettings={shadowSettings}
                     />
                 </group>
             )}
@@ -2791,6 +2796,7 @@ export const Scene3DShell = ({
                             artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
                             hub={hubProps}
                             visualEffectsRef={visualEffectsRef}
+                            shadowSettings={visualEffects.shadows}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}

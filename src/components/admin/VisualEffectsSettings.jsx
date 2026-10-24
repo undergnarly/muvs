@@ -10,6 +10,14 @@ const GROUPS = [
     { key: 'lightLeaks', title: 'Световые засветки', toggle: 'Включить световые засветки', help: 'Короткие цветные блики между переходами. Интервал выбирается случайно в заданном диапазоне.' },
     { key: 'filmDust', title: 'Пыль и царапины', toggle: 'Включить пыль и царапины', help: 'Плёночная текстура появляется отдельно от засветок, со своим случайным интервалом.' },
     { key: 'handheld', title: 'Живая камера', toggle: 'Включить живую камеру', help: 'Мягкое движение камеры на 3D-страницах, в том числе когда вы не листаете сайт.' },
+    { key: 'shadows', title: 'Тени объектов', toggle: 'Включить тени объектов', help: 'Тени изображений и деталей на полу 3D-сцены: чётче у основания, мягче вдали. Парящие элементы Code не отбрасывают тень на пол.' },
+];
+
+const SHADOW_DIRECTIONS = [
+    { value: 0, label: 'Назад — 0°' },
+    { value: 90, label: 'Вправо — 90°' },
+    { value: 180, label: 'Вперёд — 180°' },
+    { value: 270, label: 'Влево — 270°' },
 ];
 
 function NumberField({ prefix, group, field, label, unit, step = .1, hint, draft, errors, onChange }) {
@@ -27,7 +35,7 @@ function NumberField({ prefix, group, field, label, unit, step = .1, hint, draft
     </div>;
 }
 
-function RangeField({ prefix, group, field, label, draft, errors, onChange, percent = false, hint }) {
+function RangeField({ prefix, group, field, label, draft, errors, onChange, percent = false, hint, step }) {
     const id = `${prefix}-${group}-${field}`;
     const scale = percent ? 100 : 1;
     const [minimum, maximum] = VISUAL_EFFECTS_LIMITS[group][field];
@@ -36,12 +44,28 @@ function RangeField({ prefix, group, field, label, draft, errors, onChange, perc
     const error = errors[`${group}.${field}`];
     return <div className="ves-field ves-range-field">
         <div className="ves-range-label"><label htmlFor={id}>{label}</label><output htmlFor={id}>{valueText}</output></div>
-        <input id={id} type="range" min={minimum * scale} max={maximum * scale} step={percent ? 1 : .1}
+        <input id={id} type="range" min={minimum * scale} max={maximum * scale} step={step ?? (percent ? 1 : .1)}
             value={value * scale} aria-valuetext={valueText} aria-invalid={Boolean(error)}
             aria-describedby={hint || error ? `${hint ? `${id}-hint` : ''}${error ? ` ${id}-error` : ''}`.trim() : undefined}
             onChange={event => onChange(group, field, event.target.valueAsNumber / scale)} />
         {hint && <small id={`${id}-hint`} className="ves-hint">{hint}</small>}
         {error && <p id={`${id}-error`} className="ves-field-error">{error}</p>}
+    </div>;
+}
+
+function ShadowDirectionField({ prefix, draft, onChange }) {
+    const id = `${prefix}-shadows-directionPreset`;
+    const raw = draft.shadows.directionDegrees;
+    const angle = raw === '' ? NaN : Number(raw);
+    const preset = SHADOW_DIRECTIONS.find(option => option.value === angle);
+    return <div className="ves-field">
+        <label htmlFor={id}>Куда падает тень</label>
+        <select id={id} value={preset ? String(preset.value) : 'custom'} aria-describedby={`${id}-hint`}
+            onChange={event => onChange('shadows', 'directionDegrees', Number(event.target.value))}>
+            <option value="custom" disabled>Свой угол{Number.isFinite(angle) ? ` — ${formatVisualNumber(angle)}°` : ''}</option>
+            {SHADOW_DIRECTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+        <small id={`${id}-hint`} className="ves-hint">Выберите направление или задайте точный угол рядом. Свой угол не округляется.</small>
     </div>;
 }
 
@@ -133,6 +157,13 @@ function VisualEffectsEditor({ initialValue, updateSiteSettings }) {
                         {group.key === 'handheld' && <>
                             <RangeField {...fields} group="handheld" field="strength" label="Сила движения" hint="1× — текущая сила движения; 0× — неподвижная камера." />
                             <NumberField {...fields} group="handheld" field="speed" label="Скорость движения" unit="×" step={.05} hint="1× — текущая скорость. Диапазон: 0,25–3×." />
+                        </>}
+                        {group.key === 'shadows' && <>
+                            <ShadowDirectionField {...fields} />
+                            <NumberField {...fields} group="shadows" field="directionDegrees" label="Точный угол тени" unit="°" step={1} hint="0° — назад, 90° — вправо, 180° — вперёд, 270° — влево." />
+                            <RangeField {...fields} group="shadows" field="length" label="Длина тени" step={.05} hint="Длина относительно высоты объекта: 1× равен его высоте." />
+                            <RangeField {...fields} group="shadows" field="blur" label="Размытие тени" percent />
+                            <RangeField {...fields} group="shadows" field="opacity" label="Непрозрачность тени" percent />
                         </>}
                     </div>
                 </fieldset>)}

@@ -26,6 +26,23 @@ test('film duration is independent of camera timing and old saved presets keep f
     assert.equal(normalizeVisualEffects({ transition: { durationSeconds: 2 } }).transition.effectDurationSeconds, 0);
 });
 
+test('older saved presets gain main-object shadows without changing their film or camera tuning', () => {
+    const old = { transition: { effectDurationSeconds: .5, opacity: .42 }, handheld: { strength: 2 } };
+    const value = normalizeVisualEffects(old);
+    assert.deepEqual(value.shadows, { enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5 });
+    assert.equal(value.transition.effectDurationSeconds, .5);
+    assert.equal(value.transition.opacity, .42);
+    assert.equal(value.handheld.strength, 2);
+    assert.equal(old.shadows, undefined);
+});
+
+test('persisted shadow directions remain exact, including custom angles and range endpoints', () => {
+    for (const directionDegrees of [0, 90, 143, 143.25, 180, 270, 360]) {
+        const shadows = { enabled: false, opacity: 0, directionDegrees, length: .75, blur: 0 };
+        assert.deepEqual(normalizeVisualEffects({ shadows }).shadows, shadows);
+    }
+});
+
 test('every numeric field clamps to its safe range and rejects missing non-numbers', () => {
     for (const [group, fields] of Object.entries(VISUAL_EFFECTS_LIMITS)) for (const [key, [min, max]] of Object.entries(fields)) {
         const get = raw => normalizeVisualEffects({ [group]: { [key]: raw } })[group][key];

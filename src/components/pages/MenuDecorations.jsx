@@ -6,6 +6,7 @@ import { hasMenuBeenRevealed } from '../../utils/menuStartup';
 import { getArtworkMotionSnapshot } from '../../utils/objectVideoRuntime';
 import MenuAnalogProp from './MenuAnalogProp';
 import { applyMenuPropOpacity } from '../../utils/menuPropSurface';
+import { createMenuDecorationShadows } from '../../utils/menuDecorationShadows';
 import {
     createMenuDecorationLayout, getMenuDecorationTextureCache, createMenuDecorationTimeline,
     menuDecorationMotion, MENU_DECORATION_ASSETS,
@@ -33,7 +34,7 @@ const shadowTexture = (() => {
     return texture;
 })();
 
-function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
+function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline, shadowSettings }) {
     const groupRef = useRef(null);
     const materialsRef = useRef([]);
     const shadowsRef = useRef([]);
@@ -46,16 +47,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
     const gl = useThree((state) => state.gl);
     const layout = useMemo(() => createMenuDecorationLayout({ sectionKey, width, height, hub }), [sectionKey, width, height, hub]);
     const motionOffsets = useMemo(() => layout.map(() => ({ y: 0, yaw: 0, roll: 0 })), [layout]);
-    const shadows = useMemo(() => layout.map((prop) => {
-        if (!prop.shadow) return [];
-        const yaw = prop.model?.kind === 'cassette' ? prop.model.pose === 'flat' ? prop.rotation[2] : prop.rotation[1]
-            : prop.model?.pose === 'standing' ? -prop.rotation[2] : 0;
-        return [
-            { position: prop.shadow.position, size: [prop.shadow.size[0] * 1.45, prop.shadow.size[1] * 1.7], yaw, opacity: 0.16 },
-            { position: [prop.shadow.position[0], prop.shadow.position[1] + 0.001, prop.shadow.position[2]],
-                size: [prop.shadow.size[0] * 0.86, prop.shadow.size[1] * 0.68], yaw, opacity: 0.3 },
-        ];
-    }), [layout]);
+    const shadows = useMemo(() => layout.map(prop => createMenuDecorationShadows(prop, shadowSettings)), [layout, shadowSettings]);
     const textureRecords = useMemo(() => layout.map((prop) => prop.model ? null : optionalTextures.get(prop.asset.src)), [layout]);
     useEffect(() => {
         let cancelled = false;
@@ -127,7 +119,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
             {layout.map((prop, i) => (
                 <group key={prop.model ? `${prop.model.kind}-${prop.model.variant}-${i}` : prop.asset.src + i} ref={(group) => { propsRef.current[i] = group; }} visible={false}>
                     {shadows[i].map((shadow, s) => (
-                        <mesh key={s} position={shadow.position} rotation={[-Math.PI / 2, 0, shadow.yaw]} raycast={ignoreRaycast} renderOrder={-3}>
+                        <mesh key={s} name={`menu-prop-${shadow.kind}-shadow`} position={shadow.position} rotation={[-Math.PI / 2, 0, shadow.yaw]} raycast={ignoreRaycast} renderOrder={-3}>
                             <planeGeometry args={shadow.size} />
                             <meshBasicMaterial ref={(material) => {
                                 if (!shadowsRef.current[i]) shadowsRef.current[i] = [];
@@ -164,7 +156,7 @@ function LoadedDecorations({ sectionKey, index, hub, stateRef, timeline }) {
     );
 }
 
-export default function MenuDecorations({ sectionKey, index, hub, stateRef, timeline, active = false }) {
+export default function MenuDecorations({ sectionKey, index, hub, stateRef, timeline, shadowSettings, active = false }) {
     if (!active || !MENU_DECORATION_ASSETS[sectionKey]) return null;
-    return <LoadedDecorations sectionKey={sectionKey} index={index} hub={hub} stateRef={stateRef} timeline={timeline} />;
+    return <LoadedDecorations sectionKey={sectionKey} index={index} hub={hub} stateRef={stateRef} timeline={timeline} shadowSettings={shadowSettings} />;
 }
