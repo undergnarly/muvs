@@ -75,3 +75,18 @@ test('unmount while loading disconnects the only observer; no browser network pr
     assert.equal(disconnected, true);
     assert.equal(doc.handlers.size, 0);
 });
+
+test('already revealed pages need no mutation observer and preferences may be unavailable', () => {
+    let observers = 0;
+    const doc = { ...events(), visibilityState: 'visible', getElementById: () => null };
+    const win = { MutationObserver: class { constructor() { observers++; } } };
+    const modes = [];
+    const stop = observeAtmosphereMotion((mode) => modes.push(mode), { doc, win, connection: undefined });
+    assert.deepEqual(modes, ['running']);
+    assert.equal(observers, 0);
+    doc.visibilityState = 'hidden'; doc.fire('visibilitychange'); doc.fire('visibilitychange');
+    assert.deepEqual(modes, ['running', 'paused']);
+    stop();
+    doc.visibilityState = 'visible'; doc.fire('visibilitychange');
+    assert.deepEqual(modes, ['running', 'paused']);
+});

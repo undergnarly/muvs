@@ -9,7 +9,7 @@
 
 .muvs-atmosphere--front { z-index: 3; transition: opacity .45s ease; }
 .muvs-atmosphere--front.is-muted { opacity: 0; }
-.muvs-atmosphere--library { position: fixed; z-index: 0; }
+.muvs-atmosphere--library { position: fixed; z-index: -1; }
 
 .muvs-grain {
     position: absolute;
