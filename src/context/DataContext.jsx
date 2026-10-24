@@ -19,6 +19,7 @@ export const DataProvider = ({ children }) => {
     const [stats, setStats] = useState({});
     const [messages, setMessages] = useState([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [siteSettingsReady, setSiteSettingsReady] = useState(false);
     // Track whether user/admin made changes (not initial load)
     const userChangedRef = React.useRef(new Set());
 
@@ -33,6 +34,7 @@ export const DataProvider = ({ children }) => {
                 if (res.ok) {
                     const data = await res.json();
                     if (cancelled) return;
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid site data');
                     if (data.releases) setReleases(data.releases);
                     if (data.mixes) setMixes(data.mixes);
                     if (data.projects) setProjects(data.projects);
@@ -42,6 +44,7 @@ export const DataProvider = ({ children }) => {
                     if (data.siteSettings) setSiteSettings(data.siteSettings);
                     if (data.messages) setMessages(data.messages);
                     if (data.stats) setStats(data.stats);
+                    setSiteSettingsReady(true);
                 }
             } catch (error) {
                 if (!cancelled) console.error('Failed to fetch data:', error);
@@ -88,16 +91,18 @@ export const DataProvider = ({ children }) => {
     };
 
     const updateSiteSettings = React.useCallback(async (newSettings) => {
-        if (!isLoaded) throw new Error('Site settings are not loaded yet');
-        setSiteSettings(newSettings);
+        if (!isLoaded || !siteSettingsReady) throw new Error('Site settings are not loaded yet');
         const response = await fetch('/api/data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: 'siteSettings', value: newSettings })
         });
         if (!response.ok) throw new Error(`Site settings save failed with ${response.status}`);
-        return response.json();
-    }, [isLoaded]);
+        const result = await response.json();
+        if (result.success !== true) throw new Error('Site settings save was not confirmed');
+        setSiteSettings(previous => ({ ...previous, ...newSettings }));
+        return result;
+    }, [isLoaded, siteSettingsReady]);
 
     const trackVisit = async (path, referrer = '') => {
         // Exclude admin and login paths
@@ -182,6 +187,7 @@ export const DataProvider = ({ children }) => {
         stats,
         messages,
         isLoaded,
+        siteSettingsReady,
         updateData,
         updateSiteSettings,
         trackVisit,

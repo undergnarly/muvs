@@ -11,6 +11,8 @@ import WorldDust from './WorldDust';
 import FilmLeakOverlay from '../layout/FilmLeakOverlay';
 import { beginSceneMotion, cancelSceneMotion, reportSceneMotionPose } from '../../utils/sceneMotion';
 import { createHandheldCamera } from '../../utils/handheldCamera';
+import { normalizeVisualEffects } from '../../utils/visualEffects';
+import { sceneDampingAlpha, sceneMotionDelta, sceneTransitionDuration } from '../../utils/visualMotionTiming';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
@@ -257,7 +259,7 @@ const hydrateCfg = (cfg, expectedStops) => {
 
 // ================ snap scroll (vertical) ================
 
-const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex = 0, minIndex = 0 } = {}) => {
+const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex = 0, minIndex = 0, visualEffectsRef } = {}) => {
     const minIndexRef = useRef(minIndex);
     useEffect(() => { minIndexRef.current = minIndex; }, [minIndex]);
     const initial = Math.max(minIndex, Math.min(numStops - 1, initialIndex));
@@ -342,8 +344,11 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
 
     useEffect(() => {
         let raf;
-        const damping = 0.09;
-        const tick = () => {
+        let previousTime = performance.now();
+        const tick = (now) => {
+            const delta = document.hidden ? 0 : (now - previousTime) / 1000;
+            previousTime = now;
+            const damping = sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds);
             const target = numStops <= 1 ? 0 : indexRef.current / (numStops - 1);
             const cur = progressRef.current;
             const next = cur + (target - cur) * damping;
@@ -352,14 +357,14 @@ const useSnapScroll = (numStops, { enabled = true, onOverscrollUp, initialIndex 
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, [numStops]);
+    }, [numStops, visualEffectsRef]);
 
     return { progressRef, currentIndex, goTo };
 };
 
 // ================ release switcher (horizontal) ================
 
-const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
+const useReleaseSwitcher = (count, onSwitch, { enabled = true, visualEffectsRef } = {}) => {
     const indexRef = useRef(0);
     const offsetRef = useRef(0);
     const [current, setCurrent] = useState(0);
@@ -453,16 +458,20 @@ const useReleaseSwitcher = (count, onSwitch, { enabled = true } = {}) => {
 
     useEffect(() => {
         let raf;
-        const tick = () => {
+        let previousTime = performance.now();
+        const tick = (now) => {
+            const delta = document.hidden ? 0 : (now - previousTime) / 1000;
+            previousTime = now;
+            const damping = sceneDampingAlpha(delta, visualEffectsRef?.current.transition.durationSeconds, RELEASE_SPACING, .001);
             const target = indexRef.current * RELEASE_SPACING;
             const cur = offsetRef.current;
-            const next = cur + (target - cur) * 0.08;
+            const next = cur + (target - cur) * damping;
             offsetRef.current = Math.abs(target - next) < 0.001 ? target : next;
             raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, []);
+    }, [visualEffectsRef]);
 
     return {
         offsetRef,
@@ -920,7 +929,7 @@ const useCameraHandheld = () => {
     return { rig, enabled };
 };
 
-const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, sectionRef }) => {
+const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, sectionRef, visualEffectsRef }) => {
     const lookAt = useRef(new THREE.Vector3());
     const sectionFrame = useMemo(() => createCenteredCameraFrame(), []);
     const handheld = useCameraHandheld();
@@ -941,7 +950,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, sectionRef }) => 
             camera.fov = fov;
             camera.updateProjectionMatrix();
         }
-        handheld.rig.apply(camera, delta, handheld.enabled.current, camera.position.distanceTo(lookAt.current), size.height);
+        handheld.rig.apply(camera, delta, handheld.enabled.current, camera.position.distanceTo(lookAt.current), size.height, visualEffectsRef.current.handheld);
     });
 
     return null;
@@ -951,7 +960,7 @@ const ScrollCamera = ({ cfgRef, progressRef, releaseOffsetRef, sectionRef }) => 
 // ('travel'), stop-scroll inside the section ('section'), and fog-out toward
 // a section that still lives on its own route ('foreign'). The section world
 // sits along the MUSIC ray: local → world is rotY(π) then translate -sectionDist.
-const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef }) => {
+const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onForeignLeft, ringRef, sectionRef, visualEffectsRef }) => {
     const lookAt = useRef(new THREE.Vector3());
     const sectionFrame = useMemo(() => createCenteredCameraFrame(), []);
     const handheld = useCameraHandheld();
@@ -960,11 +969,13 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         const cfg = cfgRef.current;
         const hub = cfg.hub || DEFAULT_HUB;
         const st = stRef.current;
+        const step = document.hidden ? 0 : sceneMotionDelta(delta);
+        const transitionDuration = sceneTransitionDuration(visualEffectsRef.current.transition.durationSeconds);
         if (camera.zoom !== 1) { camera.zoom = 1; camera.updateProjectionMatrix(); }
 
         const targetA = st.menuIndex * HUB_SPACING;
         if (st.phase === 'menu') {
-            st.angle += (targetA - st.angle) * 0.08;
+            st.angle += (targetA - st.angle) * sceneDampingAlpha(step, transitionDuration, HUB_SPACING, .001);
             if (Math.abs(targetA - st.angle) < 0.001) {
                 const count = HUB_ITEMS.length;
                 if (st.menuIndex < count) {
@@ -988,8 +999,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
         if (st.phase === 'section') {
             pose = sectionFrame.pose;
         } else if (st.phase === 'travel') {
-            const travelDuration = Math.max(0.36, (hub.travelDur || 1.8) / 3);
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / travelDuration) * st.dir));
+            st.tt = Math.max(0, Math.min(1, st.tt + (step / transitionDuration) * st.dir));
             const a = hubMenuPose(hub, laneX);
             const b = sectionFrame.pose;
             // Double smoothstep exaggerates the symmetric acceleration profile:
@@ -1003,7 +1013,7 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
                 onPhase('menu');
             }
         } else if (st.phase === 'foreign') {
-            st.tt = Math.max(0, Math.min(1, st.tt + (delta / 0.4) * st.dir));
+            st.tt = Math.max(0, Math.min(1, st.tt + (step / transitionDuration) * st.dir));
             const e = hubSmoothstep(st.tt);
             const menuPose = hubMenuPose(hub, laneX);
             pose = {
@@ -1041,19 +1051,20 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
             camera.fov = pose.fov;
             camera.updateProjectionMatrix();
         }
-        handheld.rig.apply(camera, delta, handheld.enabled.current, camera.position.distanceTo(lookAt.current), size.height);
+        handheld.rig.apply(camera, delta, handheld.enabled.current, camera.position.distanceTo(lookAt.current), size.height, visualEffectsRef.current.handheld);
     });
 
     return null;
 };
 
-const CamDolly = ({ cfgRef, restZRef, playing, playZ }) => {
-    useFrame(() => {
+const CamDolly = ({ cfgRef, restZRef, playing, playZ, visualEffectsRef }) => {
+    useFrame((_, delta) => {
         const stops = cfgRef.current?.stops;
         if (!stops || !stops[0]) return;
         const target = playing ? playZ : restZRef.current;
         if (target == null) return;
-        stops[0].pos.z = THREE.MathUtils.lerp(stops[0].pos.z, target, 0.06);
+        const damping = sceneDampingAlpha(document.hidden ? 0 : delta, visualEffectsRef.current.transition.durationSeconds, 1, .001);
+        stops[0].pos.z = THREE.MathUtils.lerp(stops[0].pos.z, target, damping);
     });
     return null;
 };
@@ -1317,7 +1328,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1367,11 +1378,12 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                     onForeignLeft={hub.onForeignLeft}
                     ringRef={ringRef}
                     sectionRef={sectionRef}
+                    visualEffectsRef={visualEffectsRef}
                 />
             ) : (
-                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} sectionRef={sectionRef} />
+                <ScrollCamera cfgRef={cfgRef} progressRef={progressRef} releaseOffsetRef={releaseOffsetRef} sectionRef={sectionRef} visualEffectsRef={visualEffectsRef} />
             )}
-            {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} />}
+            {dollyEnabled && <CamDolly cfgRef={cfgRef} restZRef={dollyRestZRef} playing={tvPlaying} playZ={dollyPlayZ} visualEffectsRef={visualEffectsRef} />}
             <FogSync cfgRef={cfgRef} />
             <fog attach="fog" args={['#ffffff', 14, 32]} />
             <ambientLight intensity={0.75} />
@@ -2013,14 +2025,14 @@ const DebugPanel = ({
                     <Row label="caption y" value={cfg.hub?.captionY ?? DEFAULT_HUB.captionY} min={-1} max={5} step={0.02} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionY: v } })} />
                     <Row label="caption tilt" value={cfg.hub?.captionTilt ?? DEFAULT_HUB.captionTilt} min={-90} max={90} step={1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionTilt: v } })} />
                     <Row label="caption size" value={cfg.hub?.captionSize ?? DEFAULT_HUB.captionSize} min={0.05} max={2} step={0.01} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, captionSize: v } })} />
-                    <Row label="travel s" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5}   step={0.1}  onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
+                    <p className="dbg-hint">Transition timing: Settings → Визуальный стиль.</p>
                 </div>
             )}
 
             {inTransition && (
                 <div className="dbg-block">
                     <div className="dbg-title">menu → section transition</div>
-                    <Row label="duration" value={cfg.hub?.travelDur ?? 1.8} min={0.5} max={5} step={0.1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, travelDur: v } })} />
+                    <p className="dbg-hint">Transition timing: Settings → Визуальный стиль.</p>
                     <Row label="distance" value={cfg.hub?.sectionDist ?? 56} min={24} max={140} step={1} onChange={(v) => setCfg({ ...cfg, hub: { ...cfg.hub, sectionDist: v } })} />
                 </div>
             )}
@@ -2183,6 +2195,9 @@ export const Scene3DShell = ({
     const { releases, mixes, projects, about, siteSettings, updateSiteSettings, isLoaded } = useData();
     const navigate = useNavigate();
     const filmLocation = useLocation();
+    const visualEffects = useMemo(() => normalizeVisualEffects(siteSettings?.visualEffects), [siteSettings?.visualEffects]);
+    const visualEffectsRef = useRef(visualEffects);
+    useLayoutEffect(() => { visualEffectsRef.current = visualEffects; }, [visualEffects]);
 
     const displayItems = React.useMemo(() => {
         const source = itemsProp ?? releases;
@@ -2360,6 +2375,7 @@ export const Scene3DShell = ({
 
     const { progressRef, currentIndex, goTo } = useSnapScroll(activeStopCount, {
         enabled: sectionControls,
+        visualEffectsRef,
         onOverscrollUp: hub ? startTravelBack : (returnToHubKey ? returnToHub : undefined),
         initialIndex: hub && hubInit?.entered ? sectionEntryStop : initialStop,
         minIndex: hub ? sectionEntryStop : 0,
@@ -2367,7 +2383,7 @@ export const Scene3DShell = ({
     const releaseSwitcher = useReleaseSwitcher(
         effectiveItems.length,
         useCallback(() => goTo(0), [goTo]),
-        { enabled: sectionControls },
+        { enabled: sectionControls, visualEffectsRef },
     );
     const jumpSectionItem = releaseSwitcher.jumpTo;
     const currentRelease = effectiveItems[Math.min(releaseSwitcher.current, effectiveItems.length - 1)];
@@ -2757,7 +2773,7 @@ export const Scene3DShell = ({
 
     return (
         <div className="home-new-page">
-            <FilmLeakOverlay routeKey={filmLocation.pathname} />
+            <FilmLeakOverlay routeKey={filmLocation.pathname} settings={visualEffects} />
             {(hub || effectiveItems.length > 0) && (
                 <div className="home-new-canvas">
                     <Canvas
@@ -2774,6 +2790,7 @@ export const Scene3DShell = ({
                             floorView={!!(sectionControls && currentIndex > 0)}
                             artworkMotion={sectionControls && activeKey === 'code' && currentIndex === 0}
                             hub={hubProps}
+                            visualEffectsRef={visualEffectsRef}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}

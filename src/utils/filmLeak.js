@@ -1,3 +1,5 @@
+import { normalizeVisualEffects, VISUAL_EFFECTS_DEFAULTS } from './visualEffects.js';
+
 export const FILM_TRANSITION_EVENT = 'muvs:scene-transition';
 export const FILM_TRANSITION_END_EVENT = 'muvs:scene-transition-end';
 export const FILM_LEAK_CLIPS = Object.freeze(['a', 'b', 'c', 'd'].map((name) => `/videos/atmosphere/film-leak-${name}-v1.mp4`));
@@ -16,6 +18,18 @@ export function filmLeakSeek(duration, random = Math.random, visibleDuration = 1
     const visible = Number.isFinite(Number(visibleDuration)) ? Math.max(0, Number(visibleDuration)) : 1;
     return (Number.isFinite(Number(duration)) ? Math.max(0, Number(duration) - visible - .1) : 0) * unitRandom(random);
 }
+
+export function filmLeakPlaybackPlan(sourceDuration, { duration = FILM_LEAK_DURATION, navigation = false, random = Math.random } = {}) {
+    const loop = navigation || duration / 1000 + .1 > sourceDuration;
+    return { loop, time: loop ? 0 : filmLeakSeek(sourceDuration, random, duration / 1000) };
+}
+
+const visibleEffect = effect => effect.enabled && effect.opacity > 0;
+const configuredIdleDelay = (effect, random) => {
+    const min = Math.round(effect.intervalMinSeconds * 1000);
+    const max = Math.round(effect.intervalMaxSeconds * 1000);
+    return min + Math.floor(unitRandom(random) * (max - min + 1));
+};
 
 let pendingTransition;
 let transitionSerial = 0;
@@ -57,8 +71,18 @@ export const consumeFilmTransition = (options) => Boolean(takeFilmTransition(opt
 export function createFilmLeakController({
     play, warm = () => {}, stop = () => {}, random = Math.random,
     now = filmNow, setTimer = setTimeout, clearTimer = clearTimeout,
-    clips = FILM_LEAK_CLIPS, dustClips = FILM_DUST_CLIPS,
+    clips = FILM_LEAK_CLIPS, dustClips = FILM_DUST_CLIPS, settings,
 } = {}) {
+    const effects = normalizeVisualEffects(settings);
+    const transitionOn = visibleEffect(effects.transition) && clips.length > 0;
+    const lightOn = visibleEffect(effects.lightLeaks) && clips.length > 0;
+    const dustOn = visibleEffect(effects.filmDust) && dustClips.length > 0;
+    const lightDelay = () => configuredIdleDelay(effects.lightLeaks, random);
+    const dustDelay = () => configuredIdleDelay(effects.filmDust, random);
+    // Managed transitions follow real camera motion. Preserve the existing
+    // non-3D/library 1s baseline and scale it by the same configured ratio.
+    const transitionDuration = Math.round(FILM_LEAK_DURATION
+        * effects.transition.durationSeconds / VISUAL_EFFECTS_DEFAULTS.transition.durationSeconds);
     let mode = 'waiting';
     let idleTimer;
     let active = false;
@@ -128,7 +152,9 @@ export function createFilmLeakController({
         const dust = kind === 'dust';
         const navigation = kind === 'transition' || kind === 'gesture';
         const family = dust ? dustClips : clips;
-        if (disposed || mode !== 'running' || !family.length) return false;
+        const effect = navigation ? effects.transition : dust ? effects.filmDust : effects.lightLeaks;
+        const enabled = navigation ? transitionOn : dust ? dustOn : lightOn;
+        if (disposed || mode !== 'running' || !enabled) return false;
         if (navigation) {
             if (stamp - lastTransitionStart < FILM_LEAK_COOLDOWN
                 || (active && (managed || activeKind === 'transition' || activeKind === 'gesture'))) return false;
@@ -143,7 +169,7 @@ export function createFilmLeakController({
             || stamp - lastEnd < FILM_MIN_QUIET) return false;
         clearIdle();
         lastStart = stamp;
-        if (dust) dustDue = stamp + filmDustIdleDelay(random);
+        if (dust) dustDue = stamp + dustDelay();
         else leakDue = Infinity;
         active = true;
         activeKind = kind;
@@ -157,8 +183,8 @@ export function createFilmLeakController({
             if (signal.aborted) return;
             return play?.({
                 signal, clip: family[index], variant: dust ? 'dust' : 'leak',
-                duration: dust ? FILM_DUST_DURATION : FILM_LEAK_DURATION,
-                opacity: kind === 'idle' ? .32 : .5, kind, random,
+                duration: navigation ? transitionDuration : Math.round(effect.durationSeconds * 1000),
+                opacity: effect.opacity, fadeOutMs: effects.transition.fadeOutMs, kind, random,
             });
         }).catch(() => {
             // A decorative media failure must never become a navigation error.
@@ -168,7 +194,7 @@ export function createFilmLeakController({
             activeKind = undefined;
             cancellation = undefined;
             lastEnd = now();
-            if (!dust && clips.length) leakDue = lastEnd + filmLeakIdleDelay(random);
+            if (!dust) leakDue = lightOn ? lastEnd + lightDelay() : Infinity;
             scheduleIdle();
         });
         return true;
@@ -187,7 +213,7 @@ export function createFilmLeakController({
     };
     const beginTransition = (detail) => {
         const stamp = now();
-        if (disposed || mode !== 'running' || !clips.length || !detail?.managed
+        if (disposed || mode !== 'running' || !transitionOn || !detail?.managed
             || detail.id === undefined || detail.id === null) return false;
         const startedAt = Number.isFinite(detail.startedAt) ? Math.min(stamp, detail.startedAt) : stamp;
         if (stamp - startedAt >= FILM_MANAGED_MAX_DURATION) return false;
@@ -218,8 +244,9 @@ export function createFilmLeakController({
         armManaged(record);
         const payload = {
             signal: cancellation.signal, clip: clips[index], variant: 'leak',
-            kind: 'transition', duration: FILM_LEAK_DURATION, random,
-            managed: true, opacity: .7, startedAt, ended, motionSignal: record.motion.signal,
+            kind: 'transition', duration: transitionDuration, random,
+            managed: true, opacity: effects.transition.opacity, fadeOutMs: effects.transition.fadeOutMs,
+            startedAt, ended, motionSignal: record.motion.signal,
         };
         let operation;
         // Synchronous entry lets the component show its prepared CSS/poster
@@ -235,7 +262,7 @@ export function createFilmLeakController({
             activeKind = undefined;
             cancellation = undefined;
             lastEnd = now();
-            leakDue = lastEnd + filmLeakIdleDelay(random);
+            leakDue = lightOn ? lastEnd + lightDelay() : Infinity;
             scheduleIdle();
         });
         return true;
@@ -247,9 +274,9 @@ export function createFilmLeakController({
             if (mode !== 'running') { cancel(); return; }
             resetGesture();
             const stamp = now();
-            leakDue = clips.length ? stamp + filmLeakIdleDelay(random) : Infinity;
-            dustDue = dustClips.length ? stamp + filmDustIdleDelay(random) : Infinity;
-            const warmClip = clips[0] ?? dustClips[0];
+            leakDue = lightOn ? stamp + lightDelay() : Infinity;
+            dustDue = dustOn ? stamp + dustDelay() : Infinity;
+            const warmClip = transitionOn || lightOn ? clips[0] : dustOn ? dustClips[0] : undefined;
             try { if (warmClip) Promise.resolve(warm(warmClip)).catch(() => {}); } catch { /* optional warmup */ }
             scheduleIdle();
         },

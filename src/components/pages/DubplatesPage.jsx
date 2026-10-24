@@ -88,6 +88,8 @@ function ExportDialog({ tracks, onClose, returnFocus }) {
 }
 
 export default function DubplatesPage() {
+    const [visualEffects, setVisualEffects] = useState(undefined);
+    const [effectsReady, setEffectsReady] = useState(false);
     const [tracks, setTracks] = useState([]);
     const [status, setStatus] = useState('loading');
     const [loadVersion, setLoadVersion] = useState(0);
@@ -165,6 +167,18 @@ export default function DubplatesPage() {
     }, [loadVersion]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        let mounted = true;
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        fetch('/api/visual-effects', { signal: controller.signal, cache: 'no-store' })
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unavailable')))
+            .then(result => { if (!controller.signal.aborted) setVisualEffects(result.visualEffects); })
+            .catch(() => {})
+            .finally(() => { clearTimeout(timeout); if (mounted) setEffectsReady(true); });
+        return () => { mounted = false; clearTimeout(timeout); controller.abort(); };
+    }, []);
+
+    useEffect(() => {
         const sessionId = listeningSession();
         listeningRef.current = createListeningMeter({ onListen: (trackId) => {
             if (!sessionId) return;
@@ -222,7 +236,7 @@ export default function DubplatesPage() {
 
     return <div className="dp-page">
         <Atmosphere variant="library" />
-        <FilmLeakOverlay library />
+        {effectsReady && <FilmLeakOverlay library settings={visualEffects} />}
         <header className="dp-header dp-container"><a className="dp-logo" href="/" aria-label="MUVS official website"><span /></a><a className="dp-site-link" href="/">Official website <ArrowUpRight size={16} /></a></header>
         <main>
             <section className="dp-intro dp-container"><div><h1>Dubplates<span>.</span></h1><p>A few tracks, passed between friends.</p></div><span className="dp-library-count"><Headphones size={17} />{status === 'ready' ? `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'} to dig into` : 'The listening room'}</span></section>

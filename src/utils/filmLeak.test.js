@@ -5,7 +5,7 @@ import {
     consumeFilmTransition, takeFilmTransition,
     FILM_LEAK_CLIPS, FILM_DUST_CLIPS, FILM_DUST_DURATION,
     FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT,
-    filmDeadline, filmLeakIdleDelay, filmDustIdleDelay, filmLeakSeek, waitForFilmMedia,
+    filmDeadline, filmLeakIdleDelay, filmDustIdleDelay, filmLeakSeek, filmLeakPlaybackPlan, waitForFilmMedia,
 } from './filmLeak.js';
 
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -58,7 +58,7 @@ test('no media source, warming or timer until splash/preferences permit motion; 
     await flush(); assert.equal(played.length, 0);
     assert.equal(effect.routeChanged('/waiting'), false);
     assert.equal(effect.routeChanged('/veiled'), true);
-    await flush(); assert.equal(played.length, 1); assert.equal(played[0].opacity, .5);
+    await flush(); assert.equal(played.length, 1); assert.equal(played[0].opacity, .7);
     effect.dispose(); assert.equal(c.tasks.size, 0); assert.equal(stops.at(-1), 'running');
 });
 
@@ -417,4 +417,111 @@ test('hidden/preferences and StrictMode disposal resolve managed holds and abort
     second.setMode('still'); assert.equal(second.beginTransition({ managed: true, id: 'reduced' }), false);
     pending.resolve(); await flush(); assert.equal(c.tasks.size, 0);
     second.dispose();
+});
+
+test('configured light idle uses its own duration, opacity and completion-relative interval', async () => {
+    const c = clock(); const played = []; const pending = deferred(); const warmed = [];
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: {
+            transition: { enabled: false }, filmDust: { enabled: false },
+            lightLeaks: { durationSeconds: 2.6, opacity: .18, intervalMinSeconds: 4, intervalMaxSeconds: 4 },
+        },
+        warm: clip => warmed.push(clip), play: args => { played.push(args); return pending.promise; },
+    });
+    effect.setMode('running'); assert.equal(warmed[0], FILM_LEAK_CLIPS[0]);
+    assert.equal(effect.trigger(), false); assert.equal(c.tasks.size, 1);
+    assert.equal([...c.tasks.values()][0].due, 4000);
+    c.tick(4000); await flush();
+    assert.equal(played[0].kind, 'idle'); assert.equal(played[0].duration, 2600); assert.equal(played[0].opacity, .18);
+    c.tick(2600); pending.resolve(); await flush();
+    assert.equal([...c.tasks.values()][0].due, 10600);
+    effect.dispose();
+});
+
+test('configured dust keeps its own start cadence and does not warm disabled light media', async () => {
+    const c = clock(); const played = []; const pending = deferred(); const warmed = [];
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: {
+            transition: { enabled: false }, lightLeaks: { enabled: false },
+            filmDust: { durationSeconds: 3.7, opacity: .21, intervalMinSeconds: 5, intervalMaxSeconds: 5 },
+        },
+        warm: clip => warmed.push(clip), play: args => { played.push(args); return pending.promise; },
+    });
+    effect.setMode('running'); assert.deepEqual(warmed, [FILM_DUST_CLIPS[0]]);
+    assert.equal([...c.tasks.values()][0].due, 5000);
+    c.tick(5000); await flush();
+    assert.equal(played[0].duration, 3700); assert.equal(played[0].opacity, .21); assert.equal(played[0].variant, 'dust');
+    c.tick(3700); pending.resolve(); await flush();
+    assert.equal([...c.tasks.values()][0].due, 10000);
+    effect.dispose();
+});
+
+test('disabled and zero-opacity families never warm, start decoders or schedule idle retries', async () => {
+    for (const settings of [
+        { transition: { enabled: false }, lightLeaks: { enabled: false }, filmDust: { enabled: false } },
+        { transition: { opacity: 0 }, lightLeaks: { opacity: 0 }, filmDust: { opacity: 0 } },
+    ]) {
+        const c = clock(); let warmed = 0; let plays = 0;
+        const effect = createFilmLeakController({ ...c, settings, warm: () => warmed++, play: () => plays++ });
+        effect.setMode('running');
+        assert.equal(effect.trigger('transition'), false); assert.equal(effect.trigger('gesture'), false);
+        assert.equal(effect.trigger('idle'), false); assert.equal(effect.trigger('dust'), false);
+        assert.equal(effect.beginTransition({ managed: true, id: 'invisible', startedAt: 0 }), false);
+        c.tick(200000); await flush();
+        assert.equal(warmed, 0); assert.equal(plays, 0); assert.equal(c.tasks.size, 0);
+        effect.dispose();
+    }
+});
+
+test('transition settings control exact opacity and fade while managed hold still follows the camera end', async () => {
+    const c = clock(); const played = []; const pulses = [];
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: {
+            transition: { durationSeconds: 1.2, opacity: .12, fadeOutMs: 420 },
+            lightLeaks: { enabled: false }, filmDust: { enabled: false },
+        },
+        play: args => { played.push(args); const pulse = deferred(); pulses.push(pulse); return pulse.promise; },
+    });
+    effect.setMode('running'); assert.equal(c.tasks.size, 0);
+    effect.beginTransition({ managed: true, id: 'custom', startedAt: 0 });
+    assert.equal(played[0].opacity, .12); assert.equal(played[0].fadeOutMs, 420);
+    c.tick(2500); assert.equal(played[0].motionSignal.aborted, false, 'a fixed duration never cuts managed camera motion');
+    effect.endTransition('custom'); await played[0].ended;
+    c.tick(420); pulses[0].resolve(); await flush(); assert.equal(c.tasks.size, 0);
+    assert.equal(effect.trigger('gesture'), true); await flush();
+    assert.equal(played[1].duration, 2000, 'legacy navigation retains the 1s baseline, scaled by configured duration / .6s');
+    assert.equal(played[1].opacity, .12); assert.equal(played[1].fadeOutMs, 420);
+    effect.dispose();
+});
+
+test('reconfiguration disposal aborts an active effect and leaves no stale timer when every film family is disabled', async () => {
+    const c = clock(); let payload; const pending = deferred();
+    const old = createFilmLeakController({ ...c, play: args => { payload = args; return pending.promise; } });
+    old.setMode('running'); old.beginTransition({ managed: true, id: 'old', startedAt: 0 });
+    old.dispose(); await payload.ended;
+    assert.equal(payload.signal.aborted, true); assert.equal(payload.motionSignal.aborted, true);
+    const next = createFilmLeakController({ ...c, settings: { transition: { enabled: false }, lightLeaks: { opacity: 0 }, filmDust: { opacity: 0 } } });
+    next.setMode('running'); pending.resolve(); await flush();
+    assert.equal(c.tasks.size, 0); assert.equal(next.snapshot().active, false);
+    next.dispose();
+});
+
+test('controller normalizes saved values and exposes zero-duration managed fade without a hard minimum', async () => {
+    const c = clock(); let payload;
+    const effect = createFilmLeakController({ ...c, random: () => .5,
+        settings: { transition: { opacity: '0.05', fadeOutMs: 0 }, lightLeaks: { enabled: false }, filmDust: { intervalMinSeconds: '8', intervalMaxSeconds: '4' } },
+        play: args => { payload = args; return args.ended ?? Promise.resolve(); },
+    });
+    effect.setMode('running'); assert.equal([...c.tasks.values()][0].due, 6000);
+    effect.beginTransition({ managed: true, id: 1, startedAt: 0 });
+    assert.equal(payload.opacity, .05); assert.equal(payload.fadeOutMs, 0);
+    effect.endTransition(1); await flush(); effect.dispose();
+});
+
+test('playback loops safely when a configurable effect outlasts its source clip', () => {
+    assert.deepEqual(filmLeakPlaybackPlan(1.25, { duration: 3000, random: () => 1 }), { loop: true, time: 0 });
+    assert.deepEqual(filmLeakPlaybackPlan(2.5, { duration: 4000, random: () => 1 }), { loop: true, time: 0 });
+    const short = filmLeakPlaybackPlan(1.25, { duration: 1000, random: () => 1 });
+    assert.equal(short.loop, false); assert.ok(short.time <= .15 && short.time > .14);
+    assert.deepEqual(filmLeakPlaybackPlan(1.25, { duration: 300, navigation: true }), { loop: true, time: 0 });
 });

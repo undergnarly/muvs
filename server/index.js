@@ -396,6 +396,12 @@ app.put("/api/projects/meditation/progress", (req, res) => {
 });
 
 // Get Data (All or Specific key)
+app.get("/api/visual-effects", (req, res) => {
+  const value = getDb().siteSettings?.visualEffects;
+  res.set("Cache-Control", "no-store");
+  res.json({ visualEffects: value && typeof value === "object" && !Array.isArray(value) ? value : {} });
+});
+
 app.get("/api/data", (req, res) => {
   const db = getDb();
   res.json(hasAdminSession(req, db) ? { ...db, adminSettings: {} } : publicData(db));

@@ -17,11 +17,11 @@ function resetPose(shot) {
     shot.camera.quaternion.copy(shot.quaternion);
 }
 
-function advance(shot, handheld, seconds, fps = 60) {
+function advance(shot, handheld, seconds, fps = 60, config) {
     const frames = Math.round(seconds * fps);
     for (let i = 0; i < frames; i++) {
         resetPose(shot);
-        handheld.apply(shot.camera, 1 / fps, true, shot.position.distanceTo(shot.focus), shot.height);
+        handheld.apply(shot.camera, 1 / fps, true, shot.position.distanceTo(shot.focus), shot.height, config);
     }
     shot.camera.updateMatrixWorld();
 }
@@ -175,4 +175,46 @@ test('phase wrapping is continuous and reset returns the deterministic opening m
     advance(shot, handheld, 1);
     advance(fresh, createHandheldCamera(), 1);
     assert.ok(poseDistance(shot, fresh) < 1e-8);
+});
+
+test('saved handheld enable and zero strength respect the caller motion gate independently', () => {
+    for (const config of [{ enabled: false }, { strength: 0 }]) {
+        const shot = makeShot();
+        advance(shot, createHandheldCamera(), 4, 60, config);
+        assert.ok(shot.camera.position.distanceTo(shot.position) < 1e-12);
+        assert.ok(shot.camera.quaternion.angleTo(shot.quaternion) < 1e-8);
+    }
+    const shot = makeShot();
+    createHandheldCamera().apply(shot.camera, 1 / 60, false, 10, shot.height, { enabled: true, strength: 6, speed: 3 });
+    assert.ok(shot.camera.position.distanceTo(shot.position) < 1e-12);
+});
+
+test('saved strength scales amplitude and speed scales visible elapsed time, not navigation', () => {
+    const base = makeShot();
+    const stronger = makeShot();
+    const faster = makeShot();
+    const longer = makeShot();
+    advance(base, createHandheldCamera(), 7);
+    advance(stronger, createHandheldCamera(), 7, 60, { strength: 3 });
+    const a = pointPx(base, base.focus);
+    const b = pointPx(stronger, stronger.focus);
+    assert.ok(Math.hypot(a.x * 3 - b.x, a.y * 3 - b.y) < .001);
+    advance(faster, createHandheldCamera(), 7, 60, { speed: 2 });
+    advance(longer, createHandheldCamera(), 14);
+    assert.ok(poseDistance(faster, longer) < 1e-8);
+});
+
+test('saved values remain bounded and live speed/strength edits do not reset the phase', () => {
+    const shot = makeShot();
+    const bounded = makeShot();
+    advance(shot, createHandheldCamera(), 7, 60, { strength: 60, speed: 30 });
+    advance(bounded, createHandheldCamera(), 7, 60, { strength: 6, speed: 3 });
+    assert.ok(poseDistance(shot, bounded) < 1e-8);
+    const rig = createHandheldCamera();
+    const live = makeShot();
+    advance(live, rig, 4);
+    const before = pointPx(live, live.focus);
+    advance(live, rig, 1 / 60, 60, { strength: 6, speed: 3 });
+    const after = pointPx(live, live.focus);
+    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) < .3);
 });

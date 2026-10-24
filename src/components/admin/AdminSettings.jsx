@@ -5,6 +5,7 @@ import { FaCog, FaImages, FaLock, FaSave, FaTrash, FaUpload } from 'react-icons/
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
 import RichTextEditor from './RichTextEditor';
+import VisualEffectsSettings from './VisualEffectsSettings';
 import './AdminSettings.css';
 
 const MENU_CAPTION_DEFAULTS = {
@@ -168,7 +169,9 @@ const AdminSettings = () => {
         setError('');
         setSuccess(false);
         try {
-            await updateSiteSettings({ ...siteSettings, ...siteFormData });
+            const nextSettings = { ...siteSettings, ...siteFormData };
+            delete nextSettings.visualEffects;
+            await updateSiteSettings(nextSettings);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 2000);
         } catch (saveError) {
@@ -180,6 +183,8 @@ const AdminSettings = () => {
     return (
         <div>
             <h1 style={{ fontSize: '32px', marginBottom: '32px', color: 'var(--color-text-light)' }}>Settings</h1>
+
+            <VisualEffectsSettings />
 
             {/* Site Settings Section */}
             <div style={{

@@ -226,7 +226,7 @@ function AppRoot() {
 
     return (
         <>
-            {!filmInScene && !filmPrivate && !filmPath.startsWith('/dubplates') && <FilmLeakOverlay routeKey={filmPath} />}
+            {!filmInScene && !filmPrivate && !filmPath.startsWith('/dubplates') && <FilmLeakOverlay routeKey={filmPath} settings={siteSettings?.visualEffects} />}
             {!hideTopBlur && <TopBlur />}
             {!hideOverlays && <PageGradient />}
             <MenuSceneBoundary onFailure={() => setStartupFailed(true)}><Routes>

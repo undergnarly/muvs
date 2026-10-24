@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import { observeDustGestures } from '../../utils/dustWind';
-import { createFilmLeakController, FILM_LEAK_CLIPS, FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT, takeFilmTransition, filmAbortError, filmDeadline, filmLeakSeek, waitForFilmMedia } from '../../utils/filmLeak';
+import { createFilmLeakController, FILM_LEAK_CLIPS, FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT, takeFilmTransition, filmAbortError, filmDeadline, filmLeakPlaybackPlan, waitForFilmMedia } from '../../utils/filmLeak';
+import { normalizeVisualEffects } from '../../utils/visualEffects';
 import { FILM_LEAK_POSTERS } from '../../data/filmLeakPosters';
 import './FilmLeakOverlay.css';
 
@@ -21,11 +22,18 @@ async function renderedFrame(video, signal, timeout) {
     }
 }
 
-export default function FilmLeakOverlay({ routeKey, library = false }) {
+export default function FilmLeakOverlay({ routeKey, library = false, settings }) {
     const layerRef = useRef(null);
     const videoRef = useRef(null);
     const controllerRef = useRef(null);
     const routeRef = useRef(routeKey);
+    const normalized = normalizeVisualEffects(settings);
+    const settingsKey = JSON.stringify({
+        transition: normalized.transition, lightLeaks: normalized.lightLeaks, filmDust: normalized.filmDust,
+    });
+    // Handheld-only edits or equivalent raw objects must not restart a held
+    // film operation. Actual film changes dispose the old decoder/timers.
+    const filmSettings = useMemo(() => JSON.parse(settingsKey), [settingsKey]);
 
     useEffect(() => {
         const layer = layerRef.current;
@@ -74,6 +82,7 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
         };
         const warm = (clip) => {
             setSource(clip);
+            if (!filmSettings.transition.enabled || filmSettings.transition.opacity <= 0) return;
             if (warmAbort) return;
             warmAbort = new AbortController();
             if (!posterImages.length) posterImages = Object.values(FILM_LEAK_POSTERS).map(src => {
@@ -81,7 +90,7 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
             });
             for (const src of FILM_LEAK_CLIPS) fetch(src, { cache: 'force-cache', signal: warmAbort.signal }).then(response => response.arrayBuffer()).catch(() => {});
         };
-        const play = async ({ clip, signal, opacity, duration, random, variant = 'leak', kind, managed = false, ended, motionSignal }) => {
+        const play = async ({ clip, signal, opacity, duration, random, variant = 'leak', kind, managed = false, ended, motionSignal, fadeOutMs = 100 }) => {
             const token = ++operation;
             const current = () => token === operation && !signal.aborted;
             const verify = () => { if (!current()) throw filmAbortError(); };
@@ -104,10 +113,11 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
             signal.addEventListener('abort', abort, { once: true });
             const prepare = async () => {
                 setSource(clip);
-                video.loop = navigation;
-                await waitForFilmMedia(video, () => Number.isFinite(video.duration) && video.duration >= 1.05, ['loadedmetadata', 'durationchange'], { signal: mediaSignal, timeout: remaining(1000) });
+                await waitForFilmMedia(video, () => Number.isFinite(video.duration) && video.duration > 0, ['loadedmetadata', 'durationchange'], { signal: mediaSignal, timeout: remaining(1000) });
                 verify();
-                video.currentTime = navigation ? 0 : filmLeakSeek(video.duration, random, duration / 1000);
+                const playback = filmLeakPlaybackPlan(video.duration, { duration, navigation, random });
+                video.loop = playback.loop;
+                video.currentTime = playback.time;
                 await waitForFilmMedia(video, () => !video.seeking && video.readyState >= 2, ['seeked', 'loadeddata', 'canplay'], { signal: mediaSignal, timeout: remaining(550) });
                 verify();
                 const playing = video.play();
@@ -126,24 +136,27 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
                     if (poster) layer.style.setProperty('--film-leak-poster', `url("${poster}")`);
                     layer.dataset.active = 'true';
                     layer.style.willChange = 'opacity';
-                    layer.style.opacity = String(Math.max(opacity, .7));
+                    layer.style.opacity = String(opacity);
                     const preparation = prepare().catch(() => {
                         stopPreparing();
                         if (current()) { video.pause(); video.style.opacity = '0'; }
                     });
-                    const finish = managed ? ended : new Promise(resolve => { fallbackTimer = setTimeout(resolve, Math.max(0, duration - 100)); });
+                    const fadeDuration = managed ? fadeOutMs : Math.min(fadeOutMs, duration);
+                    const finish = managed ? ended : new Promise(resolve => { fallbackTimer = setTimeout(resolve, Math.max(0, duration - fadeDuration)); });
                     if (managed) await finish;
                     else await filmDeadline(finish, { signal, timeout: duration + 100 });
                     stopPreparing();
                     verify();
-                    const from = Number(getComputedStyle(layer).opacity);
-                    if (layer.animate) {
-                        animation = layer.animate([{ opacity: from }, { opacity: 0 }], { duration: 100, easing: 'ease-in', fill: 'forwards' });
-                        await filmDeadline(animation.finished, { signal, timeout: 300 });
-                    } else {
-                        layer.style.transition = 'opacity 100ms ease-in';
+                    if (fadeDuration <= 0) {
                         layer.style.opacity = '0';
-                        await filmDeadline(new Promise(resolve => { fallbackTimer = setTimeout(resolve, 100); }), { signal, timeout: 300 });
+                    } else if (layer.animate) {
+                        const from = Number(getComputedStyle(layer).opacity);
+                        animation = layer.animate([{ opacity: from }, { opacity: 0 }], { duration: fadeDuration, easing: 'ease-in', fill: 'forwards' });
+                        await filmDeadline(animation.finished, { signal, timeout: fadeDuration + 200 });
+                    } else {
+                        layer.style.transition = `opacity ${fadeDuration}ms ease-in`;
+                        layer.style.opacity = '0';
+                        await filmDeadline(new Promise(resolve => { fallbackTimer = setTimeout(resolve, fadeDuration); }), { signal, timeout: fadeDuration + 200 });
                     }
                     await preparation;
                     return;
@@ -174,7 +187,7 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
                 if (token === operation) hide();
             }
         };
-        const controller = createFilmLeakController({ play, warm, stop: release });
+        const controller = createFilmLeakController({ play, warm, stop: release, settings: filmSettings });
         controllerRef.current = controller;
         controller.routeChanged(routeRef.current);
         const accept = record => {
@@ -202,7 +215,7 @@ export default function FilmLeakOverlay({ routeKey, library = false }) {
             controller.dispose();
             if (controllerRef.current === controller) controllerRef.current = null;
         };
-    }, [library]);
+    }, [library, filmSettings]);
 
     useEffect(() => {
         routeRef.current = routeKey;
