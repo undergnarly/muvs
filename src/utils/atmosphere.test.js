@@ -7,7 +7,7 @@ test('sparse deterministic three-depth layout stays bounded and lighter on phone
     assert.equal(ATMOSPHERE_MOTES.filter((mote) => !mote.desktop).length, 12);
     for (const mote of ATMOSPHERE_MOTES) {
         assert.ok(mote.x >= 0 && mote.x <= 100);
-        assert.ok(mote.duration >= 74 && mote.duration <= 186);
+        assert.ok(mote.duration >= 42 && mote.duration <= 246);
         assert.ok(mote.delay < 0 && -mote.delay < mote.duration);
         assert.ok(mote.size >= 14 && mote.size <= 92 && Math.abs(mote.dx) <= 32);
     }
@@ -17,6 +17,7 @@ test('sparse deterministic three-depth layout stays bounded and lighter on phone
     const durations = (depth) => ATMOSPHERE_MOTES.filter((mote) => mote.depth === depth).map((mote) => mote.duration);
     assert.ok(Math.min(...durations('far')) > Math.max(...durations('middle')));
     assert.ok(Math.min(...durations('middle')) > Math.max(...durations('near')));
+    assert.ok(Math.min(...durations('far')) / Math.max(...durations('near')) >= 4);
 });
 
 test('preferences keep grain only; hidden and floor views pause', () => {

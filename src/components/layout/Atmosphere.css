@@ -10,31 +10,54 @@
 .muvs-atmosphere--scene { z-index: 1; }
 .muvs-atmosphere--library { position: fixed; z-index: -1; }
 
+.muvs-dust-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
 .muvs-dust {
     position: absolute;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0 30%, rgba(255, 255, 255, .09) 46%, rgba(255, 255, 255, 0) 72%);
     animation: muvs-dust-rise var(--dust-duration) linear var(--dust-delay) infinite;
 }
 
-.muvs-dust--far {
+.muvs-dust-body {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0 30%, rgba(255, 255, 255, .09) 46%, rgba(255, 255, 255, 0) 72%);
+    animation: muvs-dust-drift var(--dust-drift-duration) ease-in-out var(--dust-delay) infinite;
+}
+
+.muvs-dust--far .muvs-dust-body {
     background: radial-gradient(circle, rgba(255, 255, 255, .13) 0 37%, rgba(255, 255, 255, .06) 52%, rgba(255, 255, 255, 0) 74%);
 }
-.muvs-dust--near {
+.muvs-dust--near .muvs-dust-body {
     background: radial-gradient(circle, rgba(255, 255, 255, .2) 0 22%, rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, 0) 73%);
 }
 
 .muvs-atmosphere[data-motion='waiting'] .muvs-dust,
-.muvs-atmosphere[data-motion='still'] .muvs-dust { visibility: hidden; animation: none; }
-.muvs-atmosphere[data-motion='paused'] .muvs-dust { animation-play-state: paused; }
+.muvs-atmosphere[data-motion='still'] .muvs-dust { visibility: hidden; }
+.muvs-atmosphere[data-motion='waiting'] .muvs-dust,
+.muvs-atmosphere[data-motion='waiting'] .muvs-dust-body,
+.muvs-atmosphere[data-motion='still'] .muvs-dust,
+.muvs-atmosphere[data-motion='still'] .muvs-dust-body { animation: none; }
+.muvs-atmosphere[data-motion='paused'] .muvs-dust,
+.muvs-atmosphere[data-motion='paused'] .muvs-dust-body { animation-play-state: paused; }
 
 @keyframes muvs-dust-rise {
     0% { transform: translate3d(0, 105vh, 0); opacity: 0; }
     8% { opacity: .8; }
-    35% { transform: translate3d(var(--dust-x), 59.5vh, 0); }
-    68% { transform: translate3d(calc(var(--dust-x) * -.4), 16.6vh, 0); }
     92% { opacity: .8; }
-    100% { transform: translate3d(calc(var(--dust-x) * .35), -25vh, 0); opacity: 0; }
+    100% { transform: translate3d(0, -25vh, 0); opacity: 0; }
+}
+
+@keyframes muvs-dust-drift {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    20% { transform: translate3d(calc(var(--dust-x) * -.75), -3px, 0); }
+    44% { transform: translate3d(var(--dust-x), 2px, 0); }
+    70% { transform: translate3d(calc(var(--dust-x) * -.3), -1px, 0); }
 }
 
 @media (max-width: 767px) {
@@ -42,5 +65,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .muvs-atmosphere .muvs-dust { display: none; animation: none; }
+    .muvs-atmosphere .muvs-dust { display: none; }
+    .muvs-atmosphere .muvs-dust,
+    .muvs-atmosphere .muvs-dust-body { animation: none; }
 }
