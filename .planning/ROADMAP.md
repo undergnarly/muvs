@@ -79,3 +79,4 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 
 - [x]04-09 — Independent transition film cap including fade, default0 legacy, absolute compositor deadline and actual navigation priority;341tests/review/native2s-camera+.5s-film/adminmobile/desktop/live/data invariance verified. See04-09 plan/summary.
 - [x]04-10 — Grounded alpha-silhouette casts, coherent existing smallprop contact/cast and saved direction/length/blur/opacity;362tests/independentreviews/mobile+desktop/nativeadmin+journey/API+video/liveassets/contentpreservation verified. See04-10 plan/summary.
+- [x]04-11 — Signed closer/farther shadow alignment;366tests/review/nativeadmin+mobile+desktop+journey/liveasset+datapreservation verified. See04-11 plan/summary.
