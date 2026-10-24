@@ -1,12 +1,12 @@
 export const VISUAL_EFFECTS_DEFAULTS = Object.freeze({
-    transition: Object.freeze({ enabled: true, durationSeconds: .6, opacity: .7, fadeOutMs: 100 }),
+    transition: Object.freeze({ enabled: true, durationSeconds: .6, effectDurationSeconds: 0, opacity: .7, fadeOutMs: 100 }),
     lightLeaks: Object.freeze({ enabled: true, durationSeconds: 1, opacity: .32, intervalMinSeconds: 9, intervalMaxSeconds: 15 }),
     filmDust: Object.freeze({ enabled: true, durationSeconds: 2.4, opacity: .5, intervalMinSeconds: 6, intervalMaxSeconds: 7 }),
     handheld: Object.freeze({ enabled: true, strength: 1, speed: 1 }),
 });
 
 export const VISUAL_EFFECTS_LIMITS = Object.freeze({
-    transition: { durationSeconds: [.2, 3], opacity: [0, 1], fadeOutMs: [0, 500] },
+    transition: { durationSeconds: [.2, 3], effectDurationSeconds: [0, 5], opacity: [0, 1], fadeOutMs: [0, 500] },
     lightLeaks: { durationSeconds: [.2, 3], opacity: [0, 1], intervalMinSeconds: [3, 120], intervalMaxSeconds: [3, 120] },
     filmDust: { durationSeconds: [.2, 4], opacity: [0, 1], intervalMinSeconds: [3, 120], intervalMaxSeconds: [3, 120] },
     handheld: { strength: [0, 6], speed: [.25, 3] },

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import { observeDustGestures } from '../../utils/dustWind';
-import { createFilmLeakController, FILM_LEAK_CLIPS, FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT, takeFilmTransition, filmAbortError, filmDeadline, filmLeakPlaybackPlan, waitForFilmMedia } from '../../utils/filmLeak';
+import { createFilmLeakController, FILM_LEAK_CLIPS, FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT, takeFilmTransition, filmAbortError, filmDeadline, filmLeakPlaybackPlan, filmTransitionFadeDuration, waitForFilmMedia } from '../../utils/filmLeak';
 import { normalizeVisualEffects } from '../../utils/visualEffects';
 import { FILM_LEAK_POSTERS } from '../../data/filmLeakPosters';
 import './FilmLeakOverlay.css';
@@ -90,12 +90,13 @@ export default function FilmLeakOverlay({ routeKey, library = false, settings })
             });
             for (const src of FILM_LEAK_CLIPS) fetch(src, { cache: 'force-cache', signal: warmAbort.signal }).then(response => response.arrayBuffer()).catch(() => {});
         };
-        const play = async ({ clip, signal, opacity, duration, random, variant = 'leak', kind, managed = false, ended, motionSignal, fadeOutMs = 100 }) => {
+        const play = async ({ clip, signal, opacity, duration, random, variant = 'leak', kind, managed = false, ended, motionSignal, fadeOutMs = 100, capDeadline }) => {
             const token = ++operation;
             const current = () => token === operation && !signal.aborted;
             const verify = () => { if (!current()) throw filmAbortError(); };
             const navigation = managed || kind === 'transition' || kind === 'gesture';
             if (managed && motionSignal?.aborted) return;
+            if (Number.isFinite(capDeadline) && capDeadline <= performance.now()) return;
             const prepareAbort = new AbortController();
             const stopPreparing = () => prepareAbort.abort();
             signal.addEventListener('abort', stopPreparing, { once: true });
@@ -137,20 +138,32 @@ export default function FilmLeakOverlay({ routeKey, library = false, settings })
                     layer.dataset.active = 'true';
                     layer.style.willChange = 'opacity';
                     layer.style.opacity = String(opacity);
+                    if (Number.isFinite(capDeadline) && layer.animate) {
+                        const budget = Math.max(1, capDeadline - performance.now());
+                        const tail = filmTransitionFadeDuration(fadeOutMs, capDeadline);
+                        animation = layer.animate([
+                            { opacity, offset: 0 },
+                            { opacity, offset: Math.max(0, 1 - tail / budget), easing: 'ease-in' },
+                            { opacity: 0, offset: 1 },
+                        ], { duration: budget, easing: 'linear', fill: 'forwards' });
+                        animation.finished.catch(() => {});
+                    }
                     const preparation = prepare().catch(() => {
                         stopPreparing();
                         if (current()) { video.pause(); video.style.opacity = '0'; }
                     });
-                    const fadeDuration = managed ? fadeOutMs : Math.min(fadeOutMs, duration);
-                    const finish = managed ? ended : new Promise(resolve => { fallbackTimer = setTimeout(resolve, Math.max(0, duration - fadeDuration)); });
+                    const requestedFade = managed ? fadeOutMs : Math.min(fadeOutMs, duration);
+                    const finish = managed ? ended : new Promise(resolve => { fallbackTimer = setTimeout(resolve, Math.max(0, duration - requestedFade)); });
                     if (managed) await finish;
                     else await filmDeadline(finish, { signal, timeout: duration + 100 });
                     stopPreparing();
                     verify();
+                    const fadeDuration = filmTransitionFadeDuration(requestedFade, capDeadline);
+                    const from = Number(getComputedStyle(layer).opacity);
+                    animation?.cancel(); animation = undefined;
                     if (fadeDuration <= 0) {
                         layer.style.opacity = '0';
                     } else if (layer.animate) {
-                        const from = Number(getComputedStyle(layer).opacity);
                         animation = layer.animate([{ opacity: from }, { opacity: 0 }], { duration: fadeDuration, easing: 'ease-in', fill: 'forwards' });
                         await filmDeadline(animation.finished, { signal, timeout: fadeDuration + 200 });
                     } else {

@@ -24,6 +24,11 @@ export function filmLeakPlaybackPlan(sourceDuration, { duration = FILM_LEAK_DURA
     return { loop, time: loop ? 0 : filmLeakSeek(sourceDuration, random, duration / 1000) };
 }
 
+export function filmTransitionFadeDuration(fadeOutMs, capDeadline, now = filmNow()) {
+    const fade = Number.isFinite(fadeOutMs) ? Math.max(0, fadeOutMs) : 0;
+    return Number.isFinite(capDeadline) ? Math.min(fade, Math.max(0, capDeadline - now)) : fade;
+}
+
 const visibleEffect = effect => effect.enabled && effect.opacity > 0;
 const configuredIdleDelay = (effect, random) => {
     const min = Math.round(effect.intervalMinSeconds * 1000);
@@ -79,9 +84,13 @@ export function createFilmLeakController({
     const dustOn = visibleEffect(effects.filmDust) && dustClips.length > 0;
     const lightDelay = () => configuredIdleDelay(effects.lightLeaks, random);
     const dustDelay = () => configuredIdleDelay(effects.filmDust, random);
-    // Managed transitions follow real camera motion. Preserve the existing
-    // non-3D/library 1s baseline and scale it by the same configured ratio.
-    const transitionDuration = Math.round(FILM_LEAK_DURATION
+    const transitionCap = effects.transition.effectDurationSeconds > 0
+        ? Math.max(1, Math.round(effects.transition.effectDurationSeconds * 1000)) : 0;
+    const transitionFade = transitionCap > 0
+        ? Math.min(effects.transition.fadeOutMs, transitionCap) : effects.transition.fadeOutMs;
+    // With no independent cap, preserve the existing non-3D/library 1s
+    // baseline. A positive film duration is exact and includes its final fade.
+    const transitionDuration = transitionCap || Math.round(FILM_LEAK_DURATION
         * effects.transition.durationSeconds / VISUAL_EFFECTS_DEFAULTS.transition.durationSeconds);
     let mode = 'waiting';
     let idleTimer;
@@ -109,14 +118,33 @@ export function createFilmLeakController({
         idleTimer = undefined;
     };
     const resetGesture = () => { gestureAt = -Infinity; gestureX = gestureY = 0; };
+    const finishVisual = (record = managed) => {
+        if (!record) return;
+        if (record.capTimer !== undefined) clearTimer(record.capTimer);
+        record.capTimer = undefined;
+        if (record.visualEnded) return;
+        record.visualEnded = true;
+        record.resolve();
+        record.motion.abort();
+    };
+    const completeManaged = (record) => {
+        if (disposed || managed !== record || generation !== record.token
+            || !record.navigationEnded || !record.operationDone) return;
+        managed = undefined;
+        active = false;
+        activeKind = undefined;
+        cancellation = undefined;
+        lastEnd = now();
+        leakDue = lightOn ? lastEnd + lightDelay() : Infinity;
+        scheduleIdle();
+    };
     const finishManaged = (record = managed) => {
         if (!record) return;
         if (record.timer !== undefined) clearTimer(record.timer);
         record.timer = undefined;
-        if (record.ended) return;
-        record.ended = true;
-        record.resolve();
-        record.motion.abort();
+        record.navigationEnded = true;
+        finishVisual(record);
+        completeManaged(record);
     };
     const abortActive = () => {
         generation++;
@@ -181,10 +209,12 @@ export function createFilmLeakController({
         const signal = cancellation.signal;
         Promise.resolve().then(() => {
             if (signal.aborted) return;
+            if (navigation && transitionCap && now() >= stamp + transitionCap) return;
             return play?.({
                 signal, clip: family[index], variant: dust ? 'dust' : 'leak',
                 duration: navigation ? transitionDuration : Math.round(effect.durationSeconds * 1000),
-                opacity: effect.opacity, fadeOutMs: effects.transition.fadeOutMs, kind, random,
+                opacity: effect.opacity, fadeOutMs: navigation ? transitionFade : effects.transition.fadeOutMs, kind, random,
+                capDeadline: navigation && transitionCap ? stamp + transitionCap : undefined,
             });
         }).catch(() => {
             // A decorative media failure must never become a navigation error.
@@ -200,7 +230,7 @@ export function createFilmLeakController({
         return true;
     };
     const endTransition = (id) => {
-        if (disposed || !active || !managed || managed.id !== id || managed.ended) return false;
+        if (disposed || !active || !managed || managed.id !== id || managed.navigationEnded) return false;
         finishManaged();
         return true;
     };
@@ -217,9 +247,12 @@ export function createFilmLeakController({
             || detail.id === undefined || detail.id === null) return false;
         const startedAt = Number.isFinite(detail.startedAt) ? Math.min(stamp, detail.startedAt) : stamp;
         if (stamp - startedAt >= FILM_MANAGED_MAX_DURATION) return false;
-        // Accepted camera retargets already carry navigation intent. They do
-        // not inherit raw-gesture cooldowns and keep the current clip/hold.
-        if (active && managed && !managed.ended) {
+        // Coalesced motion can extend its actual-navigation watchdog, never
+        // the first visible film cap. During the final fade it still keeps
+        // the current clip; after expiry a new accepted gesture can restart.
+        const visibleHold = managed && (!managed.visualEnded || (transitionCap > 0 && !managed.operationDone));
+        const withinCap = managed && (!transitionCap || stamp < managed.capDeadline);
+        if (active && managed && !managed.navigationEnded && visibleHold && withinCap) {
             managed.id = detail.id;
             managed.startedAt = startedAt;
             lastTransitionStart = stamp;
@@ -238,14 +271,34 @@ export function createFilmLeakController({
         let index = Math.floor(unitRandom(random) * clips.length);
         if (index === previousLeak && clips.length > 1) index = (index + 1) % clips.length;
         previousLeak = index;
-        const record = { id: detail.id, startedAt, motion: new AbortController(), ended: false, timer: undefined };
+        const record = {
+            id: detail.id, startedAt, token, motion: new AbortController(),
+            visualEnded: false, navigationEnded: false, operationDone: false,
+            timer: undefined, capTimer: undefined,
+            capDeadline: transitionCap ? startedAt + transitionCap : Infinity,
+        };
         const ended = new Promise(resolve => { record.resolve = resolve; });
         managed = record;
         armManaged(record);
+        if (transitionCap && stamp >= record.capDeadline) {
+            // A route handoff can arrive after its visual budget. Retain the
+            // camera lease, but never introduce a delayed frame/poster flash.
+            record.operationDone = true;
+            finishVisual(record);
+            return true;
+        }
+        if (transitionCap) {
+            record.capTimer = setTimer(() => {
+                record.capTimer = undefined;
+                if (managed === record) finishVisual(record);
+            }, Math.max(0, record.capDeadline - transitionFade - stamp));
+        }
         const payload = {
             signal: cancellation.signal, clip: clips[index], variant: 'leak',
             kind: 'transition', duration: transitionDuration, random,
-            managed: true, opacity: effects.transition.opacity, fadeOutMs: effects.transition.fadeOutMs,
+            managed: true, opacity: effects.transition.opacity,
+            fadeOutMs: transitionCap ? Math.min(transitionFade, record.capDeadline - stamp) : transitionFade,
+            capDeadline: transitionCap ? record.capDeadline : undefined,
             startedAt, ended, motionSignal: record.motion.signal,
         };
         let operation;
@@ -256,14 +309,9 @@ export function createFilmLeakController({
             // Failed media cannot turn into late navigation or queued flashes.
         }).finally(() => {
             if (disposed || generation !== token) return;
-            finishManaged(record);
-            managed = undefined;
-            active = false;
-            activeKind = undefined;
-            cancellation = undefined;
-            lastEnd = now();
-            leakDue = lightOn ? lastEnd + lightDelay() : Infinity;
-            scheduleIdle();
+            record.operationDone = true;
+            finishVisual(record);
+            completeManaged(record);
         });
         return true;
     };

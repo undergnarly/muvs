@@ -5,7 +5,7 @@ import {
     consumeFilmTransition, takeFilmTransition,
     FILM_LEAK_CLIPS, FILM_DUST_CLIPS, FILM_DUST_DURATION,
     FILM_TRANSITION_EVENT, FILM_TRANSITION_END_EVENT,
-    filmDeadline, filmLeakIdleDelay, filmDustIdleDelay, filmLeakSeek, filmLeakPlaybackPlan, waitForFilmMedia,
+    filmDeadline, filmLeakIdleDelay, filmDustIdleDelay, filmLeakSeek, filmLeakPlaybackPlan, filmTransitionFadeDuration, waitForFilmMedia,
 } from './filmLeak.js';
 
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -524,4 +524,153 @@ test('playback loops safely when a configurable effect outlasts its source clip'
     const short = filmLeakPlaybackPlan(1.25, { duration: 1000, random: () => 1 });
     assert.equal(short.loop, false); assert.ok(short.time <= .15 && short.time > .14);
     assert.deepEqual(filmLeakPlaybackPlan(1.25, { duration: 300, navigation: true }), { loop: true, time: 0 });
+});
+
+test('a half-second film cap includes its fade but keeps the lease until a two-second camera move ends', async () => {
+    const c = clock(); const fade = deferred(); let payload;
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { durationSeconds: 2, effectDurationSeconds: .5, fadeOutMs: 100 } },
+        play: args => { payload = args; return args.ended.then(() => fade.promise); },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'two-second-camera', startedAt: 0 });
+    assert.equal(payload.duration, 500); assert.equal(payload.fadeOutMs, 100);
+    assert.equal(payload.capDeadline, 500);
+    assert.equal(c.tasks.size, 2, 'one visual cap and one actual-navigation watchdog, no idle timer');
+    c.tick(399); assert.equal(payload.motionSignal.aborted, false);
+    c.tick(1); assert.equal(payload.motionSignal.aborted, true); await payload.ended;
+    assert.equal(payload.signal.aborted, false, 'the component can finish its last 100ms of fade');
+    c.tick(100); fade.resolve(); await flush();
+    assert.equal(effect.snapshot().active, true, 'an invisible film is still an active camera lease');
+    assert.equal(effect.snapshot().idleScheduled, false); assert.equal(c.tasks.size, 1);
+    c.tick(1500); assert.equal(effect.endTransition('two-second-camera'), true); await flush();
+    assert.equal(c.now(), 2000); assert.equal(effect.snapshot().active, false); assert.equal(c.tasks.size, 1);
+    effect.dispose(); assert.equal(c.tasks.size, 0);
+});
+
+test('late fade callbacks never extend the absolute visible cap', () => {
+    assert.equal(filmTransitionFadeDuration(100, 500, 400), 100);
+    assert.equal(filmTransitionFadeDuration(100, 500, 480), 20);
+    assert.equal(filmTransitionFadeDuration(100, 500, 550), 0);
+    assert.equal(filmTransitionFadeDuration(0, 500, 400), 0);
+    assert.equal(filmTransitionFadeDuration(100, undefined, 550), 100);
+});
+
+test('an actual early camera end wins over the cap and clears both managed timers', async () => {
+    const c = clock(); const fade = deferred(); let payload;
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { effectDurationSeconds: .5, fadeOutMs: 100 } },
+        play: args => { payload = args; return args.ended.then(() => fade.promise); },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'early', startedAt: 0 });
+    c.tick(200); assert.equal(effect.endTransition('early'), true);
+    assert.equal(payload.motionSignal.aborted, true); assert.equal(c.tasks.size, 0);
+    await payload.ended; c.tick(100); fade.resolve(); await flush();
+    assert.equal(effect.snapshot().active, false); assert.equal(c.tasks.size, 1);
+    effect.dispose(); c.tick(1000); await flush(); assert.equal(c.tasks.size, 0);
+});
+
+test('a fade at least as long as the cap begins immediately and cannot overrun the requested total', async () => {
+    const c = clock(); const fade = deferred(); let payload;
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { effectDurationSeconds: .2, fadeOutMs: 500 } },
+        play: args => { payload = args; return args.ended.then(() => fade.promise); },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'fade-only', startedAt: 0 });
+    assert.equal(payload.duration, 200); assert.equal(payload.fadeOutMs, 200);
+    assert.equal(payload.motionSignal.aborted, false, 'the immediate poster is allowed to enter before its zero-hold fade');
+    c.tick(0); assert.equal(payload.motionSignal.aborted, true); await payload.ended;
+    c.tick(200); fade.resolve(); await flush(); assert.equal(effect.snapshot().active, true);
+    effect.endTransition('fade-only'); await flush(); assert.equal(effect.snapshot().active, false);
+    effect.dispose();
+});
+
+test('visible retargets never extend the cap, but a new accepted gesture after expiry gets a fresh cap', async () => {
+    const c = clock(); const played = []; const operations = [];
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { effectDurationSeconds: .5, fadeOutMs: 100 } },
+        play: args => { const operation = deferred(); operations.push(operation); played.push(args); return operation.promise; },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 1, startedAt: 0 });
+    c.tick(200); effect.beginTransition({ managed: true, id: 2, startedAt: 200 });
+    assert.equal(played.length, 1); assert.equal(Math.min(...[...c.tasks.values()].map(task => task.due)), 400);
+    c.tick(200); await played[0].ended;
+    c.tick(50); effect.beginTransition({ managed: true, id: 3, startedAt: 450 });
+    assert.equal(played.length, 1, 'retarget during the visible final fade still keeps the first cap');
+    assert.equal(effect.endTransition(2), false);
+    c.tick(50); operations[0].resolve(); await flush(); assert.equal(effect.snapshot().active, true);
+    c.tick(100); effect.beginTransition({ managed: true, id: 4, startedAt: 600 });
+    assert.equal(played.length, 2); assert.equal(played[0].signal.aborted, true);
+    assert.equal(played[1].motionSignal.aborted, false); assert.equal(effect.endTransition(3), false);
+    assert.equal(Math.min(...[...c.tasks.values()].map(task => task.due)), 1000);
+    c.tick(400); await played[1].ended;
+    effect.endTransition(4); c.tick(100); operations[1].resolve(); await flush();
+    assert.equal(effect.snapshot().active, false); effect.dispose(); assert.equal(c.tasks.size, 0);
+});
+
+test('cap expiry aborts late decode presentation and never releases overdue idle bursts during camera motion', async () => {
+    const c = clock(); const decode = deferred(); const fade = deferred(); const played = []; let lateFrames = 0;
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: {
+            transition: { effectDurationSeconds: .5, fadeOutMs: 100 },
+            lightLeaks: { intervalMinSeconds: 3, intervalMaxSeconds: 3 },
+            filmDust: { intervalMinSeconds: 3, intervalMaxSeconds: 3 },
+        },
+        play: args => {
+            played.push(args);
+            if (!args.managed) return new Promise(() => {});
+            decode.promise.then(() => { if (!args.motionSignal.aborted && !args.signal.aborted) lateFrames++; });
+            return args.ended.then(() => fade.promise);
+        },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'long-move', startedAt: 0 });
+    c.tick(400); await played[0].ended;
+    c.tick(100); fade.resolve(); decode.resolve(); await flush(); assert.equal(lateFrames, 0);
+    c.tick(4500); await flush(); assert.equal(played.length, 1); assert.equal(effect.snapshot().idleScheduled, false);
+    effect.endTransition('long-move'); await flush();
+    assert.equal([...c.tasks.values()][0].due, 5800, 'overdue dust waits until actual end plus the quiet gap');
+    c.tick(800); await flush(); assert.equal(played.length, 2); assert.equal(played[1].kind, 'dust');
+    effect.dispose(); assert.equal(c.tasks.size, 0);
+});
+
+test('an already expired managed handoff owns the motion lease without ever starting a late flash', async () => {
+    const c = clock(); let plays = 0;
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { effectDurationSeconds: .5 } }, play: () => plays++,
+    });
+    c.tick(1000); effect.setMode('running');
+    assert.equal(effect.beginTransition({ managed: true, id: 'late-mount', startedAt: 0 }), true);
+    await flush(); assert.equal(plays, 0); assert.equal(effect.snapshot().active, true);
+    assert.equal(c.tasks.size, 1); assert.equal([...c.tasks.values()][0].due, 8000);
+    effect.endTransition('late-mount'); await flush(); assert.equal(effect.snapshot().active, false);
+    effect.dispose();
+});
+
+test('legacy route and library pulses use an explicit cap independently of camera duration', async () => {
+    const c = clock(); const played = []; const pulse = deferred();
+    const effect = createFilmLeakController({ ...c,
+        settings: { transition: { durationSeconds: 2, effectDurationSeconds: .5, fadeOutMs: 100 } },
+        play: args => { played.push(args); return pulse.promise; },
+    });
+    effect.setMode('running'); effect.trigger('gesture'); await flush();
+    assert.equal(played[0].duration, 500); assert.equal(played[0].fadeOutMs, 100);
+    effect.dispose(); pulse.resolve(); await flush(); assert.equal(c.tasks.size, 0);
+});
+
+test('hidden preferences and disposal clear cap/watchdog timers even after visual completion or media failure', async () => {
+    const c = clock(); const played = []; const operations = [];
+    const effect = createFilmLeakController({ ...c, random: () => 0,
+        settings: { transition: { effectDurationSeconds: .5 } },
+        play: args => { played.push(args); const operation = deferred(); operations.push(operation); return operation.promise; },
+    });
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'hidden', startedAt: 0 });
+    assert.equal(c.tasks.size, 2); c.tick(100); effect.setMode('paused'); await played[0].ended;
+    assert.equal(played[0].signal.aborted, true); assert.equal(c.tasks.size, 0);
+    operations[0].resolve(); await flush(); assert.equal(c.tasks.size, 0);
+    effect.setMode('running'); effect.beginTransition({ managed: true, id: 'failed', startedAt: 100 });
+    operations[1].reject(new Error('media failed')); await flush();
+    assert.equal(effect.snapshot().active, true, 'a decoder failure does not release the actual camera lease');
+    assert.equal(c.tasks.size, 1, 'failed visual clears its cap but retains the bounded navigation watchdog');
+    effect.setMode('still'); await played[1].ended;
+    assert.equal(c.tasks.size, 0); assert.equal(played[1].signal.aborted, true);
+    effect.dispose(); c.tick(20000); await flush(); assert.equal(played.length, 2); assert.equal(c.tasks.size, 0);
 });

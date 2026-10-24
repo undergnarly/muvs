@@ -6,7 +6,7 @@ import { formatVisualNumber, validateVisualEffectsDraft, visualEffectsDraftEqual
 import './VisualEffectsSettings.css';
 
 const GROUPS = [
-    { key: 'transition', title: 'Переходы', toggle: 'Включить плёнку при переходах', help: 'Плёнка появляется вместе с переходом и остаётся, пока движется камера.' },
+    { key: 'transition', title: 'Переходы', toggle: 'Включить плёнку при переходах', help: 'Плёнка появляется сразу при переходе. Её длительность настраивается отдельно от движения камеры.' },
     { key: 'lightLeaks', title: 'Световые засветки', toggle: 'Включить световые засветки', help: 'Короткие цветные блики между переходами. Интервал выбирается случайно в заданном диапазоне.' },
     { key: 'filmDust', title: 'Пыль и царапины', toggle: 'Включить пыль и царапины', help: 'Плёночная текстура появляется отдельно от засветок, со своим случайным интервалом.' },
     { key: 'handheld', title: 'Живая камера', toggle: 'Включить живую камеру', help: 'Мягкое движение камеры на 3D-страницах, в том числе когда вы не листаете сайт.' },
@@ -120,8 +120,9 @@ function VisualEffectsEditor({ initialValue, updateSiteSettings }) {
                     <div className="ves-fields">
                         {group.key === 'transition' && <>
                             <NumberField {...fields} group="transition" field="durationSeconds" label="Длительность перехода" unit="с" hint="Время движения камеры в 3D: от 0,2 до 3 с." />
+                            <NumberField {...fields} group="transition" field="effectDurationSeconds" label="Длительность анимации плёнки" unit="с" hint="0 — до конца перехода. Например, 0,5 с — вместе с затуханием. При остановке камеры эффект завершается раньше." />
                             <RangeField {...fields} group="transition" field="opacity" label="Непрозрачность плёнки" percent />
-                            <NumberField {...fields} group="transition" field="fadeOutMs" label="Затухание после остановки" unit="мс" step={10} />
+                            <NumberField {...fields} group="transition" field="fadeOutMs" label="Время затухания плёнки" unit="мс" step={10} />
                         </>}
                         {(group.key === 'lightLeaks' || group.key === 'filmDust') && <>
                             <NumberField {...fields} group={group.key} field="durationSeconds" label={group.key === 'lightLeaks' ? 'Длительность засветки' : 'Длительность текстуры'} unit="с" />

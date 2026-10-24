@@ -18,6 +18,14 @@ test('partial persisted tuning preserves zero opacity and independent family swi
     assert.deepEqual(value.lightLeaks, VISUAL_EFFECTS_DEFAULTS.lightLeaks);
 });
 
+test('film duration is independent of camera timing and old saved presets keep full-motion mode', () => {
+    const value = normalizeVisualEffects({ transition: { durationSeconds: 2, effectDurationSeconds: .5, fadeOutMs: 100 } });
+    assert.equal(value.transition.durationSeconds, 2);
+    assert.equal(value.transition.effectDurationSeconds, .5);
+    assert.equal(value.transition.fadeOutMs, 100);
+    assert.equal(normalizeVisualEffects({ transition: { durationSeconds: 2 } }).transition.effectDurationSeconds, 0);
+});
+
 test('every numeric field clamps to its safe range and rejects missing non-numbers', () => {
     for (const [group, fields] of Object.entries(VISUAL_EFFECTS_LIMITS)) for (const [key, [min, max]] of Object.entries(fields)) {
         const get = raw => normalizeVisualEffects({ [group]: { [key]: raw } })[group][key];
