@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -14,6 +14,7 @@ import { createHandheldCamera } from '../../utils/handheldCamera';
 import { normalizeVisualEffects } from '../../utils/visualEffects';
 import { sceneDampingAlpha, sceneMotionDelta, sceneTransitionDuration } from '../../utils/visualMotionTiming';
 import { startSettlingFrame } from '../../utils/settlingFrame';
+import { initialSectionApproached, sectionApproachReducer } from '../../utils/sectionApproach';
 import { keyboardSeek } from '../../utils/playerSeek';
 import { scenePublicPath } from '../../utils/scenePublicPath';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
@@ -1330,20 +1331,17 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef, shadowSettings }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionApproached = true, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef, shadowSettings }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
     const sectionContent = (
         // Hidden section fonts/assets must not suspend the menu or its camera.
         <Suspense fallback={null}>
-            {!simple && visibleReleaseEntries.map(({ release, index }) => (
-                <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
-            ))}
             {visibleReleaseEntries.map(({ release, index }) => (
-                <React.Fragment key={release.id ?? index}>
-                    {!hideBillboard && (
+                !hideBillboard && (
                         <Billboard
+                            key={release.id ?? index}
                             release={release}
                             x={index * RELEASE_SPACING}
                             billboard={billboard}
@@ -1354,15 +1352,27 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
                             isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
                                 && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
-                    )}
-                    <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} loadFull={Math.abs(index - activeItemIndex) <= 1} />
-                    <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} startupReady={hideBillboard} />
-                    {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} codeCaption={codeCaption} />}
-                    {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} />}
-                </React.Fragment>
+                )
             ))}
-            {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
-            {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} comingSoon={tvComingSoon} />}
+            {sectionApproached && (
+                // New detail fonts may suspend without hiding the eager cover
+                // shell/fallback. The latch keeps this subtree on return/reentry.
+                <Suspense fallback={null}>
+                    {!simple && visibleReleaseEntries.map(({ release, index }) => (
+                        <PlatformStack key={`stack-${release.id ?? index}`} release={release} x={index * RELEASE_SPACING} stackCfg={stack} />
+                    ))}
+                    {visibleReleaseEntries.map(({ release, index }) => (
+                        <React.Fragment key={release.id ?? index}>
+                            <FloorPhotoSheets x={index * RELEASE_SPACING} z={photoZ} seed={index * 7} gallery={release.gallery} loadFull={Math.abs(index - activeItemIndex) <= 1} />
+                            <FloorText release={release} x={index * RELEASE_SPACING} z={floorTextZ} richText={richText} fullDescriptionOnly={fullDescriptionOnly} startupReady={hideBillboard} />
+                            {showCodeCaption && <CodeShortDescription release={release} x={index * RELEASE_SPACING} codeCaption={codeCaption} />}
+                            {!simple && <SupportFloorText x={index * RELEASE_SPACING} support={support} />}
+                        </React.Fragment>
+                    ))}
+                    {portfolio && portfolio.length > 0 && <PortfolioItems items={portfolio} />}
+                    {tvMix && <TVScreen mix={tvMix} playing={tvPlaying} tv={tv} comingSoon={tvComingSoon} />}
+                </Suspense>
+            )}
         </Suspense>
     );
 
@@ -2272,6 +2282,8 @@ export const Scene3DShell = ({
         done: false,
     } : null);
     const [hubPhase, setHubPhase] = useState(() => (hub ? hubStateRef.current.phase : 'section'));
+    const [sectionApproached, approachSection] = useReducer(sectionApproachReducer,
+        { hub, phase: hubPhase }, initialSectionApproached);
     const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
     const [activeKey, setActiveKey] = useState(hubInit?.entered || 'music');
     const activeStopCount = hub && activeKey === 'music' ? Math.min(3, stopCount) : stopCount;
@@ -2471,6 +2483,7 @@ export const Scene3DShell = ({
     const startTravelIn = useCallback((entryStop = 0) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
+        approachSection('enter');
         beginSceneMotion('hub-entry');
         captureHubTravelLane(st);
         goTo(entryStop, true, entryStop);
@@ -2808,6 +2821,7 @@ export const Scene3DShell = ({
                     >
                         <Scene
                             releases={effectiveItems}
+                            sectionApproached={sectionApproached}
                             activeItemIndex={releaseSwitcher.current}
                             activeItemOnly={activeKey === 'music'}
                             floorView={!!(sectionControls && currentIndex > 0)}
