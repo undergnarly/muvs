@@ -1,7 +1,8 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
-import { FaMusic, FaNewspaper, FaCode, FaCompactDisc, FaChartLine, FaEnvelope, FaEye } from 'react-icons/fa';
+import { FaMusic, FaCode, FaCompactDisc, FaChartLine, FaEnvelope, FaEye } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { normalizeDashboardStats } from '../../utils/dashboardStats';
 
 const StatCard = ({ title, count, icon: Icon, color }) => (
     <div style={{
@@ -22,7 +23,7 @@ const StatCard = ({ title, count, icon: Icon, color }) => (
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            <Icon size={24} />
+            {React.createElement(Icon, { size: 24 })}
         </div>
         <div>
             <h3 style={{ fontSize: '14px', color: 'var(--color-text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</h3>
@@ -32,7 +33,8 @@ const StatCard = ({ title, count, icon: Icon, color }) => (
 );
 
 const Dashboard = () => {
-    const { releases, mixes, projects, news, stats, messages, resetData } = useData();
+    const { releases, mixes, projects, stats: rawStats, messages, resetData } = useData();
+    const stats = normalizeDashboardStats(rawStats);
 
     // Get last 14 days for chart
     const getLast14Days = () => {
@@ -76,7 +78,8 @@ const Dashboard = () => {
 
     return (
         <div>
-            <h1 style={{ fontSize: '32px', marginBottom: '32px', color: 'var(--color-text-light)' }}>Dashboard</h1>
+            <h1 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--color-text-light)' }}>Dashboard</h1>
+            <p style={{ marginBottom: '32px', color: 'var(--color-text-dim)' }}>Historical site statistics. New visits are not currently recorded here. Dubplates activity is available in its own section.</p>
 
             {/* Stats Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '40px' }}>

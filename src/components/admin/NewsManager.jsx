@@ -4,9 +4,13 @@ import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import useAdminSave from '../../hooks/useAdminSave';
+import AdminSaveFeedback from './AdminSaveFeedback';
 
 const NewsManager = () => {
     const { news, newsSettings, updateData } = useData();
+    const persistence = useAdminSave();
+    const { saving, save } = persistence;
     const [activeTab, setActiveTab] = useState('items'); // 'items' or 'settings'
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -17,24 +21,16 @@ const NewsManager = () => {
     const [galleryTarget, setGalleryTarget] = useState(null);
 
     // Settings State
-    const [settingsData, setSettingsData] = useState(newsSettings || {
+    const [settingsData, setSettingsData] = useState(() => ({
         titleFontSize: '60px',
         titleTopPosition: '20%',
         backgroundImageDesktop: '',
-        backgroundImageMobile: ''
-    });
+        backgroundImageMobile: '',
+        ...newsSettings,
+    }));
 
     const [settingsImagePreviewDesktop, setSettingsImagePreviewDesktop] = useState(newsSettings?.backgroundImageDesktop || null);
     const [settingsImagePreviewMobile, setSettingsImagePreviewMobile] = useState(newsSettings?.backgroundImageMobile || null);
-
-    // Initialize settings from context
-    React.useEffect(() => {
-        if (newsSettings) {
-            setSettingsData(newsSettings);
-            setSettingsImagePreviewDesktop(newsSettings.backgroundImageDesktop);
-            setSettingsImagePreviewMobile(newsSettings.backgroundImageMobile);
-        }
-    }, [newsSettings]);
 
     // Item Form State
     const [formData, setFormData] = useState({
@@ -56,10 +52,11 @@ const NewsManager = () => {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        if (saving) return;
         if (window.confirm('Delete this news item?')) {
             const updatedNews = news.filter(item => item.id !== id);
-            updateData('news', updatedNews);
+            await save(() => updateData('news', updatedNews));
         }
     };
 
@@ -73,7 +70,6 @@ const NewsManager = () => {
         });
         setImagePreview(null);
         setUploadStatus('');
-        setKeepOriginal(false);
         setIsFormOpen(true);
     };
 
@@ -126,8 +122,9 @@ const NewsManager = () => {
         }
     };
 
-    const handleSubmitItem = (e) => {
+    const handleSubmitItem = async (e) => {
         e.preventDefault();
+        if (saving || uploading) return;
 
         const newItem = {
             id: editingItem ? editingItem.id : Date.now(),
@@ -138,18 +135,17 @@ const NewsManager = () => {
             const updatedNews = news.map(item =>
                 item.id === editingItem.id ? newItem : item
             );
-            updateData('news', updatedNews);
+            if (await save(() => updateData('news', updatedNews))) setIsFormOpen(false);
         } else {
-            updateData('news', [newItem, ...news]);
+            if (await save(() => updateData('news', [newItem, ...news]))) setIsFormOpen(false);
         }
 
-        setIsFormOpen(false);
     };
 
-    const handleSaveSettings = (e) => {
+    const handleSaveSettings = async (e) => {
         e.preventDefault();
-        updateData('newsSettings', settingsData);
-        alert('News page settings saved!');
+        if (saving || uploading) return;
+        await save(() => updateData('newsSettings', settingsData));
     };
 
     const tabStyle = (isActive) => ({
@@ -164,12 +160,13 @@ const NewsManager = () => {
     });
 
     return (
-        <div>
+        <div aria-busy={saving}>
+            <AdminSaveFeedback {...persistence} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', color: 'var(--color-text-light)' }}>Manage News</h1>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button style={tabStyle(activeTab === 'items')} onClick={() => setActiveTab('items')}>News Items</button>
-                    <button style={tabStyle(activeTab === 'settings')} onClick={() => setActiveTab('settings')}>Page Settings</button>
+                    <button style={tabStyle(activeTab === 'items')} onClick={() => setActiveTab('items')} disabled={saving}>News Items</button>
+                    <button style={tabStyle(activeTab === 'settings')} onClick={() => setActiveTab('settings')} disabled={saving}>Page Settings</button>
                 </div>
             </div>
 
@@ -178,7 +175,7 @@ const NewsManager = () => {
                     {!isFormOpen ? (
                         <>
                             <div style={{ marginBottom: '20px' }}>
-                                <Button onClick={handleAddNew} variant="accent" icon={FaPlus}>
+                                <Button onClick={handleAddNew} variant="accent" icon={FaPlus} disabled={saving}>
                                     Add News Item
                                 </Button>
                             </div>
@@ -198,10 +195,10 @@ const NewsManager = () => {
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button onClick={() => handleEdit(item)} style={actionButtonStyle}>
+                                            <button onClick={() => handleEdit(item)} disabled={saving} style={actionButtonStyle}>
                                                 <FaEdit />
                                             </button>
-                                            <button onClick={() => handleDelete(item.id)} style={actionButtonStyle}>
+                                            <button onClick={() => handleDelete(item.id)} disabled={saving} style={actionButtonStyle}>
                                                 <FaTrash />
                                             </button>
                                         </div>
@@ -219,7 +216,7 @@ const NewsManager = () => {
                             <h2 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>
                                 {editingItem ? 'Edit News Item' : 'New News Item'}
                             </h2>
-                            <form onSubmit={handleSubmitItem} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <form onSubmit={handleSubmitItem} inert={saving || undefined} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
                                     <label style={labelStyle}>Title</label>
                                     <input
@@ -300,10 +297,10 @@ const NewsManager = () => {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                                    <Button type="submit" variant="accent">
+                                    <Button type="submit" variant="accent" disabled={saving || uploading}>
                                         {editingItem ? 'Update Item' : 'Create Item'}
                                     </Button>
-                                    <Button type="button" onClick={() => setIsFormOpen(false)} variant="secondary">
+                                    <Button type="button" onClick={() => setIsFormOpen(false)} variant="secondary" disabled={saving}>
                                         Cancel
                                     </Button>
                                 </div>
@@ -318,7 +315,7 @@ const NewsManager = () => {
                     <h2 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>
                         Page Configuration
                     </h2>
-                    <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <form onSubmit={handleSaveSettings} inert={saving || undefined} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>
                             <label style={labelStyle}>Title Font Size</label>
                             <input
@@ -413,7 +410,7 @@ const NewsManager = () => {
 
                         {uploading && <div style={{ color: 'var(--color-accent)' }}>{uploadStatus}</div>}
 
-                        <Button type="submit" variant="accent">
+                        <Button type="submit" variant="accent" disabled={saving || uploading}>
                             Save Configuration
                         </Button>
                     </form>

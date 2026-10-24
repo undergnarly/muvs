@@ -3,6 +3,7 @@ import { releases as defaultReleases } from '../data/releases';
 import { mixes as defaultMixes } from '../data/mixes';
 import { projects as defaultProjects } from '../data/projects';
 import { news as defaultNews } from '../data/news';
+import { createConfirmedDataWriter } from '../utils/confirmedDataSave';
 
 const DataContext = createContext();
 
@@ -20,8 +21,6 @@ export const DataProvider = ({ children }) => {
     const [messages, setMessages] = useState([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [siteSettingsReady, setSiteSettingsReady] = useState(false);
-    // Track whether user/admin made changes (not initial load)
-    const userChangedRef = React.useRef(new Set());
 
     // Fetch data from API on mount
     useEffect(() => {
@@ -57,38 +56,22 @@ export const DataProvider = ({ children }) => {
         return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
     }, []);
 
-    // Helper to save to API — only saves if explicitly marked as changed
-    const saveToApi = (key, data) => {
-        if (!userChangedRef.current.has(key)) return;
-        userChangedRef.current.delete(key);
-
-        fetch('/api/data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key, value: data })
-        }).catch(err => console.error(`Error saving ${key}:`, err));
-    };
-
-    // Persist changes to API — only fires after explicit user changes
-    useEffect(() => { if (isLoaded) saveToApi('releases', releases); }, [releases, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('mixes', mixes); }, [mixes, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('projects', projects); }, [projects, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('news', news); }, [news, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('about', about); }, [about, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('stats', stats); }, [stats, isLoaded]);
-    useEffect(() => { if (isLoaded) saveToApi('messages', messages); }, [messages, isLoaded]);
-
-    const updateData = (type, newData) => {
-        userChangedRef.current.add(type);
+    const contentWriter = React.useMemo(() => createConfirmedDataWriter({ onCommit: (type, data) => {
         switch (type) {
-            case 'releases': setReleases(newData); break;
-            case 'mixes': setMixes(newData); break;
-            case 'projects': setProjects(newData); break;
-            case 'news': setNews(newData); break;
-            case 'about': setAbout(newData); break;
-            default: console.warn(`Unknown data type: ${type}`);
+            case 'releases': setReleases(data); break;
+            case 'mixes': setMixes(data); break;
+            case 'projects': setProjects(data); break;
+            case 'news': setNews(data); break;
+            case 'newsSettings': setNewsSettings(data); break;
+            case 'about': setAbout(data); break;
+            case 'messages': setMessages(data); break;
         }
-    };
+    } }), []);
+
+    const updateData = React.useCallback(async (type, newData) => {
+        if (!isLoaded || !siteSettingsReady) throw new Error('Site data could not load. Reload before saving. Your draft is still here.');
+        return contentWriter(type, newData);
+    }, [contentWriter, isLoaded, siteSettingsReady]);
 
     const updateSiteSettings = React.useCallback(async (newSettings) => {
         if (!isLoaded || !siteSettingsReady) throw new Error('Site settings are not loaded yet');
@@ -104,67 +87,13 @@ export const DataProvider = ({ children }) => {
         return result;
     }, [isLoaded, siteSettingsReady]);
 
-    const trackVisit = async (path, referrer = '') => {
-        // Exclude admin and login paths
-        if (path.startsWith('/admin') || path.startsWith('/login')) return;
-
-        const today = new Date().toISOString().split('T')[0];
-
-        // Try to get country
-        let country = 'Unknown';
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            if (res.ok) {
-                const data = await res.json();
-                country = data.country_name || 'Unknown';
-            }
-        } catch (e) {
-            console.warn('Failed to resolve country:', e);
-        }
-
-        userChangedRef.current.add('stats');
-        setStats(prev => {
-            const newStats = { ...prev };
-            newStats.totalVisits = (newStats.totalVisits || 0) + 1;
-            newStats.daily = { ...prev.daily };
-            newStats.daily[today] = (newStats.daily[today] || 0) + 1;
-            newStats.pages = { ...prev.pages };
-            newStats.pages[path] = (newStats.pages[path] || 0) + 1;
-            newStats.sources = { ...prev.sources };
-            newStats.countries = { ...prev.countries };
-
-            let source = 'direct';
-            if (referrer) {
-                try {
-                    const url = new URL(referrer);
-                    source = url.hostname.replace('www.', '');
-                } catch (e) {
-                    source = 'unknown';
-                }
-            }
-            newStats.sources[source] = (newStats.sources[source] || 0) + 1;
-
-            // Update country stats
-            newStats.countries[country] = (newStats.countries[country] || 0) + 1;
-
-            return newStats;
-        });
-    };
-
-    const trackDetailView = () => {
-        userChangedRef.current.add('stats');
-        setStats(prev => ({ ...prev, detailViews: (prev.detailViews || 0) + 1 }));
-    };
-
     const addMessage = (msg) => {
-        userChangedRef.current.add('messages');
         const newMessage = { id: Date.now(), timestamp: new Date().toLocaleString(), ...msg };
-        setMessages(prev => [newMessage, ...prev]);
+        return updateData('messages', [newMessage, ...messages]);
     };
 
     const deleteMessage = (id) => {
-        userChangedRef.current.add('messages');
-        setMessages(prev => prev.filter(m => m.id !== id));
+        return updateData('messages', messages.filter(m => m.id !== id));
     };
 
     const resetData = () => {
@@ -182,6 +111,7 @@ export const DataProvider = ({ children }) => {
         mixes,
         projects,
         news,
+        newsSettings,
         about,
         siteSettings,
         stats,
@@ -190,8 +120,6 @@ export const DataProvider = ({ children }) => {
         siteSettingsReady,
         updateData,
         updateSiteSettings,
-        trackVisit,
-        trackDetailView,
         addMessage,
         deleteMessage,
         resetData

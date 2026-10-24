@@ -2,18 +2,24 @@ import React from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaTrash, FaEnvelope } from 'react-icons/fa';
+import useAdminSave from '../../hooks/useAdminSave';
+import AdminSaveFeedback from './AdminSaveFeedback';
 
 const MessagesManager = () => {
     const { messages, deleteMessage } = useData();
+    const persistence = useAdminSave();
+    const { saving, save } = persistence;
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        if (saving) return;
         if (window.confirm('Delete this message?')) {
-            deleteMessage(id);
+            await save(() => deleteMessage(id));
         }
     };
 
     return (
-        <div>
+        <div aria-busy={saving}>
+            <AdminSaveFeedback {...persistence} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', color: 'var(--color-text-light)' }}>Messages ({messages.length})</h1>
             </div>
@@ -46,7 +52,7 @@ const MessagesManager = () => {
                                         {msg.timestamp}
                                     </div>
                                 </div>
-                                <button onClick={() => handleDelete(msg.id)} style={{
+                                <button onClick={() => handleDelete(msg.id)} disabled={saving} aria-label="Delete message" style={{
                                     background: 'transparent',
                                     border: 'none',
                                     color: 'var(--color-text-dim)',

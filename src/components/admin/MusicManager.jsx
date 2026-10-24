@@ -5,6 +5,8 @@ import { FaCompactDisc, FaEdit, FaEye, FaEyeSlash, FaImages, FaPlus, FaSearch, F
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
 import './MusicManager.css';
+import useAdminSave from '../../hooks/useAdminSave';
+import AdminSaveFeedback from './AdminSaveFeedback';
 
 const RELEASE_FONT_OPTIONS = [
     { value: '', label: 'Camera Tuner default' },
@@ -25,6 +27,8 @@ const normalizeReleaseSlug = (value = '') => value
 
 const MusicManager = () => {
     const { releases, updateData } = useData();
+    const persistence = useAdminSave();
+    const { saving, save } = persistence;
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -79,18 +83,20 @@ const MusicManager = () => {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        if (saving) return;
         if (window.confirm('Delete this release?')) {
             const updated = releases.filter(item => item.id !== id);
-            updateData('releases', updated);
+            await save(() => updateData('releases', updated));
         }
     };
 
-    const handleToggleActive = (item) => {
+    const handleToggleActive = async (item) => {
+        if (saving) return;
         const updated = releases.map((release) => (
             release.id === item.id ? { ...release, active: release.active === false } : release
         ));
-        updateData('releases', updated);
+        await save(() => updateData('releases', updated));
     };
 
     const handleAddNew = () => {
@@ -174,8 +180,9 @@ const MusicManager = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (saving || uploading) return;
 
         const slug = normalizeReleaseSlug(formData.slug);
         const duplicate = slug && releases.some((item) => (
@@ -195,14 +202,8 @@ const MusicManager = () => {
             id: editingItem ? editingItem.id : Date.now()
         };
 
-        if (editingItem) {
-            const updated = releases.map(item => item.id === editingItem.id ? finalData : item);
-            updateData('releases', updated);
-        } else {
-            updateData('releases', [finalData, ...releases]);
-        }
-
-        setIsFormOpen(false);
+        const updated = editingItem ? releases.map(item => item.id === editingItem.id ? finalData : item) : [finalData, ...releases];
+        if (await save(() => updateData('releases', updated))) setIsFormOpen(false);
     };
 
     const activeCount = releases.filter((item) => item.active !== false).length;
@@ -225,14 +226,15 @@ const MusicManager = () => {
     // For this MVP, we'll keep tracks as is or allow basic JSON edit if needed.
 
     return (
-        <div className="music-admin-page">
+        <div className="music-admin-page" aria-busy={saving}>
+            <AdminSaveFeedback {...persistence} />
             <div className="music-admin-header">
                 <div>
                     <span className="music-admin-eyebrow">CONTENT / MUSIC</span>
                     <h1>Releases</h1>
                     <p>Create, organize and publish music releases.</p>
                 </div>
-                <Button variant="accent" onClick={handleAddNew}>
+                <Button variant="accent" onClick={handleAddNew} disabled={saving}>
                     <FaPlus style={{ marginRight: '8px' }} /> Add Release
                 </Button>
             </div>
@@ -254,6 +256,7 @@ const MusicManager = () => {
                             <input
                                 type="checkbox"
                                 checked={formData.active !== false}
+                                disabled={saving}
                                 onChange={e => setFormData({ ...formData, active: e.target.checked })}
                             />
                             <span className="music-active-switch" aria-hidden="true" />
@@ -264,7 +267,7 @@ const MusicManager = () => {
                         </label>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="music-admin-form">
+                    <form onSubmit={handleSubmit} className="music-admin-form" inert={saving || undefined}>
                         <section className="music-form-section">
                             <div className="music-form-section-title">
                                 <span>01</span>
@@ -958,8 +961,8 @@ const MusicManager = () => {
                         </div>
 
                         <div className="music-form-actions">
-                            <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                            <Button variant="accent" type="submit">Save Release</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)} disabled={saving}>Cancel</Button>
+                            <Button variant="accent" type="submit" disabled={saving || uploading}>{saving ? 'Saving…' : 'Save Release'}</Button>
                         </div>
                     </form>
                 </div>
@@ -1007,11 +1010,11 @@ const MusicManager = () => {
                                     </div>
                                 </div>
                                 <div className="music-release-actions">
-                                    <button className="music-icon-action" onClick={() => handleToggleActive(item)} aria-label={isActive ? 'Hide release' : 'Publish release'} title={isActive ? 'Hide release' : 'Publish release'}>
+                                    <button className="music-icon-action" onClick={() => handleToggleActive(item)} disabled={saving} aria-label={isActive ? 'Hide release' : 'Publish release'} title={isActive ? 'Hide release' : 'Publish release'}>
                                         {isActive ? <FaEye /> : <FaEyeSlash />}
                                     </button>
-                                    <button className="music-icon-action" onClick={() => handleEdit(item)} aria-label="Edit release" title="Edit release"><FaEdit /></button>
-                                    <button className="music-icon-action is-danger" onClick={() => handleDelete(item.id)} aria-label="Delete release" title="Delete release"><FaTrash /></button>
+                                    <button className="music-icon-action" onClick={() => handleEdit(item)} disabled={saving} aria-label="Edit release" title="Edit release"><FaEdit /></button>
+                                    <button className="music-icon-action is-danger" onClick={() => handleDelete(item.id)} disabled={saving} aria-label="Delete release" title="Delete release"><FaTrash /></button>
                                 </div>
                             </article>
                         );

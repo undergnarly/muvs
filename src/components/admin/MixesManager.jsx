@@ -4,9 +4,13 @@ import Button from '../ui/Button';
 import { FaEdit, FaTrash, FaPlus, FaUpload, FaImages } from 'react-icons/fa';
 import { validateImageFile } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import useAdminSave from '../../hooks/useAdminSave';
+import AdminSaveFeedback from './AdminSaveFeedback';
 
 const MixesManager = () => {
     const { mixes, updateData } = useData();
+    const persistence = useAdminSave();
+    const { saving, save } = persistence;
     const [editingItem, setEditingItem] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -41,10 +45,11 @@ const MixesManager = () => {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        if (saving) return;
         if (window.confirm('Delete this mix?')) {
             const updated = mixes.filter(item => item.id !== id);
-            updateData('mixes', updated);
+            await save(() => updateData('mixes', updated));
         }
     };
 
@@ -95,8 +100,9 @@ const MixesManager = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (saving || uploading) return;
         const finalData = {
             ...formData,
             id: editingItem ? editingItem.id : Date.now()
@@ -104,18 +110,18 @@ const MixesManager = () => {
 
         if (editingItem) {
             const updated = mixes.map(item => item.id === editingItem.id ? finalData : item);
-            updateData('mixes', updated);
+            if (await save(() => updateData('mixes', updated))) setIsFormOpen(false);
         } else {
-            updateData('mixes', [finalData, ...mixes]);
+            if (await save(() => updateData('mixes', [finalData, ...mixes]))) setIsFormOpen(false);
         }
-        setIsFormOpen(false);
     };
 
     return (
-        <div>
+        <div aria-busy={saving}>
+            <AdminSaveFeedback {...persistence} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', color: 'var(--color-text-light)' }}>Manage Mixes</h1>
-                <Button variant="accent" onClick={handleAddNew}>
+                <Button variant="accent" onClick={handleAddNew} disabled={saving}>
                     <FaPlus style={{ marginRight: '8px' }} /> Add Mix
                 </Button>
             </div>
@@ -125,7 +131,7 @@ const MixesManager = () => {
                     <h3 style={{ marginBottom: '20px', color: 'var(--color-text-light)' }}>
                         {editingItem ? 'Edit Mix' : 'New Mix'}
                     </h3>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <form onSubmit={handleSubmit} inert={saving || undefined} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px' }}>
                             <input
                                 type="text"
@@ -392,8 +398,8 @@ const MixesManager = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                            <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                            <Button variant="accent" type="submit">Save</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsFormOpen(false)} disabled={saving}>Cancel</Button>
+                            <Button variant="accent" type="submit" disabled={saving || uploading}>{saving ? 'Saving…' : 'Save'}</Button>
                         </div>
                     </form>
                 </div>
@@ -410,10 +416,10 @@ const MixesManager = () => {
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleEdit(item)} style={actionButtonStyle}>
+                            <button onClick={() => handleEdit(item)} disabled={saving} style={actionButtonStyle}>
                                 <FaEdit />
                             </button>
-                            <button onClick={() => handleDelete(item.id)} style={{ ...actionButtonStyle, color: '#ff5555' }}>
+                            <button onClick={() => handleDelete(item.id)} disabled={saving} style={{ ...actionButtonStyle, color: '#ff5555' }}>
                                 <FaTrash />
                             </button>
                         </div>

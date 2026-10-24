@@ -1,29 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaUpload, FaTrash, FaSave, FaImages } from 'react-icons/fa';
 import { compressImage, validateImageFile, uploadImageWithoutCompression } from '../../utils/imageCompression';
 import MediaGallery from './MediaGallery';
+import useAdminSave from '../../hooks/useAdminSave';
+import AdminSaveFeedback from './AdminSaveFeedback';
 
 const AboutManager = () => {
     const { about, updateData } = useData();
+    const persistence = useAdminSave();
+    const { saving, save } = persistence;
     const [formData, setFormData] = useState(about);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
-    const [imagePreview, setImagePreview] = useState(about.backgroundImage || null);
+    const [, setImagePreview] = useState(about.backgroundImage || null);
     const [imagePreviewDesktop, setImagePreviewDesktop] = useState(about.backgroundImageDesktop || null);
     const [imagePreviewMobile, setImagePreviewMobile] = useState(about.backgroundImageMobile || null);
     const [keepOriginal, setKeepOriginal] = useState(false);
     const [galleryOpen, setGalleryOpen] = useState(false);
     const [galleryTarget, setGalleryTarget] = useState(null);
-
-    // Initialize formData from about when component mounts or about changes
-    useEffect(() => {
-        setFormData(about);
-        setImagePreview(about.backgroundImage || null);
-        setImagePreviewDesktop(about.backgroundImageDesktop || null);
-        setImagePreviewMobile(about.backgroundImageMobile || null);
-    }, [about]);
 
     const handleImageUpload = async (e, imageType = 'background') => {
         const file = e.target.files[0];
@@ -85,20 +81,21 @@ const AboutManager = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        updateData('about', formData);
-        alert('About page updated successfully!');
+        if (saving || uploading) return;
+        await save(() => updateData('about', formData));
     };
 
     return (
-        <div>
+        <div aria-busy={saving}>
+            <AdminSaveFeedback {...persistence} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', color: 'var(--color-text-light)' }}>Manage About Page</h1>
             </div>
 
             <div style={formContainerStyle}>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <form onSubmit={handleSubmit} inert={saving || undefined} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div>
                         <label style={{ color: 'var(--color-text-light)', marginBottom: '8px', display: 'block' }}>Title</label>
                         <input
@@ -249,7 +246,7 @@ const AboutManager = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                        <Button variant="accent" type="submit">
+                        <Button variant="accent" type="submit" disabled={saving || uploading}>
                             <FaSave style={{ marginRight: '8px' }} /> Save Changes
                         </Button>
                     </div>
