@@ -1,0 +1,29 @@
+# 04-02 — Actual 3D circles and perceptible grain
+
+## User correction and implementation
+
+Supersedes04-01’s main screen-space light motes. User phone review correctly identified that barely visible grain and glowing viewport dots did not feel like objects in the3Dworld. Main now has **no DOM motes**: `WorldDust` is a root child of the existing R3F Scene, beside the world floor, never a camera child or ring/section child. Neutral translucent circular billboards rise in worldY, with a broad soft edge, no emitted point core/additive glow. Real model-view/projection/depth creates perspective size, apparent rise speed, camera parallax and occlusion.
+
+One bounded instanced drawcall,1500quads/3000triangles, no new renderer/assets/textures/dependencies. Deterministic8-unit worldcells retain overlapping anchors while camera moves; seed repeats every56worldXunits to match physical menu recentering. Only cells outside the fully faded15.5unit radius recycle. Vertical recycling fades at either end of8-unit rise; near3→5unit fade prevents huge near-camera blobs. Different world speeds.045–.1units/s; neutral linearRGB(.23,.25,.24), maximum alpha.24–.34 before soft edge/range/reveal. No per-frame React state/allocations/DOM geometry reads; existing frame loop updates uniforms, cell attributes only at crossings. Hidden/loading freezes clock, reduced/SaveData omits particles,0.8s soft reveal. Grain persists through floor views; particles no longer fade with the old gradient.
+
+Transparent art needed a bounded correctness fix: `alphaTest=.01` prevents fully invisible poster/video pixels from writing a rectangular depth mask over rear circles; `renderOrder10` plus normal depth test draws each cloud against actual artwork depth. Poster/video source/masks unchanged. Behavior checked against official [Material](https://threejs.org/docs/pages/Material.html) and [Object3D](https://threejs.org/docs/pages/Object3D.html) documentation.
+
+Grain diagnostic confirmed originalSVG alpha~50%, weak grayscale contrast and overly fine multi-octave texture. New tiled160SVG uses sRGB, opaque alpha, contrast transfer, one octave and240CSSpx display size. Settled layer opacity.08 after comparing the overly aggressive.12 prototype; effective grain contrast is substantially higher than original.075 due to corrected source, not a trivial opacity bump. Static and behind content/art, not animated full-screen noise. MobileDPR3 screenshots clearly show texture, including white floor.
+
+Dubplates remains a non-3D lightweight library: same grain, neutral softly edged14–92px circles behind content, fullviewport upward paths; far slower/near faster, no bright white centers. No Three or canvas loaded there. Existing event lifecycle and isolated negative-z content layering preserved.
+
+## Verification
+
+- 237/237 full Node tests (including6 new world-field/projection/density/wrap tests), scoped ESLint and production build pass. Existing large3Dchunk warning unchanged.
+- Independent read-only geometry/lifecycle/depth and grain/UI reviews: no blockers. Initial500instance prototype was too sparse in narrow frustum, increased to1500 to provide multiple depths. Close-card warning addressed with3→5near fade.
+- 320×640 and390×844 phone viewports, includingDPR3;1440×900 desktop. Allfour menu sections, native lateral swipe/in-transition, Codeentry/floor/return and ringwrap inspected. Real camera98→84 retains900identical worldanchors; cloud parent is Scene, not camera. Floor screenshot retains moving circles, rather than oldgradient fade. No horizontal overflow/page errors.
+- Real renderer check: main field adds exactlyone drawcall (14normal versus13reduced in observed menu),3036totaltriangles in sampled scene. Built mobile traced184 actual1500-instance draws while Music video playedready4/advancingtime; zeroDOMcircles. BuiltSaveData traces0field draws. Runtime reduced hidesmesh; stagedvisibility freezes exactelapsedtime across700ms and resumes. ActualOSvisibility/physicalhandset not available.
+- Built cold `/veiled` has opaque splash plane1 and renders its artwork with allvideos aborted, no errors/overflow. Existing Y2K/spray/video priority, camera stops and navigation preserved.
+- Library search→empty/reset, tag filtering, selection/export/Escape, desktop title sort/sticky toolbar/player and narrow320recovery exercised using actualinput. No productionplay/download tests. NearDOMrise14.4px/s versusfar6.6px/s in observed390viewport. NoThree/canvas;0new CDPpaint events over2.5seconds steady motion. Toolbar/player/dialog remain clear.
+- Screenshot evidence (ignored): `output/04-world-atmosphere/`, includesDPR3 allfour/transition/floor, mobile320/reduced/SaveData, built cold/fallback, desktop and library/export/sticky.
+
+## Publication and preservation
+
+Functional commits: `450b0f4`, `306202f`. Verified existing atomic release `/var/www/muvs-releases/306202f320c6` on2026-10-24. Fresh bare-URL live390DPR3 session: onecanvas, zeroDOMmotes, actual1500-instance worlddraws, grain.08/240px, Music videoready4/advancing, no overflow/errors. Native main→section→floor retains actualcircle draws (9119cumulative observed), oldgradient opacity0 butgrain.08; reviewed livefloor circles/texture/description. Real Dubplatessearch finds/restoresBirds track, noCanvas/Three, noerrors. Observed public AppRoot/shared/Dubplates JS/CSS hashes equal releasefiles; three new sourcefile hashes equal local. API online. No server config/backend/data/media writes; unrelated dirty `/root/muvs` checkout untouched. All local writes C:/Projects/Muvs, never OneDrive.
+
+Pre/post-deploy baseline unchanged from04-01: catalogSHA `20e5fe92600ce22d6d094a1c3c876e664f8c89f764d048caf7d6b4d4d501e410` (21published tracks), sorted original/preview audio manifest `7dc0a48c382c2acf525d068d5f8f7873e22efc3ba5e5b39e2883cc905937426c`, general CMS `dc2d30237a353a3caa4460531bb5aa13aaf10e217ab3bdd1c22500aefa4b7523`.

@@ -60,3 +60,7 @@ Plan/summary: `phases/03-dubplates-insights/03-01-PLAN.md`, `03-01-SUMMARY.md`.
 - [x]231tests, independent review,320/390/1440 visual/native-input/recovery/performance and live release/data-invariance verification.
 
 Plan/summary: `phases/04-living-background/04-01-PLAN.md`, `04-01-SUMMARY.md`.
+
+- [x] 04-02 phone review — replace mainHUDglints with actualworld-space neutral softcircles, realperspective/cameraparallax/depth/rise and56wrap; fix barelyvisibleSVGgrain and preserveitthroughfloor; libraryquietneutralcircles.237tests/independentreviews/DPR3nativejourney/live/data-invariance verified.
+
+Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMARY.md`.

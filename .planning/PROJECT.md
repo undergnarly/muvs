@@ -2,7 +2,7 @@
 
 Existing artist / creative-development website at muvs.dev. Worktree: C:\Projects\Muvs (never OneDrive). Preserve existing public releases, 3D navigation, admin data and unrelated server applications.
 
-Visual direction2026-10-24: preserve gray-to-white gradients and sculptural artwork, add fine photographic grain and sparse slow suspended white dust at multiple apparent depths. Shared lightweight CSS/DOM atmosphere, not another WebGL scene; quieter behind Dubplates content. Keep navigation/captions/player readable, respect reduced-motion/Save-Data/hidden tabs, and do not compromise priority logo/spray startup. See phase04-01 summary for verified implementation.
+Visual direction2026-10-24 (04-02 supersedes04-01): preserve gray-to-white gradients/sculptural artwork, add perceptible photographic grain and neutral translucent softly edged circular floaters, not glowing points. Main particles must exist in the actual3Dworld and move/project with the existing camera, not viewport-fixed DOM. One bounded instanced field inexistingCanvas, worldrise/depth/parallax/occlusion, no newrenderer. Static grain remains through floorviews. Dubplates stays a lightweight non-3D library with quieter neutral rising CSScircles behindcontent. Keep nav/captions/player readable, respect reduced-motion/Save-Data/hidden tabs, retain priority opaque logo/spray startup. See04-02 summary for verified implementation.
 
 ## Active addition: Dubplates
 
