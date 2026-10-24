@@ -16,8 +16,20 @@
         if (event.target.rel === 'preload') event.target.rel = 'stylesheet';
       }
     }, true);
-    if (!/^\/(?:admin|login|projects|dubplates)(?:\/|$)/.test(location.pathname)) {
+    if (!/^\/(?:admin|login|projects|dubplates)(?:\/|$)/i.test(location.pathname)) {
       window.addEventListener('muvs:loader-painted', function () {
+      // Build replaces only the URL, never an eager document-level preload.
+      var appRootModuleUrl = /* muvs:app-root-url */ null;
+      if (appRootModuleUrl) {
+        var moduleLink = document.createElement('link');
+        moduleLink.rel = 'modulepreload';
+        // Empty anonymous state matches Vite's import/preload credentials,
+        // including its modulepreload polyfill on older browsers.
+        moduleLink.crossOrigin = '';
+        moduleLink.href = appRootModuleUrl;
+        moduleLink.fetchPriority = 'high';
+        document.head.appendChild(moduleLink);
+      }
       var posters = ['/videos/objects/music-v3-poster-q90.webp', '/videos/objects/mixes-v4-decoded-poster-q90.webp', '/videos/objects/code-v4-decoded-poster-q90.webp'];
       var route = location.pathname.replace(/\/+$/, '').toLowerCase();
       var firstPoster = route === '/mixes' ? posters[1] : route === '/code' ? posters[2] : posters[0];
@@ -32,6 +44,16 @@
         link.crossOrigin = 'anonymous';
         link.href = href;
         link.fetchPriority = href === firstPoster ? 'high' : 'low';
+        document.head.appendChild(link);
+      });
+      var decorationSources = /* muvs:required-decorations */ [];
+      decorationSources.forEach(function (href) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.crossOrigin = 'anonymous';
+        link.href = href;
+        link.fetchPriority = 'low';
         document.head.appendChild(link);
       });
       }, { once: true });
