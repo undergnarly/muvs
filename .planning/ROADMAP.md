@@ -80,3 +80,13 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 - [x]04-09 — Independent transition film cap including fade, default0 legacy, absolute compositor deadline and actual navigation priority;341tests/review/native2s-camera+.5s-film/adminmobile/desktop/live/data invariance verified. See04-09 plan/summary.
 - [x]04-10 — Grounded alpha-silhouette casts, coherent existing smallprop contact/cast and saved direction/length/blur/opacity;362tests/independentreviews/mobile+desktop/nativeadmin+journey/API+video/liveassets/contentpreservation verified. See04-10 plan/summary.
 - [x]04-11 — Signed closer/farther shadow alignment;366tests/review/nativeadmin+mobile+desktop+journey/liveasset+datapreservation verified. See04-11 plan/summary.
+
+## Phase05 — November production readiness
+
+- [x] Measured first-visit/mobile baseline; lighter critical assets, parallel logo-first startup, hidden-work deferral and retained video/recovery/preferences.
+- [x] Current public document/SEO/statuses, private Dubplates boundary, confirmed admin persistence, sanitization/accessibility and measured phone Code typography.
+- [x] Compatible security patches/scoped Nginx+cache, guarded deploy/rollback, health logs, complete local archive and actual isolated live-data restore.
+- [x]437tests/433pass/4documented skips, nativeLinux/DOM/admin+mobile+desktop/video/failure/SEO, final live02a4a5d assets/process/data invariance.
+- [ ] Owner launch gates: exact Cloudflare robots purge + SearchConsole, actual release/Test content approval, off-host backup destination. Source/operations work is delivered; full SEO signoff waits for the CDN's stale HTML copy to clear.
+
+Plan/summary: `phases/05-production-readiness/05-01-PLAN.md`, `05-01-SUMMARY.md`.
