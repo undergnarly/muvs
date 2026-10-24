@@ -12,5 +12,5 @@ export default function ArtworkMaterial({ posterTexture, video }) {
     }, [gl, map, alphaMap]);
 
     return <meshBasicMaterial key={`${map?.uuid || 'empty'}:${alphaMap?.uuid || 'rgba'}`}
-        map={map} alphaMap={alphaMap} color="#ffffff" transparent opacity={map ? 1 : 0} toneMapped={false} />;
+        map={map} alphaMap={alphaMap} color="#ffffff" transparent alphaTest={0.01} opacity={map ? 1 : 0} toneMapped={false} />;
 }

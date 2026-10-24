@@ -1,0 +1,80 @@
+export const WORLD_DUST_CELL_SIZE = 8;
+export const WORLD_DUST_CELL_RADIUS = 2;
+export const WORLD_DUST_PER_CELL = 12;
+export const WORLD_DUST_WRAP_X = 56;
+export const WORLD_DUST_COUNT = (WORLD_DUST_CELL_RADIUS * 2 + 1) ** 3 * WORLD_DUST_PER_CELL;
+export const WORLD_DUST_REVEAL_SECONDS = 0.8;
+
+const mod = (value, length) => ((value % length) + length) % length;
+const finite = (value) => Number.isFinite(value) ? value : 0;
+const smoothstep = (low, high, value) => {
+    const t = Math.max(0, Math.min(1, (value - low) / (high - low)));
+    return t * t * (3 - 2 * t);
+};
+
+function random(cellX, cellY, cellZ, index, channel) {
+    let value = (Math.imul(mod(cellX, WORLD_DUST_WRAP_X / WORLD_DUST_CELL_SIZE) + 31, 374761393)
+        ^ Math.imul(cellY + 113, 668265263) ^ Math.imul(cellZ + 7919, 2147483647)
+        ^ Math.imul(index + 7, 1274126177) ^ Math.imul(channel + 1, 2246822519)) >>> 0;
+    value = Math.imul(value ^ (value >>> 13), 1274126177) >>> 0;
+    return ((value ^ (value >>> 16)) >>> 0) / 4294967296;
+}
+
+export function createWorldDustField() {
+    return {
+        anchors: new Float32Array(WORLD_DUST_COUNT * 3),
+        motion: new Float32Array(WORLD_DUST_COUNT * 4),
+        style: new Float32Array(WORLD_DUST_COUNT * 2),
+        cellX: null, cellY: null, cellZ: null,
+    };
+}
+
+export function updateWorldDustField(field, camera) {
+    const cx = Math.floor(finite(camera.x) / WORLD_DUST_CELL_SIZE);
+    const cy = Math.floor(finite(camera.y) / WORLD_DUST_CELL_SIZE);
+    const cz = Math.floor(finite(camera.z) / WORLD_DUST_CELL_SIZE);
+    if (field.cellX === cx && field.cellY === cy && field.cellZ === cz) return false;
+    field.cellX = cx; field.cellY = cy; field.cellZ = cz;
+    let particle = 0;
+    for (let x = cx - WORLD_DUST_CELL_RADIUS; x <= cx + WORLD_DUST_CELL_RADIUS; x++) {
+        for (let y = cy - WORLD_DUST_CELL_RADIUS; y <= cy + WORLD_DUST_CELL_RADIUS; y++) {
+            for (let z = cz - WORLD_DUST_CELL_RADIUS; z <= cz + WORLD_DUST_CELL_RADIUS; z++) {
+                for (let i = 0; i < WORLD_DUST_PER_CELL; i++, particle++) {
+                    const a = particle * 3;
+                    const m = particle * 4;
+                    const s = particle * 2;
+                    field.anchors[a] = x * WORLD_DUST_CELL_SIZE + random(x, y, z, i, 0) * WORLD_DUST_CELL_SIZE;
+                    field.anchors[a + 1] = y * WORLD_DUST_CELL_SIZE;
+                    field.anchors[a + 2] = z * WORLD_DUST_CELL_SIZE + random(x, y, z, i, 1) * WORLD_DUST_CELL_SIZE;
+                    field.motion[m] = random(x, y, z, i, 2) * WORLD_DUST_CELL_SIZE;
+                    field.motion[m + 1] = 0.045 + random(x, y, z, i, 3) * 0.055;
+                    field.motion[m + 2] = random(x, y, z, i, 4) * Math.PI * 2;
+                    field.motion[m + 3] = 0.12 + random(x, y, z, i, 5) * 0.2;
+                    field.style[s] = 0.10 + random(x, y, z, i, 6) * 0.24;
+                    field.style[s + 1] = 0.24 + random(x, y, z, i, 7) * 0.10;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+export function sampleWorldDust(field, index, time, out = {}) {
+    const a = index * 3;
+    const m = index * 4;
+    const s = index * 2;
+    const elapsed = finite(time);
+    const phase = field.motion[m + 2];
+    const rise = mod(field.motion[m] + elapsed * field.motion[m + 1], WORLD_DUST_CELL_SIZE);
+    out.x = field.anchors[a] + Math.sin(elapsed * 0.11 + phase) * field.motion[m + 3];
+    out.y = field.anchors[a + 1] + rise;
+    out.z = field.anchors[a + 2] + Math.cos(elapsed * 0.07 + phase) * 0.12;
+    out.radius = field.style[s];
+    out.opacity = field.style[s + 1] * smoothstep(0, 0.8, rise)
+        * (1 - smoothstep(7.2, 8, rise)) * smoothstep(0.08, 0.8, out.y);
+    return out;
+}
+
+export function worldDustDistanceOpacity(distance) {
+    return smoothstep(3, 5, distance) * (1 - smoothstep(12, 15.5, distance));
+}

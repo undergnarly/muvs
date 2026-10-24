@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../layout/Header';
 import Atmosphere from '../layout/Atmosphere';
+import WorldDust from './WorldDust';
 import AlbumPlayer from '../media/AlbumPlayer';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import { useData } from '../../context/DataContext';
@@ -1337,6 +1338,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, cfgRef, 
             <ambientLight intensity={0.75} />
             <directionalLight position={[6, 12, 8]} intensity={0.55} />
             <Floor big={!!hub} />
+            <WorldDust />
             {hub && (
                 <group ref={ringRef}>
                     <RingMenu
@@ -2734,10 +2736,11 @@ export const Scene3DShell = ({
                 </div>
             )}
 
-            <Atmosphere
+            <div
                 className={`home-new-gradient${sectionControls && currentIndex > 0 ? ' is-floor-view' : ''}`}
-                paused={!!(sectionControls && currentIndex > 0)}
+                aria-hidden="true"
             />
+            <Atmosphere />
             <Header
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
                 swipeHintTarget={swipeHintTarget}
