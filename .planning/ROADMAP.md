@@ -76,3 +76,6 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 - [x]04-07 — Motion-synchronous brighter film/100ms exit, centred return/reentry preserving selected item, continuous subtle idle handheld;304tests/independent44-test review/320+390+desktop/native/slow-media/preferences/live/resource/data invariance verified. See04-07 plan/summary.
 
 - [x]04-08 — Saved admin Visual style controls for transitions/light/dust/handheld, bounded shared schema and lightweight library config, truthful/concurrent-safe saves and cold-load recovery;331tests/independentreview/isolatedactualAPIpersist+auth+restart/responsive/native/failure/reset/live/resource/data invariance verified. See04-08 plan/summary.
+
+- [x]04-09 — Independent transition film cap including fade, default0 legacy, absolute compositor deadline and actual navigation priority;341tests/review/native2s-camera+.5s-film/adminmobile/desktop/live/data invariance verified. See04-09 plan/summary.
+- [ ]04-10 — Alpha-silhouette ground shadows and saved direction/length/blur/opacity, anchored to existing artwork feet; mobile perspective and lifecycle verification in progress.
