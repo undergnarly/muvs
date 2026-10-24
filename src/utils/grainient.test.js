@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-    GRAINIENT_SETTINGS, GRAINIENT_VERTEX_SHADER, GRAINIENT_FIELD_FRAGMENT_SHADER,
+    GRAINIENT_SETTINGS, GRAINIENT_FPS, GRAINIENT_GRAIN_SCALE,
+    GRAINIENT_VERTEX_SHADER, GRAINIENT_FIELD_FRAGMENT_SHADER,
     GRAINIENT_COMPOSITE_FRAGMENT_SHADER, createGrainientRamp,
     grainientFieldSize, grainientFrame, sampleGrainientField, GRAINIENT_FALLBACK,
 } from './grainient.js';
@@ -33,15 +34,37 @@ test('Grainient caches the original half-resolution field for each drawing buffe
     assert.deepEqual(grainientFieldSize(NaN, -200), { width: 1, height: 1 });
 });
 
-test('Grainient grain changes at 24Hz and wraps the same 97 original seeds', () => {
+test('Grainient grain changes four times slower at 6Hz and wraps the same 97 original seeds', () => {
+    assert.equal(GRAINIENT_FPS, 6);
     assert.equal(grainientFrame(0), 0);
-    assert.equal(grainientFrame(0.04), 0);
-    assert.equal(grainientFrame(1 / 24), 1);
-    assert.equal(grainientFrame(96 / 24), 96);
-    assert.equal(grainientFrame(97 / 24), 0);
-    assert.equal(grainientFrame(98 / 24), 1);
+    for (const seconds of [1 / 24, 2 / 24, 3 / 24, 1 / 6 - 0.000001]) {
+        assert.equal(grainientFrame(seconds), 0, `seed holds until 1/6 second, including ${seconds}`);
+    }
+    assert.equal(grainientFrame(1 / 6), 1);
+    assert.equal(grainientFrame(2 / 6 - 0.000001), 1);
+    assert.equal(grainientFrame(2 / 6), 2);
+    assert.equal(grainientFrame(96 / 6), 96);
+    assert.equal(grainientFrame(97 / 6), 0);
+    assert.equal(grainientFrame(98 / 6), 1);
     assert.equal(grainientFrame(-1), 0);
     assert.equal(grainientFrame(Infinity), 0);
+    assert.equal(grainientFrame(NaN), 0);
+});
+
+test('standalone grain timer shares the same cadence instead of retaining a separate 24Hz loop', () => {
+    const source = readFileSync(new URL('../components/layout/GrainientBackground.jsx', import.meta.url), 'utf8');
+    assert.match(source, /1000 \/ GRAINIENT_FPS/);
+    assert.doesNotMatch(source, /1000\s*\/\s*24\b/);
+});
+
+test('grain pitch doubles in both renderers without increasing its original amplitude', () => {
+    assert.equal(GRAINIENT_GRAIN_SCALE, 2);
+    assert.equal(GRAINIENT_SETTINGS.grainAmount, 0.04);
+    assert.equal(GRAINIENT_SETTINGS.grainSize, 0.5, 'supplied preset remains intact as provenance');
+    assert.match(GRAINIENT_COMPOSITE_FRAGMENT_SHADER, /floor\(gl_FragCoord\.xy \/ 2\.0\) \+ 0\.5/);
+    assert.match(GRAINIENT_COMPOSITE_FRAGMENT_SHADER, /uFrame \* vec2\(17\.0, 59\.0\)/);
+    assert.match(GRAINIENT_COMPOSITE_FRAGMENT_SHADER, /hash\(pixel\) \+ hash\(pixel \+ 7\.13\) - 1\.0/);
+    assert.match(GRAINIENT_COMPOSITE_FRAGMENT_SHADER, /grain \* uGrainAmount \*/);
 });
 
 test('Grainient settled mobile samples retain silk, Oklab and the longer gray floor', () => {

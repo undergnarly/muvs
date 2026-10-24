@@ -12,6 +12,9 @@ export const GRAINIENT_SETTINGS = Object.freeze({
     grainSize: 0.5, contrast: 1.29, saturation: 0.18, interactive: false,
 });
 
+export const GRAINIENT_FPS = 6;
+export const GRAINIENT_GRAIN_SCALE = 2;
+
 // GLSL 300 ES without a version directive. RawShaderMaterial supplies GLSL3;
 // the lightweight standalone renderer prepends the WebGL2 version directive.
 // Draw one NON-INDEXED triangle with exactly three vertices, as in React Bits.
@@ -97,9 +100,10 @@ float hash(vec2 p) {
 
 void main() {
     vec3 color = mix(vec3(1.0), texture(uField, vUv).rgb, clamp(uFieldOpacity, 0.0, 1.0));
-    vec2 pixel = gl_FragCoord.xy + uFrame * vec2(17.0, 59.0);
-    // grainSize=.5 and capped DPR<=2: original coarse mix weight is always
-    // zero, so this is precisely its fine grain branch at every supported DPR.
+    // User override: retain the preset's fine-grain distribution/amplitude,
+    // but correlate each 2x2 physical-pixel cell for twice the visible pitch.
+    vec2 pixel = floor(gl_FragCoord.xy / ${GRAINIENT_GRAIN_SCALE.toFixed(1)}) + 0.5
+        + uFrame * vec2(17.0, 59.0);
     float grain = hash(pixel) + hash(pixel + 7.13) - 1.0;
     float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
     color += grain * uGrainAmount * (0.45 + 2.2 * luma * (1.0 - luma));
@@ -139,7 +143,7 @@ export function grainientFieldSize(width, height) {
 }
 
 export function grainientFrame(seconds) {
-    return Math.floor(Math.max(0, finite(seconds)) * 24) % 97;
+    return Math.floor(Math.max(0, finite(seconds)) * GRAINIENT_FPS) % 97;
 }
 
 /** CPU reference/fallback sampler. x goes left→right, y goes top→bottom. */

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import {
-    GRAINIENT_SETTINGS, GRAINIENT_VERTEX_SHADER, GRAINIENT_FIELD_FRAGMENT_SHADER,
+    GRAINIENT_SETTINGS, GRAINIENT_FPS, GRAINIENT_VERTEX_SHADER, GRAINIENT_FIELD_FRAGMENT_SHADER,
     GRAINIENT_COMPOSITE_FRAGMENT_SHADER, GRAINIENT_FALLBACK,
     createGrainientRamp, grainientFieldSize, grainientFrame,
 } from '../../utils/grainient';
@@ -155,7 +155,7 @@ export default function GrainientBackground({ className = '', style }) {
             if (active()) timer = window.setTimeout(() => {
                 timer = 0;
                 if (active()) frame(window.performance.now());
-            }, Math.max(0, 1000 / 24 - (window.performance.now() - now)));
+            }, Math.max(0, 1000 / GRAINIENT_FPS - (window.performance.now() - now)));
         };
         const wake = () => {
             if (active() && !timer && !raf) raf = window.requestAnimationFrame(frame);
