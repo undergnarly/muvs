@@ -4,13 +4,14 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import vm from 'node:vm';
+import { GRAINIENT_FALLBACK } from './grainient.js';
 
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const earlyScript = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
 test('loading backgrounds are opaque and only the post-drawing runtime can blend the background', () => {
     assert.doesNotMatch(html, /#8f8f8fc2|transition:opacity/);
-    assert.match(html, /id="splash-screen" style="[^"]*background:linear-gradient\(to bottom,#696969,#a3a3a3 22%,#d8d8d8 46%,#fff 64%\)/);
+    assert.ok(html.includes(`id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:${GRAINIENT_FALLBACK}"`));
     assert.match(html, /#splash-plane\{[^}]*background:linear-gradient\([^}]*;opacity:1\}/);
     assert.match(html, /#splash-screen.departing\{background:none!important\}/);
     assert.match(html, /<div id="splash-plane"><div id="splash-grid" aria-hidden="true"><\/div><div id="splash-content">/);

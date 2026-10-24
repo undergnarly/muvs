@@ -6,7 +6,7 @@
     --dp-line: rgba(23, 23, 23, .15);
     min-height: 100svh;
     color: var(--dp-ink);
-    background: linear-gradient(179deg, #393939, #696969 10%, #adadad 20%, #bababa 30%, #ccc 40%, #d9d9d9 50%, #d8d8d8 70%, #e1e1e1 80%, #fff 90%) fixed;
+    background: linear-gradient(179deg, #393939 0%, #696969 10%, #adadad 20%, #bababa 30%, #cccccc 40%, #d9d9d9 50%, #d8d8d8 70%, #e1e1e1 80%, #ffffff 90%) fixed;
     padding-bottom: 122px;
     font-family: 'Urbanist', sans-serif;
     font-size: 15px;

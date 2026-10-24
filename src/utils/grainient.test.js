@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
     GRAINIENT_SETTINGS, GRAINIENT_VERTEX_SHADER, GRAINIENT_FIELD_FRAGMENT_SHADER,
     GRAINIENT_COMPOSITE_FRAGMENT_SHADER, createGrainientRamp,
-    grainientFieldSize, grainientFrame, sampleGrainientField,
+    grainientFieldSize, grainientFrame, sampleGrainientField, GRAINIENT_FALLBACK,
 } from './grainient.js';
 
 test('Grainient preset preserves the supplied five-color settings', () => {
@@ -73,4 +74,13 @@ test('Grainient shader contract shares one triangle, cached field and encoded ou
     assert.match(GRAINIENT_FIELD_FRAGMENT_SHADER, /uniform vec3 uRamp\[5\]/);
     assert.match(GRAINIENT_FIELD_FRAGMENT_SHADER, /fwidth\(scaled\)/);
     assert.doesNotMatch(GRAINIENT_FIELD_FRAGMENT_SHADER, /uTime|uStir|uTwirl|drift\(/);
+});
+
+test('opaque priority splash and both route fallbacks share the new settled palette', () => {
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    assert.equal(html.split(GRAINIENT_FALLBACK).length - 1, 2, 'outer splash and moving opaque plane match');
+    for (const path of ['../components/pages/HomeNewPage.css', '../components/pages/DubplatesPage.css']) {
+        const css = readFileSync(new URL(path, import.meta.url), 'utf8');
+        assert.ok(css.includes(GRAINIENT_FALLBACK), `${path} matches the loader/library fallback`);
+    }
 });
