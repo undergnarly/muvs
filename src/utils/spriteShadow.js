@@ -1,5 +1,5 @@
 export const SPRITE_SHADOW_DEFAULTS = Object.freeze({
-    enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5,
+    enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5, depthOffset: 0,
 });
 export const SPRITE_SHADOW_MASK_SIZE = 256;
 export const SPRITE_SHADOW_BIAS = .004;
@@ -18,6 +18,7 @@ export function normalizeSpriteShadowSettings(settings = {}) {
         directionDegrees: ((finite(settings.directionDegrees, defaults.directionDegrees) % 360) + 360) % 360,
         length: clamp(finite(settings.length, defaults.length), .1, 3),
         blur: clamp(finite(settings.blur, defaults.blur), 0, 1),
+        depthOffset: clamp(finite(settings.depthOffset, defaults.depthOffset), -1, 1),
     };
 }
 
@@ -128,7 +129,10 @@ export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], 
     const maximumBlur = config.blur * Math.min(width, opaqueHeight) * .11;
     const padding = maximumBlur * 1.5 + Math.max(width, height * config.length) / SPRITE_SHADOW_MASK_SIZE;
     const footY = y + (bounds.footV - .5) * height;
-    const contact = [x + (bounds.footU - .5) * width, finite(floorY, footY) + SPRITE_SHADOW_BIAS, z];
+    // Manual placement is independent of the cast: positive means behind the
+    // object along local -Z, measured against opaque height, never image padding.
+    const depthShift = -config.depthOffset * opaqueHeight;
+    const contact = [x + (bounds.footU - .5) * width, finite(floorY, footY) + SPRITE_SHADOW_BIAS, z + depthShift];
     const basis = spriteShadowBasis(config.directionDegrees);
     const sides = [(bounds.minU - bounds.footU) * width - padding, (bounds.maxU - bounds.footU) * width + padding];
     const depths = [-padding, length + padding];
@@ -143,11 +147,12 @@ export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], 
         uvs[i * 2] = bounds.footU + side / width;
         uvs[i * 2 + 1] = bounds.footV + depth / (height * config.length);
     }
-    const geometryKey = [width, height, x, y, z, floorY, config.directionDegrees, config.length, config.blur,
+    const geometryKey = [width, height, x, y, z, floorY, config.directionDegrees, config.length, config.blur, config.depthOffset,
         bounds.minU, bounds.maxU, bounds.maxV, bounds.footU, bounds.footV].join('|');
     return {
         positions, uvs, indices: new Uint16Array([0, 2, 1, 2, 3, 1]), geometryKey,
         contact, footY, opaqueHeight, length, padding, maximumBlur, basis,
+        depthOffset: config.depthOffset, depthShift,
         footV: bounds.footV, maxV: bounds.maxV,
         worldToUv: [1 / width, 1 / (height * config.length)],
     };

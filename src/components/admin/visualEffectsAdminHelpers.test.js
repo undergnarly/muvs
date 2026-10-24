@@ -76,3 +76,17 @@ test('custom shadow direction is valid and preserved without snapping to a cardi
     draft.shadows.blur = 0;
     assert.deepEqual(validateVisualEffectsDraft(draft), {});
 });
+
+test('shadow depth changes are dirty, validate both signs, and return to clean at zero', () => {
+    const saved = normalizeVisualEffects();
+    const draft = normalizeVisualEffects(saved);
+    for (const value of ['-0.15', '0.15']) {
+        draft.shadows.depthOffset = value;
+        assert.deepEqual(validateVisualEffectsDraft(draft), {});
+        assert.equal(visualEffectsDraftEqual(draft, saved), false);
+    }
+    draft.shadows.depthOffset = '1.01';
+    assert.ok(validateVisualEffectsDraft(draft)['shadows.depthOffset']);
+    draft.shadows.depthOffset = '0';
+    assert.equal(visualEffectsDraftEqual(draft, saved), true);
+});

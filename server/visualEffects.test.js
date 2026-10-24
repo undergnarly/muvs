@@ -49,7 +49,7 @@ test('real settings API saves an isolated effects patch across restart without c
                 response = await fetch(base + '/api/auth/validate-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin }) });
                 assert.equal(response.status, 200);
                 const cookie = response.headers.get('set-cookie').split(';')[0];
-                const effects = { transition: { opacity: .42, durationSeconds: 1.2, effectDurationSeconds: .5, fadeOutMs: 180 }, lightLeaks: { enabled: false }, filmDust: { opacity: .22, intervalMinSeconds: 12, intervalMaxSeconds: 20 }, handheld: { strength: 3, speed: .75 }, shadows: { enabled: true, opacity: .31, directionDegrees: 143, length: 1.2, blur: .4 } };
+                const effects = { transition: { opacity: .42, durationSeconds: 1.2, effectDurationSeconds: .5, fadeOutMs: 180 }, lightLeaks: { enabled: false }, filmDust: { opacity: .22, intervalMinSeconds: 12, intervalMaxSeconds: 20 }, handheld: { strength: 3, speed: .75 }, shadows: { enabled: true, opacity: .31, directionDegrees: 143, length: 1.2, blur: .4, depthOffset: .15 } };
                 const save = (value, origin = base) => fetch(base + '/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie, Origin: origin }, body: JSON.stringify({ key: 'siteSettings', value }) });
                 response = await save({ visualEffects: effects }, 'https://wrong-origin.invalid');
                 assert.equal(response.status, 403);

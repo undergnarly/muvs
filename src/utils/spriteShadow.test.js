@@ -28,7 +28,10 @@ test('shadow helper defaults match the persisted visual-style schema exactly', (
     assert.deepEqual(SPRITE_SHADOW_DEFAULTS, VISUAL_EFFECTS_DEFAULTS.shadows);
     for (const invalid of [undefined, null, [], '']) assert.deepEqual(normalizeSpriteShadowSettings(invalid), SPRITE_SHADOW_DEFAULTS);
     assert.deepEqual(normalizeSpriteShadowSettings({ enabled: false, opacity: 10, directionDegrees: 450, length: -1, blur: NaN }),
-        { enabled: false, opacity: 1, directionDegrees: 90, length: .1, blur: .5 });
+        { enabled: false, opacity: 1, directionDegrees: 90, length: .1, blur: .5, depthOffset: 0 });
+    for (const [input, expected] of [[-5, -1], [-.4, -.4], [0, 0], [.3, .3], [5, 1], [NaN, 0], [Infinity, 0], [undefined, 0]]) {
+        assert.equal(normalizeSpriteShadowSettings({ depthOffset: input }).depthOffset, expected);
+    }
 });
 
 test('RGBA bounds and lowest opaque foot ignore every RGB color and transparent image padding', () => {
@@ -138,6 +141,36 @@ test('ground geometry uses real perspective on phone views and keeps scene-paren
     const translated = createSpriteShadowLayout({ width: 3.4, height: 3.4, bounds: padded(), position: [56, 0, 0] });
     near(translated.contact[0] - layout.contact[0], 56);
     near(translated.contact[1], layout.contact[1]);
+});
+
+test('manual depth offset translates the entire main shadow only along local Z by opaque height', () => {
+    const bounds = padded();
+    const input = { width: 2, height: 3, position: [4, 2, -9], floorY: .4, bounds };
+    const before = JSON.stringify(input);
+    for (const directionDegrees of [0, 90, 143, 180, 270]) for (const length of [.1, 2]) {
+        const settings = { directionDegrees, length, blur: .8, opacity: .6 };
+        const base = createSpriteShadowLayout({ ...input, settings });
+        for (const depthOffset of [-1, -.35, 0, .4, 1]) {
+            const shifted = createSpriteShadowLayout({ ...input, settings: { ...settings, depthOffset } });
+            const shift = -depthOffset * base.opaqueHeight;
+            near(shifted.contact[0], base.contact[0]);
+            near(shifted.contact[1], base.contact[1]);
+            near(shifted.contact[2] - base.contact[2], shift);
+            near(shifted.depthOffset, depthOffset); near(shifted.depthShift, shift);
+            for (let i = 0; i < base.positions.length; i++) {
+                near(shifted.positions[i] - base.positions[i], i % 3 === 2 ? shift : 0, 2e-6);
+            }
+            for (const key of ['footY', 'opaqueHeight', 'length', 'padding', 'maximumBlur', 'footV', 'maxV']) near(shifted[key], base[key]);
+            for (const key of ['basis', 'uvs', 'indices', 'worldToUv']) assert.deepEqual(shifted[key], base[key]);
+            if (depthOffset) assert.notEqual(shifted.geometryKey, base.geometryKey);
+            else assert.equal(shifted.geometryKey, base.geometryKey);
+        }
+    }
+    assert.equal(JSON.stringify(input), before, 'the source object and authored floor must not move');
+    const source = readFileSync(new URL('../components/media/SpriteShadow.jsx', import.meta.url), 'utf8');
+    assert.match(source, /const \{ directionDegrees, length, blur, depthOffset \} = config/);
+    assert.match(source, /floorY, directionDegrees, length, blur, depthOffset,/);
+    assert.match(source, /depthOffset: layout\?\.depthOffset/);
 });
 
 test('transparent, disabled, zero-opacity and invalid-size sprites allocate no shadow geometry', () => {

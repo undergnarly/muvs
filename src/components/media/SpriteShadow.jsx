@@ -14,11 +14,11 @@ function GroundShadow({ texture, useGreen, width, height, position, floorY, conf
     const bounds = useMemo(() => getSpriteShadowMaskBounds(image, { useGreen, flipY }), [image, useGreen, flipY]);
     const { minU, maxU, maxV, footU, footV, empty } = bounds;
     const x = position[0] || 0, y = position[1] || 0, z = position[2] || 0;
-    const { directionDegrees, length, blur } = config;
+    const { directionDegrees, length, blur, depthOffset } = config;
     const layout = useMemo(() => createSpriteShadowLayout({ width, height, position: [x, y, z], floorY,
-        settings: { enabled: true, opacity: 1, directionDegrees, length, blur },
+        settings: { enabled: true, opacity: 1, directionDegrees, length, blur, depthOffset },
         bounds: { minU, maxU, maxV, footU, footV, empty },
-    }), [width, height, x, y, z, floorY, directionDegrees, length, blur, minU, maxU, maxV, footU, footV, empty]);
+    }), [width, height, x, y, z, floorY, directionDegrees, length, blur, depthOffset, minU, maxU, maxV, footU, footV, empty]);
     const uniforms = useMemo(() => ({
         uMask: { value: texture }, uGreen: { value: useGreen ? 1 : 0 },
         uOpacity: { value: config.opacity }, uFootV: { value: layout?.footV || 0 },
@@ -31,6 +31,7 @@ function GroundShadow({ texture, useGreen, width, height, position, floorY, conf
         maskChannel: useGreen ? 'green' : 'alpha', alphaBounds: bounds,
         contact: layout?.contact, opaqueFootY: layout?.footY,
         castLength: layout?.length, blurRadius: layout?.maximumBlur,
+        depthOffset: layout?.depthOffset, depthShift: layout?.depthShift,
     }), [useGreen, bounds, layout]);
     if (!layout) return null;
     return <mesh name="sprite-ground-shadow" raycast={ignoreRaycast} renderOrder={-4} userData={metadata}>

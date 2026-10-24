@@ -29,7 +29,7 @@ test('film duration is independent of camera timing and old saved presets keep f
 test('older saved presets gain main-object shadows without changing their film or camera tuning', () => {
     const old = { transition: { effectDurationSeconds: .5, opacity: .42 }, handheld: { strength: 2 } };
     const value = normalizeVisualEffects(old);
-    assert.deepEqual(value.shadows, { enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5 });
+    assert.deepEqual(value.shadows, { enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5, depthOffset: 0 });
     assert.equal(value.transition.effectDurationSeconds, .5);
     assert.equal(value.transition.opacity, .42);
     assert.equal(value.handheld.strength, 2);
@@ -38,9 +38,19 @@ test('older saved presets gain main-object shadows without changing their film o
 
 test('persisted shadow directions remain exact, including custom angles and range endpoints', () => {
     for (const directionDegrees of [0, 90, 143, 143.25, 180, 270, 360]) {
-        const shadows = { enabled: false, opacity: 0, directionDegrees, length: .75, blur: 0 };
+        const shadows = { enabled: false, opacity: 0, directionDegrees, length: .75, blur: 0, depthOffset: 0 };
         assert.deepEqual(normalizeVisualEffects({ shadows }).shadows, shadows);
     }
+});
+
+test('shadow depth defaults to no shift for existing presets and saves both signs independently', () => {
+    const old = { enabled: true, directionDegrees: 180, length: 2.25, opacity: .26, blur: .5 };
+    assert.deepEqual(normalizeVisualEffects({ shadows: old }).shadows, { ...old, depthOffset: 0 });
+    for (const depthOffset of [-1, -.15, 0, .15, 1]) {
+        assert.deepEqual(normalizeVisualEffects({ shadows: { ...old, depthOffset: String(depthOffset) } }).shadows,
+            { ...old, depthOffset });
+    }
+    assert.equal(old.depthOffset, undefined);
 });
 
 test('every numeric field clamps to its safe range and rejects missing non-numbers', () => {

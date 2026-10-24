@@ -162,6 +162,7 @@ function VisualEffectsEditor({ initialValue, updateSiteSettings }) {
                             <ShadowDirectionField {...fields} />
                             <NumberField {...fields} group="shadows" field="directionDegrees" label="Точный угол тени" unit="°" step={1} hint="0° — назад, 90° — вправо, 180° — вперёд, 270° — влево." />
                             <RangeField {...fields} group="shadows" field="length" label="Длина тени" step={.05} hint="Длина относительно высоты объекта: 1× равен его высоте." />
+                            <RangeField {...fields} group="shadows" field="depthOffset" label="Сдвиг тени по глубине" percent hint="Плюс — дальше, за объект. Минус — ближе к камере. 0% — без сдвига; процент от высоты объекта." />
                             <RangeField {...fields} group="shadows" field="blur" label="Размытие тени" percent />
                             <RangeField {...fields} group="shadows" field="opacity" label="Непрозрачность тени" percent />
                         </>}

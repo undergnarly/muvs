@@ -27,7 +27,8 @@ export function menuDecorationShadowHeight(prop) {
 }
 
 // Reuse the existing two tiny soft quads, never a shadow-map render pass.
-// The core stays at the measured support; only the broader accent is cast.
+// The core stays at the measured support before manual local-Z placement;
+// only the broader accent is cast. The source prop/ground never moves.
 export function createMenuDecorationShadows(prop, settings) {
     const config = normalizeSpriteShadowSettings(settings);
     if (!prop?.grounded || !prop.shadow || !config.enabled || config.opacity <= 0) return [];
@@ -41,6 +42,7 @@ export function createMenuDecorationShadows(prop, settings) {
     const angle = config.directionDegrees * Math.PI / 180;
     const directionX = Math.sin(angle), directionZ = -Math.cos(angle);
     const height = menuDecorationShadowHeight(prop);
+    const depthShift = -config.depthOffset * height;
     const castLength = height * config.length;
     const softness = .7 + .6 * config.blur;
     const width = footprint[0] * 1.45 * softness;
@@ -52,12 +54,12 @@ export function createMenuDecorationShadows(prop, settings) {
     return [
         {
             kind: 'cast', height, castLength,
-            position: [anchor[0] + directionX * castLength / 2, anchor[1], anchor[2] + directionZ * castLength / 2],
+            position: [anchor[0] + directionX * castLength / 2, anchor[1], anchor[2] + depthShift + directionZ * castLength / 2],
             size: [across, along + castLength], yaw: -angle, opacity: config.opacity * .55,
         },
         {
             kind: 'contact', height, castLength: 0,
-            position: [anchor[0], anchor[1] + .001, anchor[2]],
+            position: [anchor[0], anchor[1] + .001, anchor[2] + depthShift],
             size: [footprint[0] * .86, footprint[1] * .68], yaw: finite(yaw), opacity: config.opacity,
         },
     ];

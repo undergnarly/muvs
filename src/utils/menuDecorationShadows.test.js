@@ -70,6 +70,27 @@ test('global opacity and blur tune both existing shadows without changing the ca
     for (const shadow of createMenuDecorationShadows(prop, { opacity: 1 })) assert.ok(shadow.opacity <= 1);
 });
 
+test('manual depth offset translates both prop shadows by true posed height without changing the prop or cast', () => {
+    for (const prop of [...music(), ...mixes()]) {
+        const before = JSON.stringify(prop);
+        const height = menuDecorationShadowHeight(prop);
+        for (const directionDegrees of [0, 90, 180, 270]) for (const length of [.1, 2]) {
+            const settings = { directionDegrees, length, blur: .8, opacity: .6 };
+            const base = createMenuDecorationShadows(prop, settings);
+            for (const depthOffset of [-1, -.35, 0, .4, 1]) {
+                const shifted = createMenuDecorationShadows(prop, { ...settings, depthOffset });
+                for (let i = 0; i < base.length; i++) {
+                    near(shifted[i].position[0], base[i].position[0]);
+                    near(shifted[i].position[1], base[i].position[1]);
+                    near(shifted[i].position[2] - base[i].position[2], -depthOffset * height);
+                    for (const key of ['kind', 'height', 'castLength', 'yaw', 'opacity', 'size']) assert.deepEqual(shifted[i][key], base[i][key]);
+                }
+            }
+        }
+        assert.equal(JSON.stringify(prop), before);
+    }
+});
+
 test('disabled, zero-opacity, ungrounded and missing props create no shadow meshes', () => {
     const prop = music()[0];
     for (const settings of [{ enabled: false }, { opacity: 0 }]) assert.deepEqual(createMenuDecorationShadows(prop, settings), []);
