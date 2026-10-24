@@ -7,6 +7,7 @@ const sharp = require("sharp");
 const crypto = require("crypto");
 const createSampleflowMediaRouter = require("./sampleflow-media");
 const createDubplatesRouter = require("./dubplates");
+const { installPublicDocuments } = require("./publicDocuments");
 
 const app = express();
 app.set("trust proxy", "loopback");
@@ -185,6 +186,13 @@ if (!fs.existsSync(DB_FILE)) {
 // Middleware
 app.disable("x-powered-by");
 app.use(compression());
+// JSON may vary by the admin session and contains private CMS/analytics data.
+// Public media/preview handlers may explicitly replace this policy downstream.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.vary('Cookie');
+  next();
+});
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -557,6 +565,11 @@ app.post("/api/upload-audio", requireAdmin, audioUpload.single("audio"), (req, r
   // Return relative URL that Nginx will map to the file
   const fileUrl = `/uploads/audio/${req.file.filename}`;
   res.json({ url: fileUrl });
+});
+
+installPublicDocuments(app, {
+  getPublicData: () => publicData(getDb()),
+  distDir: path.resolve(__dirname, '../dist'),
 });
 
 // Start Server
