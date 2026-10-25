@@ -1,5 +1,13 @@
 # Roadmap
 
+## Phase 07 — Radio preview
+
+- [x] Three distinct built-in-imagegen transparent receiver assets and inline recovery; five-item hub/title/dust/cardinality without changing existing media or load priorities.
+- [x] Radio / Roots / Y2K / New Era, native horizontal controls and honest Coming soon/no-stream footer, direct links/header/SEO/admin caption, centered return and single-stop camera safety.
+- [x]487tests/483pass/4existing skips, build/scoped lint/independent review,320/390/1440/native/failure/preferences/regression and guarded live assets/route/health/data invariance verification.
+
+Plans/summaries: `phases/07-radio/07-01-PLAN.md`, `07-02-PLAN.md`, `07-03-PLAN.md` and matching SUMMARY files. Actual broadcasting/stream management is a future separately scoped feature.
+
 ## Phase 01 — Dubplates
 
 1. Secure persistent catalog, audio preparation, media routes and streaming ZIP export.
