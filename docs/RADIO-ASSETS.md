@@ -26,3 +26,27 @@ Original PNG SHA-256: modern
 `9b75bf818d89717b2a851416d1644f1366213eb229bd5c3be65d65858db61ebf`,
 oldschool `5c8600c053fc2d4b7f4c004eadcfe83f17b4bb46c60bed5d025acd8157adb7a6`,
 Y2K `7a0923c9d203fb160a2baabd84cd8ae6c30c51f72674a6aa51cea9d9abcc4ca8`.
+
+## Minimal modern receiver v2 — 2026-10-25
+
+Owner-requested replacement for main-menu Radio and New Era only. Generated
+through the built-in image_gen tool with transparent_background=true, not CLI.
+Exact final prompt and source path: [radio-modern-v2-prompt.json](../scripts/radio-modern-v2-prompt.json).
+New matte-white polymer body, charcoal speaker/control panel, brushed-aluminium
+knob/handle/antenna and restrained lime details. One isolated full object; no
+baked floor/ground shadow. Roots/Y2K, camera and per-receiver shadow controls
+remain unchanged. v1 files are retained for cached clients.
+
+Mechanical preparation only: `node scripts/prepare-radio-artwork.cjs --modern-v2
+<generated.png>`. Original1254²PNG SHA256
+`c12face2b5b1f20c527aedd8d184aa24520a493a337cc04c5214775db253cbeb`.
+Same768/192 square framing, WebP84/48, alpha100. No crop, recolor or alpha edits.
+
+| Use | Final saved path | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| Menu / New Era | public/images/radio/radio-modern-v2.webp | 81732 | 542ef437f7c2ff089a2d497cfe1605c26a0df5b45537ac98cd17ebdff6d3d1fa |
+| Inline recovery | src/assets/menu-fallback/radio-modern-v2.webp | 7352 | 12b2503bc98a2a6d5e57f0f11d23d63b0fc2c7597dac394fbaafe2c83a92b930 |
+
+Full image is56.5% lighter than v1; inline recovery42% lighter. Both have real
+alpha, clear border margins and identical normalized framing. Direct New Era
+preload and recovery switch together so cold/failure states never show glassv1.

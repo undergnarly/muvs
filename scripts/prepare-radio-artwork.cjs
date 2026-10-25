@@ -6,18 +6,22 @@ const path = require('node:path');
 const sharp = createRequire(path.join(__dirname, '../server/package.json'))('sharp');
 
 async function main() {
-    const sources = process.argv.slice(2);
-    if (sources.length !== 3) throw new Error('Usage: node scripts/prepare-radio-artwork.cjs modern.png oldschool.png y2k.png');
+    const args = process.argv.slice(2);
+    const modernV2 = args[0] === '--modern-v2';
+    const sources = modernV2 ? args.slice(1) : args;
+    if (sources.length !== (modernV2 ? 1 : 3)) throw new Error('Usage: node scripts/prepare-radio-artwork.cjs modern.png oldschool.png y2k.png OR --modern-v2 modern.png');
+    const keys = modernV2 ? ['modern'] : ['modern', 'oldschool', 'y2k'];
+    const version = modernV2 ? 'v2' : 'v1';
     const root = path.resolve(__dirname, '..');
     const records = [];
-    for (const [index, key] of ['modern', 'oldschool', 'y2k'].entries()) {
+    for (const [index, key] of keys.entries()) {
         const original = await readFile(sources[index]);
         const metadata = await sharp(original).metadata();
         const stats = await sharp(original).stats();
         if (!metadata.hasAlpha || stats.isOpaque) throw new Error(`${key}: expected genuine transparency`);
         for (const [kind, width, quality, relative] of [
-            ['poster', 768, 84, `public/images/radio/radio-${key}-v1.webp`],
-            ['fallback', 192, 48, `src/assets/menu-fallback/radio-${key}-v1.webp`],
+            ['poster', 768, 84, `public/images/radio/radio-${key}-${version}.webp`],
+            ['fallback', 192, 48, `src/assets/menu-fallback/radio-${key}-${version}.webp`],
         ]) {
             const destination = path.join(root, relative);
             const bytes = await sharp(original).resize({ width, withoutEnlargement: true })
