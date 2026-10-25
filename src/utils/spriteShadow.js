@@ -22,7 +22,7 @@ export function normalizeSpriteShadowSettings(settings = {}) {
     };
 }
 
-export function analyzeSpriteShadowMask(pixels, width, height, { channels = 4, useGreen = false, flipY = true, normalized = false, includeFootProfile = false } = {}) {
+export function analyzeSpriteShadowMask(pixels, width, height, { channels = 4, useGreen = false, flipY = true, normalized = false } = {}) {
     if (!pixels || !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1
         || !Number.isInteger(channels) || channels < 1 || channels > 4 || pixels.length < width * height * channels) return FALLBACK_BOUNDS;
     const sample = (x, y) => {
@@ -31,13 +31,10 @@ export function analyzeSpriteShadowMask(pixels, width, height, { channels = 4, u
         return pixels[(y * width + x) * channels + channel] * (normalized ? 255 : 1);
     };
     let left = width, right = -1, top = height, bottom = -1;
-    const footRows = includeFootProfile ? new Int16Array(width).fill(-1) : null;
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-        const alpha = sample(x, y);
-        if (alpha <= 8) continue;
+        if (sample(x, y) <= 8) continue;
         left = Math.min(left, x); right = Math.max(right, x);
         top = Math.min(top, y); bottom = Math.max(bottom, y);
-        if (footRows && alpha > 96 && (flipY || footRows[x] < 0)) footRows[x] = y;
     }
     if (right < left) return Object.freeze({ ...FALLBACK_BOUNDS, empty: true, readable: true });
     const band = Math.max(1, Math.ceil(height * .015));
@@ -50,28 +47,21 @@ export function analyzeSpriteShadowMask(pixels, width, height, { channels = 4, u
         footWeight += alpha;
         footX += (x + .5) / width * alpha;
     }
-    const maxV = flipY ? 1 - top / height : (bottom + 1) / height;
-    const footProfile = footRows ? Object.freeze(Array.from(footRows, (row, column) => {
-        if (row < 0) return null;
-        const v = flipY ? 1 - (row + .5) / height : (row + .5) / height;
-        return Object.freeze({ u: (column + .5) / width, v, sampleV: Math.min(maxV, v + 1 / height) });
-    })) : undefined;
     return Object.freeze({
         minU: left / width, maxU: (right + 1) / width,
         minV: flipY ? 1 - (bottom + 1) / height : top / height,
-        maxV,
+        maxV: flipY ? 1 - top / height : (bottom + 1) / height,
         footU: footWeight ? footX / footWeight : (left + right + 1) / (2 * width),
         footV: flipY ? 1 - (bottom + .5) / height : (top + .5) / height,
         empty: false, readable: true,
-        ...(footProfile ? { footProfile } : {}),
     });
 }
 
 const defaultCanvas = () => typeof document === 'undefined' ? null : document.createElement('canvas');
 
-export function getSpriteShadowMaskBounds(image, { useGreen = false, flipY = true, createCanvas = defaultCanvas, includeFootProfile = false } = {}) {
+export function getSpriteShadowMaskBounds(image, { useGreen = false, flipY = true, createCanvas = defaultCanvas } = {}) {
     if (!image || (typeof image !== 'object' && typeof image !== 'function')) return FALLBACK_BOUNDS;
-    const key = `${useGreen ? 'green' : 'alpha'}:${flipY ? 'flipped' : 'raw'}${includeFootProfile ? ':feet' : ''}`;
+    const key = `${useGreen ? 'green' : 'alpha'}:${flipY ? 'flipped' : 'raw'}`;
     const cached = imageBounds.get(image);
     if (cached?.[key]) return cached[key];
     const width = image.naturalWidth || image.videoWidth || image.width;
@@ -93,7 +83,7 @@ export function getSpriteShadowMaskBounds(image, { useGreen = false, flipY = tru
                 for (let c = 0; c < channels; c++) pixels[(y * sampleWidth + x) * channels + c]
                     = Math.round(image.data[(sy * width + sx) * channels + c] * (normalized ? 255 : 1));
             }
-            bounds = analyzeSpriteShadowMask(pixels, sampleWidth, sampleHeight, { channels, useGreen, flipY, includeFootProfile });
+            bounds = analyzeSpriteShadowMask(pixels, sampleWidth, sampleHeight, { channels, useGreen, flipY });
         } else {
             const canvas = createCanvas();
             if (!canvas) throw new Error('Canvas unavailable');
@@ -102,7 +92,7 @@ export function getSpriteShadowMaskBounds(image, { useGreen = false, flipY = tru
             if (!context) throw new Error('Canvas unavailable');
             context.drawImage(image, 0, 0, sampleWidth, sampleHeight);
             bounds = analyzeSpriteShadowMask(context.getImageData(0, 0, sampleWidth, sampleHeight).data,
-                sampleWidth, sampleHeight, { useGreen, flipY, includeFootProfile });
+                sampleWidth, sampleHeight, { useGreen, flipY });
         }
     } catch { /* Cross-origin/readback failure keeps the original GPU alpha and safe full-image bounds. */ }
     const record = cached || {};
@@ -129,7 +119,7 @@ export function spriteShadowBasis(directionDegrees) {
     };
 }
 
-export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], floorY, bounds = FALLBACK_BOUNDS, settings, contactCamera } = {}) {
+export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], floorY, bounds = FALLBACK_BOUNDS, settings } = {}) {
     const config = normalizeSpriteShadowSettings(settings);
     if (!config.enabled || config.opacity <= 0 || bounds.empty || !Number.isFinite(width) || !Number.isFinite(height)
         || width <= 0 || height <= 0) return null;
@@ -159,53 +149,12 @@ export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], 
     }
     const geometryKey = [width, height, x, y, z, floorY, config.directionDegrees, config.length, config.blur, config.depthOffset,
         bounds.minU, bounds.maxU, bounds.maxV, bounds.footU, bounds.footV].join('|');
-    const layout = {
+    return {
         positions, uvs, indices: new Uint16Array([0, 2, 1, 2, 3, 1]), geometryKey,
         contact, footY, opaqueHeight, length, padding, maximumBlur, basis,
         depthOffset: config.depthOffset, depthShift,
         footV: bounds.footV, maxV: bounds.maxV,
         worldToUv: [1 / width, 1 / (height * config.length)],
-    };
-    return appendFootContact(layout, { width, height, x, y, z, bounds, config, contactCamera });
-}
-
-// A three-quarter cutout has a sloping base. Intersect that visible contour
-// with the flat floor from its authored camera, then bridge ONLY the empty
-// space to the existing cast. Its original quad, extent and tuning stay exact.
-// Everything is prepared once with the cached <=256px mask, not per frame.
-function appendFootContact(layout, { width, height, x, y, z, bounds, config, contactCamera }) {
-    if (!Array.isArray(bounds.footProfile) || !Array.isArray(contactCamera)
-        || contactCamera.length !== 3 || !contactCamera.every(Number.isFinite)) return layout;
-    const [cx, cy, cz] = contactCamera;
-    if (cy <= layout.contact[1] + .0001 || Math.abs(cz - z) < .001) return layout;
-    const vertices = [], textureUvs = [], triangles = [], contactBlend = [0, 0, 0, 0];
-    let previous = null;
-    for (const foot of bounds.footProfile) {
-        // Ignore antennas/handles: contact belongs to the lower body only.
-        if (!foot || foot.v - bounds.footV > (bounds.maxV - bounds.footV) * .65) { previous = null; continue; }
-        const sx = x + (foot.u - .5) * width;
-        const sy = y + (foot.v - .5) * height;
-        const ratio = (layout.contact[1] - cy) / (sy - cy);
-        if (!Number.isFinite(ratio) || ratio <= 0 || ratio > 8) { previous = null; continue; }
-        const nearX = cx + (sx - cx) * ratio;
-        const nearZ = cz + (z - cz) * ratio;
-        const depth = (foot.sampleV - bounds.footV) * height * config.length;
-        const index = 4 + vertices.length / 3;
-        vertices.push(nearX, layout.contact[1], nearZ,
-            sx + layout.basis.castX * depth, layout.contact[1], z + layout.depthShift + layout.basis.castZ * depth);
-        textureUvs.push(foot.u, foot.sampleV, foot.u, foot.sampleV);
-        contactBlend.push(1, 0);
-        if (previous !== null) triangles.push(previous, index, previous + 1, index, index + 1, previous + 1);
-        previous = index;
-    }
-    if (!triangles.length) return layout;
-    return { ...layout,
-        positions: new Float32Array([...layout.positions, ...vertices]),
-        uvs: new Float32Array([...layout.uvs, ...textureUvs]),
-        indices: new Uint16Array([...layout.indices, ...triangles]),
-        contactBlend: new Float32Array(contactBlend),
-        geometryKey: `${layout.geometryKey}|contact:${contactCamera.join(',')}:${bounds.footProfile.map(foot => foot ? foot.v : '').join(',')}`,
-        contactVertexStart: 4, contactVertexCount: vertices.length / 3,
     };
 }
 
@@ -215,13 +164,10 @@ export function spriteShadowOpacityAt(distance, opacity = SPRITE_SHADOW_DEFAULTS
 }
 
 export const SPRITE_SHADOW_VERTEX = `
-    attribute float contactBlend;
-    varying float vContactBlend;
     varying vec2 vMaskUv;
     #include <fog_pars_vertex>
     void main() {
         vMaskUv = uv;
-        vContactBlend = contactBlend;
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -238,7 +184,6 @@ export const SPRITE_SHADOW_FRAGMENT = `
     uniform vec2 uWorldToUv;
     uniform vec3 uShadowColor;
     varying vec2 vMaskUv;
-    varying float vContactBlend;
     #include <fog_pars_fragment>
     float maskAt(vec2 point) {
         vec2 inside = step(vec2(0.0), point) * step(point, vec2(1.0));
@@ -258,9 +203,6 @@ export const SPRITE_SHADOW_FRAGMENT = `
             mask += (maskAt(vMaskUv + diagonal) + maskAt(vMaskUv - diagonal)
                 + maskAt(vMaskUv + vec2(diagonal.x, -diagonal.y)) + maskAt(vMaskUv + vec2(-diagonal.x, diagonal.y))) * 0.08;
         }
-        // The grounded edge is solid contact, not a magnified one-pixel alpha
-        // fringe. Blend back to the exact original mask where the cast joins.
-        mask = mix(mask, 1.0, vContactBlend);
         float alpha = mask * uOpacity * pow(1.0 - smoothstep(0.05, 1.02, distance), 1.1);
         #ifdef USE_FOG
             #ifdef FOG_EXP2

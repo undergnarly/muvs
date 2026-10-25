@@ -25,6 +25,7 @@ import MenuSound from '../media/MenuSound';
 import { dispatchMenuSoundNavigation } from '../../audio/menuSoundEvents';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import SpriteShadow from '../media/SpriteShadow';
+import { resolveRadioShadow } from '../../utils/radioShadows';
 import { useData } from '../../context/DataContext';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
@@ -537,7 +538,8 @@ const usePhoneTextFit = (fits, enabled = true) => {
     });
 };
 
-const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, shadowSettings, shadowContactCamera, fitPhoneText = false }) => {
+const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, motionEnabled = false, isMotionSettled, shadowSettings, radioShadowProfiles, radioShadowTarget, fitPhoneText = false }) => {
+    const shadow = resolveRadioShadow(radioShadowProfiles, radioShadowTarget, shadowSettings);
     const meshRef = useRef(null);
     const textFits = useRef([0, 1].map(() => ({ object: null, bounds: new Float32Array(4), ready: false })));
     usePhoneTextFit(textFits, fitPhoneText);
@@ -598,7 +600,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
             {!hideCover && (
                 <group>
                     <SpriteShadow posterTexture={tex} alphaMap={video?.alphaMap} width={width} height={height}
-                        position={[0, billboard.coverY, 0]} settings={shadowSettings} contactCamera={shadowContactCamera} />
+                        position={[0, billboard.coverY, 0]} settings={shadow.settings} offsetX={shadow.offsetX} />
                     <mesh ref={meshRef} position={[0, billboard.coverY, 0]}
                         onAfterRender={() => { if (tex) markMenuArtworkRendered(); }}>
                         <planeGeometry args={[width, height]} />
@@ -1395,7 +1397,7 @@ const PortfolioItems = ({ items }) => (
     </>
 );
 
-const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionApproached = true, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef, shadowSettings, shadowContactCamera }) => {
+const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionApproached = true, cfgRef, progressRef, releaseOffsetRef, floorTextZ, photoZ, billboard, stack, support, codeCaption, showCodeCaption, fullDescriptionOnly, simple, portfolio, richText, tvMix, tvPlaying, tv, tvComingSoon, dollyRestZRef, dollyPlayZ, dollyEnabled, hideBillboard = false, hub = null, artworkMotion = false, floorView = false, visualEffectsRef, shadowSettings, radioShadowProfiles, radioSection = false }) => {
     const visibleReleaseEntries = releases
         .map((release, index) => ({ release, index }))
         .filter(({ index }) => !activeItemOnly || index === activeItemIndex);
@@ -1414,7 +1416,8 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionA
                             loadFull={Math.abs(index - activeItemIndex) <= 1}
                             motionEnabled={artworkMotion && index === activeItemIndex}
                             shadowSettings={shadowSettings}
-                            shadowContactCamera={shadowContactCamera}
+                            radioShadowProfiles={radioShadowProfiles}
+                            radioShadowTarget={radioSection ? release.slug : undefined}
                             isMotionSettled={() => Math.abs(releaseOffsetRef.current - index * RELEASE_SPACING) < 0.025
                                 && progressRef.current < 0.001 && (!hub || hub.stateRef.current.phase === 'section')}
                         />
@@ -1486,6 +1489,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionA
                         decorationsEnabled={hub.phase === 'menu' || hub.phase === 'travel'}
                         stateRef={hub.stateRef}
                         shadowSettings={shadowSettings}
+                        radioShadowProfiles={radioShadowProfiles}
                     />
                 </group>
             )}
@@ -2848,7 +2852,6 @@ export const Scene3DShell = ({
         if (hub && cfgContext !== 'menu' && tunerConfigKey) {
             const sectionItems = siteSettings?.sceneItemConfigs?.[cfgContext] || {};
             await updateSiteSettings({
-                ...siteSettings,
                 sceneItemConfigs: {
                     ...(siteSettings?.sceneItemConfigs || {}),
                     [cfgContext]: { ...sectionItems, [tunerConfigKey]: hydrated },
@@ -2858,7 +2861,7 @@ export const Scene3DShell = ({
         }
 
         if (activeServerCfgKey) {
-            await updateSiteSettings({ ...siteSettings, [activeServerCfgKey]: hydrated });
+            await updateSiteSettings({ [activeServerCfgKey]: hydrated });
             return;
         }
 
@@ -2873,7 +2876,6 @@ export const Scene3DShell = ({
             const sectionItems = { ...(siteSettings?.sceneItemConfigs?.[cfgContext] || {}) };
             delete sectionItems[tunerConfigKey];
             await updateSiteSettings({
-                ...siteSettings,
                 sceneItemConfigs: {
                     ...(siteSettings?.sceneItemConfigs || {}),
                     [cfgContext]: sectionItems,
@@ -2883,7 +2885,7 @@ export const Scene3DShell = ({
         }
 
         if (activeServerCfgKey) {
-            await updateSiteSettings({ ...(siteSettings || {}), [activeServerCfgKey]: null });
+            await updateSiteSettings({ [activeServerCfgKey]: null });
             return;
         }
 
@@ -2919,7 +2921,8 @@ export const Scene3DShell = ({
                             hub={hubProps}
                             visualEffectsRef={visualEffectsRef}
                             shadowSettings={visualEffects.shadows}
-                            shadowContactCamera={activeKey === 'radio' ? [cfg.stops[0].pos.x, cfg.stops[0].pos.y - 2.6, cfg.stops[0].pos.z] : undefined}
+                            radioShadowProfiles={siteSettings?.radioShadows}
+                            radioSection={activeKey === 'radio'}
                             cfgRef={cfgRef}
                             progressRef={progressRef}
                             releaseOffsetRef={releaseSwitcher.offsetRef}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import MenuDecorations from './MenuDecorations';
 import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Html, Text } from '@react-three/drei';
 import { ROUTES } from '../../utils/constants';
 import { sanitizeCaptionHtml } from '../../utils/captionRichText';
@@ -16,6 +16,7 @@ import { createMenuDecorationTimeline, menuDecorationGroundY } from '../../utils
 import { menuParticleVisible } from '../../utils/menuParticleVisibility';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import SpriteShadow from '../media/SpriteShadow';
+import { resolveRadioShadow } from '../../utils/radioShadows';
 import { FONT_REGULAR } from '../../data/menuFonts';
 import MenuTitle from './MenuTitle';
 import './RingMenu.css';
@@ -172,7 +173,7 @@ const MixesBronzeParticles = ({ seed = 0, index, stateRef }) => {
     );
 };
 
-const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, shadowSettings, shadowFloorY, shadowContactCamera }) => {
+const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, shadowSettings, shadowFloorY, shadowOffsetX = 0 }) => {
     const meshRef = React.useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(url) || FALLBACK_COVER, {
         loadFull: true,
@@ -194,7 +195,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled,
     return (
         <>
         <SpriteShadow posterTexture={tex} alphaMap={video?.alphaMap} width={width} height={height}
-            settings={shadowSettings} floorY={shadowFloorY} contactCamera={shadowContactCamera} />
+            settings={shadowSettings} floorY={shadowFloorY} offsetX={shadowOffsetX} />
         <mesh ref={meshRef} onClick={onClick} onAfterRender={() => { if (motionEnabled && tex) markMenuArtworkRendered(); }}>
             <planeGeometry args={[width, height]} />
             <ArtworkMaterial posterTexture={tex} video={video} />
@@ -203,7 +204,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled,
     );
 };
 
-const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, decorationsEnabled, stateRef, shadowSettings, shadowContactCamera }) => {
+const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline, displayIndex, cover, caption, hub, onSelect, captionsVisible, particlesVisible, particleSettings, motionEnabled, decorationsEnabled, stateRef, shadowSettings, radioShadow }) => {
     const onClick = (e) => {
         e.stopPropagation();
         onSelect();
@@ -235,8 +236,8 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline
                 {cover && (
                     <group>
                     <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled}
-                        shadowSettings={shadowSettings}
-                        shadowContactCamera={shadowContactCamera}
+                        shadowSettings={item.key === 'radio' ? radioShadow.settings : shadowSettings}
+                        shadowOffsetX={item.key === 'radio' ? radioShadow.offsetX : 0}
                         shadowFloorY={item.key === 'music' || item.key === 'mixes' ? menuDecorationGroundY(item.key, hub) : undefined}
                         isMotionSettled={() => {
                         const state = stateRef?.current;
@@ -285,10 +286,8 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline
 
 const LOOP_COPIES = [-1, 0, 1];
 
-export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, decorationsEnabled = videosEnabled, stateRef, shadowSettings }) => {
-    const viewportWidth = useThree(state => state.size.width);
-    const contactDistance = viewportWidth >= 769 ? (hub.camDistDesktop ?? 9.5) : (hub.camDistMobile ?? 11);
-    const radioContactCamera = useMemo(() => [0, hub.camY - hub.itemY, contactDistance], [hub.camY, hub.itemY, contactDistance]);
+export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, decorationsEnabled = videosEnabled, stateRef, shadowSettings, radioShadowProfiles }) => {
+    const radioShadow = useMemo(() => resolveRadioShadow(radioShadowProfiles, 'menu', shadowSettings), [radioShadowProfiles, shadowSettings]);
     const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch(HUB_COUNT) }), []);
     const decorationTimeline = useMemo(() => createMenuDecorationTimeline(), []);
     const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, phase: '', ready: false, settled: false, visible: true, skip: false });
@@ -332,7 +331,7 @@ export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, ac
                 decorationsEnabled={decorationsEnabled && i === activeIndex}
                 stateRef={stateRef}
                 shadowSettings={shadowSettings}
-                shadowContactCamera={item.key === 'radio' ? radioContactCamera : undefined}
+                radioShadow={radioShadow}
             />
         )))}
     </>
