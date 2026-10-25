@@ -37,6 +37,12 @@
         firstPoster = '/images/menu/about-portrait-v1.webp';
         posters.push(firstPoster);
       }
+      if (route === '/radio') {
+        var radioEra = new URLSearchParams(location.search).get('item');
+        firstPoster = radioEra === 'new-era' ? '/images/radio/radio-modern-v1.webp'
+          : radioEra === 'y2k' ? '/images/radio/radio-y2k-v1.webp' : '/images/radio/radio-oldschool-v1.webp';
+        posters.push(firstPoster);
+      }
       posters.forEach(function (href) {
         var link = document.createElement('link');
         link.rel = 'preload';

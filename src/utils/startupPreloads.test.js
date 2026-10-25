@@ -11,10 +11,10 @@ const bundle = {
     'assets/AppRoot-hash123.js': { type: 'chunk', name: 'Anything', facadeModuleId: 'C:\\Projects\\Muvs\\src\\AppRoot.jsx', fileName: 'assets/AppRoot-hash123.js' },
 };
 
-function head(html, pathname = '/') {
+function head(html, pathname = '/', search = '') {
     const links = [], events = new Map();
     const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-    runInNewContext(script, { location: { pathname }, setTimeout: () => 1, clearTimeout() {},
+    runInNewContext(script, { location: { pathname, search }, URLSearchParams, setTimeout: () => 1, clearTimeout() {},
         window: { addEventListener: (name, listener) => events.set(name, listener) },
         document: { addEventListener() {}, createElement: () => ({}), head: { appendChild: link => { if (link.rel) links.push(link); } } },
     });
@@ -60,6 +60,19 @@ test('early low-priority decoration URLs match exactly the existing six readines
     assert.deepEqual(decorations.map(link => link.href), [...REQUIRED_DECORATION_URLS]);
     assert.ok(decorations.every(link => link.rel === 'preload' && link.as === 'image'
         && link.crossOrigin === 'anonymous' && link.fetchPriority === 'low'));
+});
+
+test('Radio warms only its own selected hero at high priority after loader paint, never on initial Music', () => {
+    const html = injectStartupPreloads(source, bundle);
+    for (const [query, name] of [['', 'oldschool'], ['?item=y2k', 'y2k'], ['?item=new-era', 'modern'], ['?item=unknown', 'oldschool']]) {
+        const radio = head(html, '/radio', query);
+        assert.deepEqual(radio.links, []);
+        radio.paint();
+        assert.deepEqual(radio.links.filter(link => link.as === 'image' && link.fetchPriority === 'high').map(link => link.href),
+            [`/images/radio/radio-${name}-v1.webp`]);
+    }
+    const home = head(html); home.paint();
+    assert.ok(home.links.every(link => !link.href.includes('/radio/')));
 });
 
 test('direct Dubplates/admin/login/project documents never register the main-site media/module warmup', () => {
