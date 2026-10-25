@@ -101,3 +101,5 @@ Plan/summary: `phases/05-production-readiness/05-01-PLAN.md`, `05-01-SUMMARY.md`
 Plan/summary: `phases/06-menu-sound/06-01-PLAN.md`, `06-01-SUMMARY.md`.
 
 - [x] 06-02 — White-by-default hub captions with saved native color / HEX / preview in Visual style; strict normalization, menu-only scope, existing presets preserved. 468 tests, independent reviews, real isolated API persistence, responsive/native/recovery and live exact-asset/data checks. See 06-02 plan/summary.
+
+- [x] 06-03 — Extend matching white/default color, saved admin choice and restrained shadow to all five Code object descriptions; preserve headings/full prose/layout. 468 tests, native mobile/desktop/custom-color/hub QA, review and live asset/data invariance pass. See 06-03 plan/summary.
