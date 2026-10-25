@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x]07-07 — Whole-Radio profile plus optional menu/era overrides; complete shadow style and extended placement limits, safe virtual legacy migration/strict sparse persistence.529tests/525pass/4existing skips, native responsive/admin/recovery/API/review/build and guarded live resource/data verification. See07-07 plan/summary.
+- [x]07-08 — Frontal Roots/Y2K/New Era with personal jungle stickers/calligraphic tags, aligned baseline and matching preload/inline/SEO/admin; menu uses same modernv3. Built-in generation/provenance, mobile+desktop/fallback/native and exact live assets verified. See07-08 plan/summary and docs/RADIO-ASSETS.
+- [x]07-06 — Minimal white/graphite/lime modernv2 published and verified; subsequent07-08 supersedes its angled artwork. See07-06 summary.
+
 - [x]07-05 user override — restore legacy Radio casts, retain texture fix; separate Admin→Radio length/X/depth per receiver with safe confirmed saves.511tests/review/mobile+desktop/API/live/exact-asset+data-invariance verified. See07-radio/07-05 plan/summary.
 
 ## Phase 07 — Radio preview
