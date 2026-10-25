@@ -17,9 +17,9 @@ test('three immutable radio eras have unique release-compatible identities in li
         assert.equal(station.active, true);
         assert.equal(station.era, station.artists);
         assert.equal(station.coverImage, {
-            roots: '/images/radio/radio-oldschool-v1.webp',
-            y2k: '/images/radio/radio-y2k-v1.webp',
-            'new-era': '/images/radio/radio-modern-v2.webp',
+            roots: '/images/radio/radio-oldschool-v2.webp',
+            y2k: '/images/radio/radio-y2k-v2.webp',
+            'new-era': '/images/radio/radio-modern-v3.webp',
         }[station.slug]);
         assert.ok(station.genres.length >= 2);
     }
