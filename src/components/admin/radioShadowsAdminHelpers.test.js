@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { RADIO_SHADOW_LIMITS, normalizeRadioShadowProfiles } from '../../utils/radioShadows.js';
-import { buildRadioShadowPatch, radioShadowProfileEqual, validateRadioShadowDraft } from './radioShadowsAdminHelpers.js';
+import { buildRadioShadowPatch, createRadioShadowDraft, radioShadowProfileEqual, resolveRadioShadowDraftProfiles, validateRadioShadowDraft } from './radioShadowsAdminHelpers.js';
 
 test('an inherited Radio profile is clean regardless of unused numeric drafts', () => {
     const saved = normalizeRadioShadowProfiles();
@@ -73,5 +73,68 @@ test('custom toggle itself is a real change even when all numeric values equal i
     const draft = normalizeRadioShadowProfiles();
     draft.menu.custom = true;
     assert.equal(radioShadowProfileEqual(draft.menu, saved.menu), false);
-    assert.deepEqual(buildRadioShadowPatch(draft, saved), { menu: { custom: true, length: .55, offsetX: 0, depthOffset: 0 } });
+    assert.deepEqual(buildRadioShadowPatch(draft, saved), { menu: { ...draft.menu, custom: true } });
+});
+
+test('common Radio profile supports all shadow settings and the expanded placement ranges', () => {
+    const saved = createRadioShadowDraft();
+    const draft = createRadioShadowDraft();
+    draft.all = { custom: true, enabled: false, opacity: '0.83', directionDegrees: '360', length: '6', blur: '0.9', offsetX: '-6', depthOffset: '5' };
+    assert.deepEqual(validateRadioShadowDraft(draft), {});
+    assert.deepEqual(buildRadioShadowPatch(draft, saved), {
+        all: { custom: true, enabled: false, opacity: .83, directionDegrees: 360, length: 6, blur: .9, offsetX: -6, depthOffset: 5 },
+    });
+});
+
+test('enabled is an explicit boolean setting with validation, equality and serialization', () => {
+    const saved = createRadioShadowDraft({ all: { custom: true, enabled: true } });
+    const draft = createRadioShadowDraft(saved);
+    draft.all.enabled = false;
+    assert.equal(radioShadowProfileEqual(draft.all, saved.all), false);
+    assert.deepEqual(buildRadioShadowPatch(draft, saved), { all: { custom: true, enabled: false } });
+    for (const invalid of ['false', 0, null]) {
+        draft.all.enabled = invalid;
+        assert.equal(validateRadioShadowDraft(draft)['all.enabled'], 'Выберите, показывать ли тень.');
+        assert.throws(() => buildRadioShadowPatch(draft, saved), /Invalid Radio/);
+    }
+});
+
+test('legacy sparse receiver overrides stay sparse when the common Radio profile changes', () => {
+    const saved = createRadioShadowDraft({
+        all: { custom: true, enabled: true, opacity: .7, length: 1.5 },
+        roots: { custom: true, length: 2.25, offsetX: .3, depthOffset: .42 },
+    });
+    const draft = createRadioShadowDraft(saved);
+    draft.all.opacity = '.85';
+    draft.all.blur = '.6';
+    assert.deepEqual(validateRadioShadowDraft(draft), {});
+    assert.equal(radioShadowProfileEqual(draft.roots, saved.roots), true);
+    assert.deepEqual(buildRadioShadowPatch(draft, saved), { all: { custom: true, enabled: true, opacity: .85, length: 1.5, blur: .6 } });
+    assert.equal(Object.hasOwn(draft.roots, 'opacity'), false);
+    assert.equal(Object.hasOwn(draft.roots, 'enabled'), false);
+    assert.equal(resolveRadioShadowDraftProfiles(draft).roots.opacity, .85);
+    assert.equal(resolveRadioShadowDraftProfiles(draft).roots.blur, .6);
+});
+
+test('inherited editor fields and first custom capture use typed common numbers without changing drafts', () => {
+    const draft = createRadioShadowDraft({ all: { custom: true, enabled: false, length: '4.2', depthOffset: '-3.1', offsetX: '5.2' } });
+    const effective = resolveRadioShadowDraftProfiles(draft, { opacity: .91 });
+    assert.equal(effective.roots.length, 4.2);
+    assert.equal(effective.roots.depthOffset, -3.1);
+    assert.equal(effective.roots.offsetX, 5.2);
+    assert.equal(effective.roots.enabled, false);
+    assert.equal(effective.roots.opacity, .91);
+    assert.equal(draft.all.length, '4.2');
+    assert.deepEqual(draft.roots, { custom: false });
+});
+
+test('draft cloning keeps only known target fields without sharing or filling a legacy profile', () => {
+    const source = { roots: { custom: true, length: 2, arbitrary: 'drop' }, arbitrary: { custom: true } };
+    const draft = createRadioShadowDraft(source);
+    assert.deepEqual(draft.roots, { custom: true, length: 2 });
+    assert.deepEqual(draft.all, { custom: false });
+    assert.equal(Object.hasOwn(draft, 'arbitrary'), false);
+    draft.roots.length = 3;
+    assert.equal(source.roots.length, 2);
+    assert.deepEqual(buildRadioShadowPatch(createRadioShadowDraft(source), createRadioShadowDraft(source)), {});
 });

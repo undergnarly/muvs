@@ -1,3 +1,5 @@
+import { upgradeRadioShadowProfiles } from './radioShadowLegacy.js';
+
 const ARRAY_KEYS = new Set(['releases', 'mixes', 'projects', 'news', 'messages']);
 const OBJECT_KEYS = new Set(['about', 'newsSettings']);
 
@@ -10,7 +12,10 @@ export function mergeConfirmedSiteSettings(previous, submitted, result = {}) {
         const confirmed = own(object(result), 'radioShadows') ? object(result.radioShadows) : object(submitted.radioShadows);
         // A full confirmation can arrive late with stale values for another
         // target. Only this request's submitted targets may replace local ones.
-        next.radioShadows = { ...confirmed, ...object(previous?.radioShadows) };
+        // Honor the same virtual legacy migration locally; otherwise an old
+        // menu custom:true record would undo the server's promoted inheritance
+        // until a full page reload after the first section-wide save.
+        next.radioShadows = { ...confirmed, ...upgradeRadioShadowProfiles(previous?.radioShadows) };
         for (const target of Object.keys(object(submitted.radioShadows))) {
             next.radioShadows[target] = own(confirmed, target) ? confirmed[target] : submitted.radioShadows[target];
         }

@@ -173,7 +173,7 @@ const MixesBronzeParticles = ({ seed = 0, index, stateRef }) => {
     );
 };
 
-const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, shadowSettings, shadowFloorY, shadowOffsetX = 0 }) => {
+const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled, shadowSettings, shadowFloorY, shadowOffsetX = 0, shadowLimits }) => {
     const meshRef = React.useRef(null);
     const tex = useProgressiveTexture(getObjectPosterSrc(url) || FALLBACK_COVER, {
         loadFull: true,
@@ -195,7 +195,7 @@ const RingCover = ({ url, size, onClick, motionEnabled = false, isMotionSettled,
     return (
         <>
         <SpriteShadow posterTexture={tex} alphaMap={video?.alphaMap} width={width} height={height}
-            settings={shadowSettings} floorY={shadowFloorY} offsetX={shadowOffsetX} />
+            settings={shadowSettings} floorY={shadowFloorY} offsetX={shadowOffsetX} limits={shadowLimits} />
         <mesh ref={meshRef} onClick={onClick} onAfterRender={() => { if (motionEnabled && tex) markMenuArtworkRendered(); }}>
             <planeGeometry args={[width, height]} />
             <ArtworkMaterial posterTexture={tex} video={video} />
@@ -238,6 +238,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline
                     <RingCover url={cover} size={hub.itemSize} onClick={onClick} motionEnabled={motionEnabled}
                         shadowSettings={item.key === 'radio' ? radioShadow.settings : shadowSettings}
                         shadowOffsetX={item.key === 'radio' ? radioShadow.offsetX : 0}
+                        shadowLimits={item.key === 'radio' ? radioShadow.limits : undefined}
                         shadowFloorY={item.key === 'music' || item.key === 'mixes' ? menuDecorationGroundY(item.key, hub) : undefined}
                         isMotionSettled={() => {
                         const state = stateRef?.current;

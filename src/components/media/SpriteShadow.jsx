@@ -8,7 +8,7 @@ import {
 const ORIGIN = Object.freeze([0, 0, 0]);
 const ignoreRaycast = () => {};
 
-function GroundShadow({ texture, useGreen, width, height, position, floorY, config, offsetX }) {
+function GroundShadow({ texture, useGreen, width, height, position, floorY, config, offsetX, limits }) {
     const image = texture.image;
     const flipY = texture.flipY !== false;
     const bounds = useMemo(() => getSpriteShadowMaskBounds(image, { useGreen, flipY }), [image, useGreen, flipY]);
@@ -17,8 +17,8 @@ function GroundShadow({ texture, useGreen, width, height, position, floorY, conf
     const { directionDegrees, length, blur, depthOffset } = config;
     const layout = useMemo(() => createSpriteShadowLayout({ width, height, position: [x, y, z], floorY,
         settings: { enabled: true, opacity: 1, directionDegrees, length, blur, depthOffset },
-        bounds: { minU, maxU, maxV, footU, footV, empty },
-    }), [width, height, x, y, z, floorY, directionDegrees, length, blur, depthOffset, minU, maxU, maxV, footU, footV, empty]);
+        bounds: { minU, maxU, maxV, footU, footV, empty }, limits,
+    }), [width, height, x, y, z, floorY, directionDegrees, length, blur, depthOffset, minU, maxU, maxV, footU, footV, empty, limits]);
     const uniforms = useMemo(() => ({
         uMask: { value: texture }, uGreen: { value: useGreen ? 1 : 0 },
         uOpacity: { value: config.opacity }, uFootV: { value: layout?.footV || 0 },
@@ -47,11 +47,11 @@ function GroundShadow({ texture, useGreen, width, height, position, floorY, conf
     </mesh>;
 }
 
-export default function SpriteShadow({ posterTexture, alphaMap, width, height, settings, position = ORIGIN, floorY, offsetX = 0 }) {
-    const config = normalizeSpriteShadowSettings(settings);
+export default function SpriteShadow({ posterTexture, alphaMap, width, height, settings, position = ORIGIN, floorY, offsetX = 0, limits }) {
+    const config = normalizeSpriteShadowSettings(settings, limits);
     const useGreen = Boolean(alphaMap?.image);
     const texture = useGreen ? alphaMap : posterTexture;
     if (!config.enabled || config.opacity <= 0 || !texture?.image || !Number.isFinite(width) || !Number.isFinite(height)
         || width <= 0 || height <= 0) return null;
-    return <GroundShadow texture={texture} useGreen={useGreen} width={width} height={height} position={position} floorY={floorY} config={config} offsetX={offsetX} />;
+    return <GroundShadow texture={texture} useGreen={useGreen} width={width} height={height} position={position} floorY={floorY} config={config} offsetX={offsetX} limits={limits} />;
 }

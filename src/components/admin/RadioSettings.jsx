@@ -1,20 +1,22 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { MENU_ARTWORK } from '../../data/menuArtwork';
 import { RADIO_STATIONS } from '../../data/radio';
-import { RADIO_SHADOW_LIMITS, RADIO_SHADOW_TARGETS, normalizeRadioShadowProfiles } from '../../utils/radioShadows';
+import { RADIO_SHADOW_LIMITS, RADIO_SHADOW_TARGETS, upgradeRadioShadowProfiles } from '../../utils/radioShadows';
 import { normalizeVisualEffects } from '../../utils/visualEffects';
 import Button from '../ui/Button';
-import { buildRadioShadowPatch, radioShadowProfileEqual, validateRadioShadowDraft } from './radioShadowsAdminHelpers';
+import { buildRadioShadowPatch, createRadioShadowDraft, radioShadowProfileEqual, resolveRadioShadowDraftProfiles, validateRadioShadowDraft } from './radioShadowsAdminHelpers';
 import { formatVisualNumber } from './visualEffectsAdminHelpers';
 import './VisualEffectsSettings.css';
 import './RadioSettings.css';
 
 const FIELDS = [
-    { key: 'length', label: 'Длина тени', step: .05, unit: '×', hint: '1× — длина, равная высоте приёмника. Диапазон: 0,1–3×.' },
-    { key: 'offsetX', label: 'Сдвиг влево / вправо (X)', step: .01, unit: '', hint: 'Минус — влево, плюс — вправо. 0 — без бокового сдвига; диапазон: −3–3 единицы сцены.' },
-    { key: 'depthOffset', label: 'Сдвиг ближе / дальше', step: .01, unit: '', hint: 'Плюс — дальше, за приёмник. Минус — ближе к камере. 0,1 — сдвиг на 10% высоты приёмника; диапазон: −1–1.' },
+    { key: 'length', label: 'Длина тени', step: .05, unit: '×', hint: '1× — длина, равная высоте приёмника. Диапазон: 0,1–6×.' },
+    { key: 'offsetX', label: 'Сдвиг влево / вправо (X)', step: .01, unit: '', hint: 'Минус — влево, плюс — вправо. 0 — без бокового сдвига; диапазон: −6–6 единиц сцены.' },
+    { key: 'depthOffset', label: 'Сдвиг ближе / дальше', step: .01, unit: '', hint: 'Плюс — дальше, за приёмник. Минус — ближе к камере. 1 — сдвиг на высоту приёмника; диапазон: −5–5.' },
+    { key: 'directionDegrees', label: 'Направление тени', step: 1, unit: '°', hint: 'Поворот тени по полу. Полный круг — 360°.' },
+    { key: 'opacity', label: 'Непрозрачность', step: .01, unit: '', hint: '0 — невидимая тень, 1 — максимальная непрозрачность.' },
+    { key: 'blur', label: 'Размытие', step: .01, unit: '', hint: '0 — чёткий контур, 1 — самое мягкое размытие.' },
 ];
 
 function ShadowField({ prefix, target, field, value, error, onChange }) {
@@ -40,9 +42,9 @@ function ShadowField({ prefix, target, field, value, error, onChange }) {
 }
 
 function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) {
-    const [draft, setDraft] = useState(() => normalizeRadioShadowProfiles(initialValue));
-    const [saved, setSaved] = useState(() => normalizeRadioShadowProfiles(initialValue));
-    const [target, setTarget] = useState('menu');
+    const [draft, setDraft] = useState(() => createRadioShadowDraft(upgradeRadioShadowProfiles(initialValue)));
+    const [saved, setSaved] = useState(() => createRadioShadowDraft(upgradeRadioShadowProfiles(initialValue)));
+    const [target, setTarget] = useState('all');
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState(null);
     const prefix = useId();
@@ -56,10 +58,13 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
     const dirty = dirtyTargets.length > 0;
     const invalid = Object.keys(errors).length > 0;
     const selected = draft[target];
+    const effective = resolveRadioShadowDraftProfiles(draft, globalShadows);
     const station = RADIO_STATIONS.find(item => item.slug === target);
     const artwork = station?.coverImage || MENU_ARTWORK[4];
     const targetLabel = RADIO_SHADOW_TARGETS.find(item => item.id === target).label;
-    const displayed = selected.custom ? selected : { ...globalShadows, offsetX: 0 };
+    const displayed = selected.custom ? { ...effective[target], ...selected } : effective[target];
+    const common = target === 'all';
+    const customReceivers = RADIO_SHADOW_TARGETS.filter(({ id }) => id !== 'all' && draft[id].custom);
 
     useEffect(() => {
         mounted.current = true;
@@ -80,14 +85,14 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
         setDraft(current => ({
             ...current,
             [target]: initialize
-                ? { custom: true, length: globalShadows.length, offsetX: 0, depthOffset: globalShadows.depthOffset }
+                ? { ...resolveRadioShadowDraftProfiles(current, globalShadows)[target], custom: true }
                 : { ...current[target], custom },
         }));
         if (custom) initialized.current.add(target);
         setFeedback(null);
     };
     const cancel = () => {
-        setDraft(normalizeRadioShadowProfiles(saved));
+        setDraft(createRadioShadowDraft(saved));
         initialized.current = new Set(RADIO_SHADOW_TARGETS.filter(({ id }) => saved[id].custom).map(({ id }) => id));
         setFeedback({ kind: 'note', text: 'Несохранённые изменения отменены.' });
     };
@@ -103,16 +108,17 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
             return;
         }
         const patch = buildRadioShadowPatch(draft, saved);
-        const next = normalizeRadioShadowProfiles({ ...saved, ...patch });
+        const next = createRadioShadowDraft({ ...saved, ...patch });
         inFlight.current = true;
         setSaving(true);
         setFeedback(null);
         try {
             const result = await updateSiteSettings({ radioShadows: patch });
             if (!mounted.current) return;
-            const confirmed = result.radioShadows ? normalizeRadioShadowProfiles(result.radioShadows) : next;
+            const confirmed = result.radioShadows ? createRadioShadowDraft(upgradeRadioShadowProfiles(result.radioShadows)) : next;
             setDraft(confirmed);
             setSaved(confirmed);
+            initialized.current = new Set(RADIO_SHADOW_TARGETS.filter(({ id }) => confirmed[id].custom).map(({ id }) => id));
             setFeedback({ kind: 'success', text: 'Настройки теней Radio сохранены. Обновите страницу сайта, чтобы увидеть изменения.' });
         } catch {
             if (mounted.current) setFeedback({ kind: 'error', text: 'Не удалось сохранить настройки. Изменения остались в форме; попробуйте ещё раз.' });
@@ -124,22 +130,21 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
 
     return <section className="visual-effects-settings radio-settings" lang="ru" aria-labelledby={`${prefix}-title`} data-dirty={dirty}>
         <header className="ves-header">
-            <div><h2 id={`${prefix}-title`}>Radio — тени приёмников</h2><p>Настройте длину и положение тени отдельно для главного меню и каждой эпохи.</p></div>
-            <Button href={station ? `/radio?item=${station.slug}` : '/'} variant="outline" className="ves-site-link"
-                aria-label={`Открыть ${station ? station.title : 'главное меню'} в новой вкладке`}>Открыть на сайте</Button>
+            <div><h2 id={`${prefix}-title`}>Radio — тени приёмников</h2><p>Настройте весь раздел сразу или задайте отдельную тень для меню и каждой эпохи.</p></div>
+            <Button href={station ? `/radio?item=${station.slug}` : common ? '/radio?item=roots' : '/'} variant="outline" className="ves-site-link"
+                aria-label={`Открыть ${station ? station.title : common ? 'раздел Radio' : 'главное меню'} в новой вкладке`}>Открыть на сайте</Button>
         </header>
-        <p className="ves-apply-note">После сохранения обновите открытую страницу сайта. Направление, размытие и непрозрачность остаются общими — <Link to="/admin/settings">Настройки → Визуальный стиль</Link>.</p>
-        {!globalShadows.enabled && <p className="rs-global-note">Тени сейчас выключены в общих настройках. Включите их в «Визуальном стиле», чтобы увидеть результат.</p>}
+        <p className="ves-apply-note">После сохранения обновите открытую страницу сайта. Настройки здесь меняют только Radio, а не другие разделы.</p>
         <form ref={formRef} onSubmit={save} noValidate aria-busy={saving} aria-describedby={`${prefix}-save-status`}>
             <fieldset className="rs-target-group" disabled={saving}>
-                <legend className="rs-visually-hidden">Выбор приёмника</legend>
+                <legend className="rs-visually-hidden">Выбор области настройки</legend>
                 <div className="ves-field rs-target-field">
-                    <label htmlFor={`${prefix}-target`}>Приёмник</label>
+                    <label htmlFor={`${prefix}-target`}>Область настройки</label>
                     <select id={`${prefix}-target`} value={target} aria-describedby={`${prefix}-target-hint`}
                         onChange={event => setTarget(event.target.value)}>
                         {RADIO_SHADOW_TARGETS.map(item => <option key={item.id} value={item.id}>{item.label}{dirtyTargets.some(changed => changed.id === item.id) ? ' — изменено' : ''}</option>)}
                     </select>
-                    <small id={`${prefix}-target-hint`} className="ves-hint">Можно изменить несколько приёмников и сохранить всё одной кнопкой. Переключение не сбрасывает изменения.</small>
+                    <small id={`${prefix}-target-hint`} className="ves-hint">«Весь раздел Radio» — меню и все три эпохи, кроме приёмников со своими настройками. Переключение не сбрасывает изменения.</small>
                 </div>
                 <img className="rs-receiver-image" src={artwork} width="112" height="112" alt="" />
             </fieldset>
@@ -147,12 +152,17 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
                 <legend>{targetLabel}</legend>
                 <label className="ves-toggle rs-custom-toggle"><input type="checkbox" checked={selected.custom}
                     aria-describedby={`${prefix}-inheritance-help`} onChange={event => toggleCustom(event.target.checked)} />
-                    <span>Своя длина и положение тени</span></label>
+                    <span>{common ? 'Своя тень для всего раздела Radio' : 'Своя тень для этого приёмника'}</span></label>
                 <p id={`${prefix}-inheritance-help`} className="ves-caption-help">{selected.custom
-                    ? 'Эти три параметра применяются только к выбранному приёмнику. Выключите настройку, чтобы вернуть общие значения.'
-                    : 'Используются общие значения. Включите настройку выше, чтобы отдельно сдвинуть или укоротить тень этого приёмника.'}</p>
+                    ? common ? 'Эти параметры применяются к меню и всем эпохам без своих настроек.' : 'Эти параметры заменяют общие настройки Radio только у выбранного приёмника.'
+                    : common ? 'Используются тени из «Настройки → Визуальный стиль». Включите настройку выше, чтобы отдельно оформить весь раздел Radio.' : 'Используются настройки «Весь раздел Radio», а если они не заданы — общие настройки сайта.'}</p>
+                {common && customReceivers.length > 0 && <p className="rs-override-note">Своя тень: {customReceivers.map(item => item.label.split(' — ')[0]).join(', ')}. Чтобы применить к ним общую тень Radio, выберите каждый приёмник и выключите «Своя тень».</p>}
                 <fieldset className="ves-editor rs-shadow-fields" disabled={!selected.custom || saving}>
-                    <legend className="rs-visually-hidden">Длина и положение тени</legend>
+                    <legend className="rs-visually-hidden">Параметры тени</legend>
+                    <label className="ves-toggle rs-enabled-toggle"><input type="checkbox" data-radio-field="enabled" checked={Boolean(displayed.enabled)}
+                        aria-invalid={Boolean(errors[`${target}.enabled`])} aria-describedby={errors[`${target}.enabled`] ? `${prefix}-enabled-error` : undefined}
+                        onChange={event => change('enabled', event.target.checked)} /><span>Показывать тень</span></label>
+                    {errors[`${target}.enabled`] && <p id={`${prefix}-enabled-error`} className="ves-field-error">{errors[`${target}.enabled`]}</p>}
                     {FIELDS.map(field => <ShadowField key={field.key} prefix={prefix} target={target} field={field}
                         value={displayed[field.key]} error={errors[`${target}.${field.key}`]} onChange={change} />)}
                 </fieldset>
@@ -162,7 +172,7 @@ function RadioShadowEditor({ initialValue, globalShadows, updateSiteSettings }) 
                     role={feedback?.kind === 'error' ? 'alert' : 'status'} aria-atomic="true">
                     {saving ? 'Сохраняем настройки…' : feedback?.text || (invalid
                         ? 'Исправьте отмеченные значения. При сохранении откроется первый приёмник с ошибкой.'
-                        : dirty ? `Есть несохранённые изменения. Приёмников: ${dirtyTargets.length}.` : 'Все изменения сохранены.')}
+                        : dirty ? `Есть несохранённые изменения. Областей: ${dirtyTargets.length}.` : 'Все изменения сохранены.')}
                 </div>
                 <div className="ves-actions">
                     <Button type="submit" variant="accent" disabled={saving || !dirty} aria-describedby={`${prefix}-save-status`}>{saving ? 'Сохраняем…' : 'Сохранить изменения'}</Button>

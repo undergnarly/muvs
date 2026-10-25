@@ -77,6 +77,33 @@ test('a late full Radio confirmation cannot undo a newer acknowledged edit to a 
     assert.deepEqual(afterLate.radioShadows, { roots: rootsPatch.radioShadows.roots, menu: menuPatch.radioShadows.menu });
 });
 
+test('shared and individual full Radio styles survive independent confirmed client merges without stale cross-target replacement', () => {
+    const original = { siteName: 'Keep', visualEffects: { shadows: { opacity: .91 } }, radioShadows: { menu: { custom: false }, y2k: { custom: true, length: 1 } } };
+    const all = { custom: true, enabled: true, opacity: .7, directionDegrees: 233, length: 5.8, blur: .9, offsetX: -5, depthOffset: 4.7 };
+    const newEra = { custom: true, enabled: false, opacity: .4, directionDegrees: 90, length: 3.8, blur: .2, offsetX: 4, depthOffset: -4.5 };
+    const allPatch = { radioShadows: { all } };
+    const eraPatch = { radioShadows: { 'new-era': newEra } };
+    const afterEra = mergeConfirmedSiteSettings(original, eraPatch, { radioShadows: { ...original.radioShadows, 'new-era': newEra } });
+    const afterAll = mergeConfirmedSiteSettings(afterEra, allPatch, { radioShadows: { ...original.radioShadows, all } });
+    assert.deepEqual(afterAll, { ...original, radioShadows: { ...original.radioShadows, all, 'new-era': newEra } });
+    assert.deepEqual(mergeConfirmedSiteSettings(afterAll, { siteName: 'New' }), { ...afterAll, siteName: 'New' });
+});
+
+test('the first shared Radio save promotes a legacy local menu preset to inheritance without waiting for reload', () => {
+    const menu = { custom: true, length: 3, offsetX: .01, depthOffset: 1 };
+    const previous = { siteName: 'Keep', radioShadows: { menu } };
+    const all = { ...menu, opacity: .7, depthOffset: 4.5 };
+    const submitted = { radioShadows: { all } };
+    const confirmed = { radioShadows: { all, menu: { ...menu, custom: false } } };
+    const next = mergeConfirmedSiteSettings(previous, submitted, confirmed);
+    assert.deepEqual(next, { siteName: 'Keep', radioShadows: confirmed.radioShadows });
+    assert.equal(previous.radioShadows.menu.custom, true);
+    const deliberateMenu = { ...menu, length: 2.2, depthOffset: -2.3 };
+    const newer = mergeConfirmedSiteSettings(next, { radioShadows: { menu: deliberateMenu } }, { radioShadows: { all, menu: deliberateMenu } });
+    const late = mergeConfirmedSiteSettings(newer, submitted, confirmed);
+    assert.deepEqual(late.radioShadows, { all, menu: deliberateMenu });
+});
+
 test('content commits only after a successful acknowledged response; it commits the exact submitted snapshot', async () => {
     let resolve; const commits = []; let request;
     const writer = createConfirmedDataWriter({ fetchImpl: (...args) => { request = args; return new Promise(done => { resolve = done; }); }, onCommit: (...args) => commits.push(args) });

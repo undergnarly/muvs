@@ -600,7 +600,7 @@ const Billboard = ({ release, x, billboard, hideCover = false, loadFull = true, 
             {!hideCover && (
                 <group>
                     <SpriteShadow posterTexture={tex} alphaMap={video?.alphaMap} width={width} height={height}
-                        position={[0, billboard.coverY, 0]} settings={shadow.settings} offsetX={shadow.offsetX} />
+                        position={[0, billboard.coverY, 0]} settings={shadow.settings} offsetX={shadow.offsetX} limits={shadow.limits} />
                     <mesh ref={meshRef} position={[0, billboard.coverY, 0]}
                         onAfterRender={() => { if (tex) markMenuArtworkRendered(); }}>
                         <planeGeometry args={[width, height]} />

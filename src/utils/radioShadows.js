@@ -1,55 +1,72 @@
 import { normalizeSpriteShadowSettings } from './spriteShadow.js';
+import { upgradeRadioShadowProfiles } from './radioShadowLegacy.js';
+
+export { upgradeRadioShadowProfiles } from './radioShadowLegacy.js';
 
 export const RADIO_SHADOW_TARGETS = Object.freeze([
+    Object.freeze({ id: 'all', label: 'Весь раздел Radio — меню и станции' }),
     Object.freeze({ id: 'menu', label: 'Главное меню — Radio' }),
     Object.freeze({ id: 'roots', label: 'Roots — 1970s–1980s' }),
     Object.freeze({ id: 'y2k', label: 'Y2K Radio — 1990s–2000s' }),
     Object.freeze({ id: 'new-era', label: 'New Era — 2015–Now' }),
 ]);
 
+// Radio-only bounds: ordinary scene objects keep the original global ranges.
 export const RADIO_SHADOW_LIMITS = Object.freeze({
-    length: Object.freeze([.1, 3]),
-    offsetX: Object.freeze([-3, 3]),
-    depthOffset: Object.freeze([-1, 1]),
+    opacity: Object.freeze([0, 1]),
+    directionDegrees: Object.freeze([0, 360]),
+    length: Object.freeze([.1, 6]),
+    blur: Object.freeze([0, 1]),
+    offsetX: Object.freeze([-6, 6]),
+    depthOffset: Object.freeze([-5, 5]),
 });
 
-export const RADIO_SHADOW_DEFAULTS = Object.freeze({ custom: false, length: .55, offsetX: 0, depthOffset: 0 });
+export const RADIO_SHADOW_DEFAULTS = Object.freeze({
+    custom: false, ...normalizeSpriteShadowSettings(), offsetX: 0,
+});
 
 const targetIds = new Set(RADIO_SHADOW_TARGETS.map(target => target.id));
-const fields = new Set(['custom', ...Object.keys(RADIO_SHADOW_LIMITS)]);
+const booleanFields = new Set(['custom', 'enabled']);
+const fields = new Set([...booleanFields, ...Object.keys(RADIO_SHADOW_LIMITS)]);
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
-function normalizeProfile(raw) {
+function normalizeProfile(raw, parent) {
     const profile = object(raw);
-    const normalized = { custom: profile.custom === true };
+    const custom = profile.custom === true;
+    const normalized = { ...parent, custom };
+    if (!custom) return normalized;
+    normalized.enabled = typeof profile.enabled === 'boolean' ? profile.enabled : parent.enabled;
     for (const [key, [min, max]] of Object.entries(RADIO_SHADOW_LIMITS)) {
         normalized[key] = typeof profile[key] === 'number' && Number.isFinite(profile[key])
-            ? Math.max(min, Math.min(max, profile[key])) : RADIO_SHADOW_DEFAULTS[key];
+            ? Math.max(min, Math.min(max, profile[key])) : parent[key];
     }
     return normalized;
 }
 
-/** Runtime input is untrusted: ignore unknown targets and clamp known numeric fields. */
-export function normalizeRadioShadowProfiles(raw) {
-    const profiles = object(raw);
-    return Object.fromEntries(RADIO_SHADOW_TARGETS.map(({ id }) => [id, normalizeProfile(own(profiles, id) ? profiles[id] : undefined)]));
+/** Public/editor reads inherit global → section → receiver; missing legacy fields stay inherited. */
+export function normalizeRadioShadowProfiles(raw, globalShadows) {
+    const profiles = upgradeRadioShadowProfiles(raw);
+    const parent = { custom: false, ...normalizeSpriteShadowSettings(globalShadows), offsetX: 0 };
+    const section = normalizeProfile(own(profiles, 'all') ? profiles.all : undefined, parent);
+    return Object.fromEntries(RADIO_SHADOW_TARGETS.map(({ id }) => [
+        id, id === 'all' ? section : normalizeProfile(own(profiles, id) ? profiles[id] : undefined, section),
+    ]));
 }
 
-/** Inherited profiles reproduce the original global cast exactly, including its enabled state. */
+/** Unknown/non-Radio targets must never receive Radio defaults or its wider renderer limits. */
 export function resolveRadioShadow(rawProfiles, target, globalShadows) {
-    const settings = normalizeSpriteShadowSettings(globalShadows);
-    const profiles = object(rawProfiles);
-    const profile = normalizeProfile(targetIds.has(target) && own(profiles, target) ? profiles[target] : undefined);
-    return profile.custom
-        ? { settings: { ...settings, length: profile.length, depthOffset: profile.depthOffset }, offsetX: profile.offsetX }
-        : { settings, offsetX: 0 };
+    if (!targetIds.has(target)) return { settings: normalizeSpriteShadowSettings(globalShadows), offsetX: 0 };
+    const { custom: _custom, offsetX, ...settings } = normalizeRadioShadowProfiles(rawProfiles, globalShadows)[target];
+    return { settings, offsetX, limits: RADIO_SHADOW_LIMITS };
 }
 
-/** Owner writes are strict, unlike tolerant public reads. No string coercion or branch deletion. */
+/** Owner writes are strict partial patches; do not materialize inherited defaults into legacy data. */
 export function mergeRadioShadowPatch(previous, patch) {
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new TypeError('Radio shadow settings must be an object.');
-    const merged = { ...object(previous) };
+    const merged = upgradeRadioShadowProfiles(previous);
+    // An explicit marker distinguishes a new per-menu preset from legacy menu-only data.
+    if (Object.keys(patch).length > 0 && !own(merged, 'all')) merged.all = { custom: false };
     for (const [target, profile] of Object.entries(patch)) {
         if (!targetIds.has(target)) throw new TypeError(`Unknown Radio shadow target: ${target}.`);
         if (!profile || typeof profile !== 'object' || Array.isArray(profile) || Object.keys(profile).length === 0) {
@@ -57,8 +74,8 @@ export function mergeRadioShadowPatch(previous, patch) {
         }
         for (const [field, value] of Object.entries(profile)) {
             if (!fields.has(field)) throw new TypeError(`Unknown Radio shadow field: ${field}.`);
-            if (field === 'custom') {
-                if (typeof value !== 'boolean') throw new TypeError('Radio shadow custom must be a boolean.');
+            if (booleanFields.has(field)) {
+                if (typeof value !== 'boolean') throw new TypeError(`Radio shadow ${field} must be a boolean.`);
             } else {
                 const [min, max] = RADIO_SHADOW_LIMITS[field];
                 if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
@@ -66,7 +83,7 @@ export function mergeRadioShadowPatch(previous, patch) {
                 }
             }
         }
-        merged[target] = { ...normalizeProfile(own(merged, target) ? merged[target] : undefined), ...profile };
+        merged[target] = { ...object(own(merged, target) ? merged[target] : undefined), ...profile };
     }
     return merged;
 }

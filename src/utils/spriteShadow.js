@@ -9,16 +9,22 @@ const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
 const imageBounds = new WeakMap();
 const FALLBACK_BOUNDS = Object.freeze({ minU: 0, maxU: 1, minV: 0, maxV: 1, footU: .5, footV: 0, empty: false, readable: false });
 
-export function normalizeSpriteShadowSettings(settings = {}) {
+const DEFAULT_RANGES = Object.freeze({ length: Object.freeze([.1, 3]), depthOffset: Object.freeze([-1, 1]) });
+const safeRange = (candidate, fallback) => Array.isArray(candidate) && candidate.length === 2
+    && candidate.every(Number.isFinite) && candidate[0] < candidate[1] ? candidate : fallback;
+
+export function normalizeSpriteShadowSettings(settings = {}, limits) {
     const defaults = SPRITE_SHADOW_DEFAULTS;
     settings = settings && typeof settings === 'object' && !Array.isArray(settings) ? settings : {};
+    const [lengthMin, lengthMax] = safeRange(limits?.length, DEFAULT_RANGES.length);
+    const [depthMin, depthMax] = safeRange(limits?.depthOffset, DEFAULT_RANGES.depthOffset);
     return {
         enabled: typeof settings.enabled === 'boolean' ? settings.enabled : defaults.enabled,
         opacity: clamp(finite(settings.opacity, defaults.opacity), 0, 1),
         directionDegrees: ((finite(settings.directionDegrees, defaults.directionDegrees) % 360) + 360) % 360,
-        length: clamp(finite(settings.length, defaults.length), .1, 3),
+        length: clamp(finite(settings.length, defaults.length), lengthMin, lengthMax),
         blur: clamp(finite(settings.blur, defaults.blur), 0, 1),
-        depthOffset: clamp(finite(settings.depthOffset, defaults.depthOffset), -1, 1),
+        depthOffset: clamp(finite(settings.depthOffset, defaults.depthOffset), depthMin, depthMax),
     };
 }
 
@@ -119,8 +125,8 @@ export function spriteShadowBasis(directionDegrees) {
     };
 }
 
-export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], floorY, bounds = FALLBACK_BOUNDS, settings } = {}) {
-    const config = normalizeSpriteShadowSettings(settings);
+export function createSpriteShadowLayout({ width, height, position = [0, 0, 0], floorY, bounds = FALLBACK_BOUNDS, settings, limits } = {}) {
+    const config = normalizeSpriteShadowSettings(settings, limits);
     if (!config.enabled || config.opacity <= 0 || bounds.empty || !Number.isFinite(width) || !Number.isFinite(height)
         || width <= 0 || height <= 0) return null;
     const x = finite(position[0], 0), y = finite(position[1], 0), z = finite(position[2], 0);
