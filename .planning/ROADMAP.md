@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x]07-05 user override — restore legacy Radio casts, retain texture fix; separate Admin→Radio length/X/depth per receiver with safe confirmed saves.511tests/review/mobile+desktop/API/live/exact-asset+data-invariance verified. See07-radio/07-05 plan/summary.
+
 ## Phase 07 — Radio preview
 
 - [x] Three distinct built-in-imagegen transparent receiver assets and inline recovery; five-item hub/title/dust/cardinality without changing existing media or load priorities.
