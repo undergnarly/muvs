@@ -30,6 +30,7 @@ const ProjectsManager = React.lazy(() => import('./components/admin/ProjectsMana
 const AboutManager = React.lazy(() => import('./components/admin/AboutManager'));
 const MessagesManager = React.lazy(() => import('./components/admin/MessagesManager'));
 const AdminSettings = React.lazy(() => import('./components/admin/AdminSettings'));
+const RadioSettings = React.lazy(() => import('./components/admin/RadioSettings'));
 const MeditationProjectPage = React.lazy(() => import('./components/projects/MeditationProjectPage'));
 const ProjectsHubPage = React.lazy(() => import('./components/projects/ProjectsHubPage'));
 const DubplatesPage = React.lazy(() => import('./components/pages/DubplatesPage'));
@@ -281,6 +282,7 @@ function AppRoot() {
                     <Route path="music" element={<MusicManager />} />
                     <Route path="dubplates" element={<DubplatesManager />} />
                     <Route path="mixes" element={<MixesManager />} />
+                    <Route path="radio" element={<RadioSettings />} />
                     <Route path="projects" element={<ProjectsManager />} />
                     <Route path="about" element={<AboutManager />} />
                     <Route path="messages" element={<MessagesManager />} />

@@ -1,6 +1,81 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createConfirmedDataWriter } from './confirmedDataSave.js';
+import { createConfirmedDataWriter, mergeConfirmedSiteSettings, saveConfirmedSiteSettings } from './confirmedDataSave.js';
+
+test('settings save captures the submitted snapshot and returns only an acknowledged result', async () => {
+    let resolve; let request;
+    const settings = { radioShadows: { menu: { custom: true, length: 2, offsetX: .1, depthOffset: .2 } } };
+    const pending = saveConfirmedSiteSettings(settings, { fetchImpl: (...args) => { request = args; return new Promise(done => { resolve = done; }); } });
+    settings.radioShadows.menu.length = 3;
+    assert.equal(JSON.parse(request[1].body).value.radioShadows.menu.length, 2);
+    assert.equal(request[0], '/api/data');
+    const result = { success: true, radioShadows: { menu: { custom: true, length: 2, offsetX: .1, depthOffset: .2 } } };
+    resolve({ ok: true, json: async () => result });
+    const saved = await pending;
+    assert.deepEqual(saved, { result, submitted: { radioShadows: { menu: { custom: true, length: 2, offsetX: .1, depthOffset: .2 } } } });
+    assert.equal(request[1].signal.aborted, false);
+});
+
+test('a hanging settings fetch aborts at its deadline, preserves state after a late success and allows retry', async () => {
+    let late; let signal; let committed = 0;
+    const settings = { radioShadows: { roots: { custom: false } } };
+    const pending = saveConfirmedSiteSettings(settings, { timeoutMs: 5,
+        fetchImpl: async (_, options) => { signal = options.signal; return new Promise(resolve => { late = resolve; }); },
+    }).then(result => { committed++; return result; });
+    await assert.rejects(pending, /timed out.*draft is still here/i);
+    assert.equal(signal.aborted, true);
+    assert.equal(committed, 0);
+    late({ ok: true, json: async () => ({ success: true }) });
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    assert.equal(committed, 0);
+    const retry = await saveConfirmedSiteSettings(settings, { fetchImpl: async () => ({ ok: true, json: async () => ({ success: true }) }) });
+    assert.equal(retry.result.success, true);
+    assert.deepEqual(settings, { radioShadows: { roots: { custom: false } } });
+});
+
+test('the settings deadline also bounds a stalled response body, and malformed or rejected responses remain retryable', async () => {
+    let lateBody; let signal;
+    const hangingBody = saveConfirmedSiteSettings({}, { timeoutMs: 5, fetchImpl: async (_, options) => {
+        signal = options.signal;
+        return { ok: true, json: () => new Promise(resolve => { lateBody = resolve; }) };
+    } });
+    await assert.rejects(hangingBody, /timed out/);
+    assert.equal(signal.aborted, true);
+    lateBody({ success: true });
+    for (const fetchImpl of [async () => ({ ok: false, status: 401 }), async () => ({ ok: false, status: 403 }), async () => ({ ok: false, status: 500 }),
+        async () => { throw new TypeError('Network error'); }, async () => ({ ok: true, json: async () => ({ success: false }) }),
+        async () => ({ ok: true, json: async () => { throw new SyntaxError('bad JSON'); } })]) {
+        await assert.rejects(saveConfirmedSiteSettings({}, { fetchImpl }), /retry|Sign in again/i);
+    }
+    let requests = 0;
+    for (const invalid of [null, undefined, [], true, 'bad']) {
+        await assert.rejects(saveConfirmedSiteSettings(invalid, { fetchImpl: () => { requests++; } }), /Invalid settings/);
+    }
+    assert.equal(requests, 0);
+});
+
+test('confirmed settings patches keep unrelated data and prefer acknowledged values only for submitted Radio targets', () => {
+    const previous = { siteName: 'Keep', visualEffects: { shadows: { opacity: .91 } }, radioShadows: { roots: { custom: false } } };
+    const submitted = { radioShadows: { menu: { custom: true, length: 2, offsetX: .1, depthOffset: .2 } } };
+    const confirmed = { radioShadows: { menu: { ...submitted.radioShadows.menu, offsetX: .15 }, y2k: { custom: false } } };
+    assert.deepEqual(mergeConfirmedSiteSettings(previous, submitted, confirmed), {
+        ...previous, radioShadows: { ...previous.radioShadows, ...confirmed.radioShadows },
+    });
+    assert.deepEqual(mergeConfirmedSiteSettings(previous, submitted).radioShadows, { ...previous.radioShadows, ...submitted.radioShadows });
+    assert.deepEqual(mergeConfirmedSiteSettings(previous, { siteName: 'New' }), { ...previous, siteName: 'New' });
+    assert.equal(previous.siteName, 'Keep');
+});
+
+test('a late full Radio confirmation cannot undo a newer acknowledged edit to a different existing target', () => {
+    const original = { radioShadows: { roots: { custom: true, length: 1 }, menu: { custom: true, length: 1 } } };
+    const rootsPatch = { radioShadows: { roots: { custom: true, length: 2 } } };
+    const menuPatch = { radioShadows: { menu: { custom: true, length: 3 } } };
+    const staleRootsConfirmation = { radioShadows: { roots: rootsPatch.radioShadows.roots, menu: original.radioShadows.menu } };
+    const menuConfirmation = { radioShadows: { roots: rootsPatch.radioShadows.roots, menu: menuPatch.radioShadows.menu } };
+    const newer = mergeConfirmedSiteSettings(original, menuPatch, menuConfirmation);
+    const afterLate = mergeConfirmedSiteSettings(newer, rootsPatch, staleRootsConfirmation);
+    assert.deepEqual(afterLate.radioShadows, { roots: rootsPatch.radioShadows.roots, menu: menuPatch.radioShadows.menu });
+});
 
 test('content commits only after a successful acknowledged response; it commits the exact submitted snapshot', async () => {
     let resolve; const commits = []; let request;

@@ -3,7 +3,7 @@ import { releases as defaultReleases } from '../data/releases';
 import { mixes as defaultMixes } from '../data/mixes';
 import { projects as defaultProjects } from '../data/projects';
 import { news as defaultNews } from '../data/news';
-import { createConfirmedDataWriter } from '../utils/confirmedDataSave';
+import { createConfirmedDataWriter, mergeConfirmedSiteSettings, saveConfirmedSiteSettings } from '../utils/confirmedDataSave';
 
 const DataContext = createContext();
 
@@ -75,15 +75,8 @@ export const DataProvider = ({ children }) => {
 
     const updateSiteSettings = React.useCallback(async (newSettings) => {
         if (!isLoaded || !siteSettingsReady) throw new Error('Site settings are not loaded yet');
-        const response = await fetch('/api/data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'siteSettings', value: newSettings })
-        });
-        if (!response.ok) throw new Error(`Site settings save failed with ${response.status}`);
-        const result = await response.json();
-        if (result.success !== true) throw new Error('Site settings save was not confirmed');
-        setSiteSettings(previous => ({ ...previous, ...newSettings }));
+        const { result, submitted } = await saveConfirmedSiteSettings(newSettings);
+        setSiteSettings(previous => mergeConfirmedSiteSettings(previous, submitted, result));
         return result;
     }, [isLoaded, siteSettingsReady]);
 

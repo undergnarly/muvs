@@ -174,6 +174,7 @@ const AdminSettings = () => {
         try {
             const nextSettings = { ...siteSettings, ...siteFormData };
             delete nextSettings.visualEffects;
+            delete nextSettings.radioShadows;
             await updateSiteSettings(nextSettings);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 2000);

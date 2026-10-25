@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const createSampleflowMediaRouter = require("./sampleflow-media");
 const createDubplatesRouter = require("./dubplates");
 const { installPublicDocuments } = require("./publicDocuments");
+const radioShadowHelpers = import("../src/utils/radioShadows.js");
 
 const app = express();
 app.set("trust proxy", "loopback");
@@ -416,7 +417,7 @@ app.get("/api/data", (req, res) => {
 });
 
 // Update Data (Full update of a key)
-app.post("/api/data", requireAdmin, (req, res) => {
+app.post("/api/data", requireAdmin, async (req, res) => {
   const { key, value } = req.body;
   if (!key || value === undefined) {
     return res.status(400).json({ error: "Missing key or value" });
@@ -424,6 +425,11 @@ app.post("/api/data", requireAdmin, (req, res) => {
   const editableKeys = new Set(["releases", "mixes", "projects", "news", "newsSettings", "about", "siteSettings", "messages"]);
   if (!editableKeys.has(key)) return res.status(400).json({ error: "Unsupported data key" });
 
+  const hasRadioShadowPatch = key === "siteSettings" && value && typeof value === "object"
+    && !Array.isArray(value) && Object.prototype.hasOwnProperty.call(value, "radioShadows");
+  // Resolve the module before reading the latest DB snapshot: simultaneous saves
+  // to different Radio targets must never write an older whole-branch snapshot.
+  const radioHelpers = hasRadioShadowPatch ? await radioShadowHelpers : null;
   const db = getDb();
   let nextValue = value;
   if (
@@ -436,6 +442,13 @@ app.post("/api/data", requireAdmin, (req, res) => {
     Object.entries(value).forEach(([settingKey, settingValue]) => {
       if (settingValue === null) delete nextValue[settingKey];
     });
+    if (hasRadioShadowPatch) {
+      try {
+        nextValue.radioShadows = radioHelpers.mergeRadioShadowPatch(db.siteSettings?.radioShadows, value.radioShadows);
+      } catch (error) {
+        return res.status(400).json({ error: error.message });
+      }
+    }
   }
   db[key] = nextValue;
 
@@ -443,6 +456,7 @@ app.post("/api/data", requireAdmin, (req, res) => {
     res.json({
       success: true,
       count: Array.isArray(nextValue) ? nextValue.length : 1,
+      ...(hasRadioShadowPatch ? { radioShadows: nextValue.radioShadows } : {}),
     });
   } else {
     res.status(500).json({ error: "Failed to save data" });

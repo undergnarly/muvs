@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
-    FaBars, FaCode, FaCog, FaCompactDisc, FaEnvelope, FaExternalLinkAlt,
+    FaBars, FaBroadcastTower, FaCode, FaCog, FaCompactDisc, FaEnvelope, FaExternalLinkAlt,
     FaHome, FaMusic, FaNewspaper, FaSignOutAlt, FaTimes, FaUser,
 } from 'react-icons/fa';
 import './AdminLayout.css';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
     { path: '/admin/music', label: 'Music', icon: FaCompactDisc },
     { path: '/admin/dubplates', label: 'Dubplates', icon: FaCompactDisc },
     { path: '/admin/mixes', label: 'Mixes', icon: FaMusic },
+    { path: '/admin/radio', label: 'Radio', icon: FaBroadcastTower },
     { path: '/admin/projects', label: 'Projects', icon: FaCode },
     { path: '/admin/about', label: 'About', icon: FaUser },
     { path: '/admin/messages', label: 'Messages', icon: FaEnvelope },
