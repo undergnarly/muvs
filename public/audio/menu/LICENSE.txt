@@ -1,0 +1,33 @@
+MUVS menu sound-design sketch, 2026-10-25
+
+Third-party source audio is dedicated to the public domain under CC0 1.0.
+The authors do not endorse MUVS. Attribution is retained voluntarily.
+
+Heavenly Loop — isaiah658
+https://opengameart.org/content/heavenly-loop
+Source: Heavenly Loop.flac
+The source page identifies CC0 and states that the sound was made using
+only ZynAddSubFX in LMMS. Attribution is appreciated but not required.
+Used for: menu-pad.mp3 (edited, pitched down, filtered and crossfaded).
+
+100 CC0 SFX #2 — rubberduck
+https://opengameart.org/content/100-cc0-sfx-2
+Source archive: sfx_100_v2.zip
+The source page identifies CC0.
+Used: sfx100v2_air_03.ogg, sfx100v2_metal_01.ogg, sfx100v2_air_02.ogg
+in music-transition.mp3, mixes-transition.mp3 and about-transition.mp3.
+
+Interface Sounds (1.0) — Kenney
+https://kenney.nl/assets/interface-sounds
+Source archive: kenney_interface-sounds.zip, Audio/glass_006.ogg
+The archive's License.txt identifies Creative Commons Zero (CC0), permits
+personal, educational and commercial projects, and states that credit is
+not mandatory. Used for: code-transition.mp3 (edited).
+
+CC0 deed: https://creativecommons.org/publicdomain/zero/1.0/
+CC0 legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Original MUVS processing and the deterministic, quietly band-limited vinyl
+hiss are authored for this website; there are no unlicensed music samples.
+See docs/MENU-AUDIO-ASSETS.md and scripts/prepare-menu-audio.cjs for the
+provenance, hashes, processing recipe and objective analysis limitations.

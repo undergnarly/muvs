@@ -1,0 +1,92 @@
+{
+  "format": "MUVS menu sound sketch v1",
+  "sampleRate": 44100,
+  "channels": 2,
+  "license": "CC0-1.0; original MUVS processing and noise",
+  "totalBytes": 223726,
+  "assets": [
+    {
+      "file": "menu-pad.mp3",
+      "url": "/audio/menu/menu-pad.mp3",
+      "bytes": 192514,
+      "sha256": "244a2c37e9b44fc6698e483225f40bd4db45081344bebf5eaa97ce6fa4e7a4ba",
+      "sources": [
+        "isaiah658 / Heavenly Loop",
+        "MUVS original seeded vinyl hiss"
+      ],
+      "purpose": "Warm, low-passed pad; no drums or lead; circular two-second overlap, menu only",
+      "duration": 24,
+      "peakDbfs": -9.242,
+      "rmsDbfs": -23.442,
+      "clippedSamples": 0,
+      "adjacentDifferenceRms": 0.00444522,
+      "loopBoundaryMaxDifference": 0.00141382,
+      "loopStart": 0,
+      "loopEnd": 24
+    },
+    {
+      "file": "music-transition.mp3",
+      "url": "/audio/menu/music-transition.mp3",
+      "bytes": 6941,
+      "sha256": "50671a9496b59f8ee641b2ed43c7a2f792110942d79b005280bda9392057f259",
+      "sources": [
+        "rubberduck / sfx100v2_air_03.ogg"
+      ],
+      "purpose": "Soft, low airy movement for the soundsystem",
+      "duration": 0.52,
+      "peakDbfs": -7.779,
+      "rmsDbfs": -27.79,
+      "clippedSamples": 0,
+      "adjacentDifferenceRms": 0.01703743,
+      "loopBoundaryMaxDifference": 0.000094
+    },
+    {
+      "file": "mixes-transition.mp3",
+      "url": "/audio/menu/mixes-transition.mp3",
+      "bytes": 9135,
+      "sha256": "6ab1f1723091de7f1b81103c29c2df60437093cd29908da96a0c9de76c7bc2ef",
+      "sources": [
+        "rubberduck / sfx100v2_metal_01.ogg"
+      ],
+      "purpose": "Restrained softened metal texture for the bronze DJ",
+      "duration": 0.7,
+      "peakDbfs": -7.684,
+      "rmsDbfs": -26.897,
+      "clippedSamples": 0,
+      "adjacentDifferenceRms": 0.01797903,
+      "loopBoundaryMaxDifference": 0.00001381
+    },
+    {
+      "file": "code-transition.mp3",
+      "url": "/audio/menu/code-transition.mp3",
+      "bytes": 5687,
+      "sha256": "cc46e1f28c5754a19d24da161d82e60f850d1bebe8669a9fd8d1aeaa409b310b",
+      "sources": [
+        "Kenney / glass_006.ogg"
+      ],
+      "purpose": "Short clean glass-like digital cue, gently damped",
+      "duration": 0.4,
+      "peakDbfs": -7.449,
+      "rmsDbfs": -28.843,
+      "clippedSamples": 0,
+      "adjacentDifferenceRms": 0.00671951,
+      "loopBoundaryMaxDifference": 0.00102195
+    },
+    {
+      "file": "about-transition.mp3",
+      "url": "/audio/menu/about-transition.mp3",
+      "bytes": 9449,
+      "sha256": "b417396dc64a47fbf854394c33e2fd48b0d7ec309ef06ee9873db418aae248bb",
+      "sources": [
+        "rubberduck / sfx100v2_air_02.ogg"
+      ],
+      "purpose": "Quiet diffuse air, without an extra melody",
+      "duration": 0.72,
+      "peakDbfs": -6.877,
+      "rmsDbfs": -24.252,
+      "clippedSamples": 0,
+      "adjacentDifferenceRms": 0.02552035,
+      "loopBoundaryMaxDifference": 0.00006282
+    }
+  ]
+}
