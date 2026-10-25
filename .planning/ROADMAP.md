@@ -8,6 +8,8 @@
 
 Plans/summaries: `phases/07-radio/07-01-PLAN.md`, `07-02-PLAN.md`, `07-03-PLAN.md` and matching SUMMARY files. Actual broadcasting/stream management is a future separately scoped feature.
 
+- [x]07-04 — Radio-only grounded base contact preserving the accepted long cast/admin settings; shared poster/video no-fog material keeps receding textures. 501tests, independent review, mobile/desktop/native/recovery and guarded live bundle/data verification. See07-04 plan/summary.
+
 ## Phase 01 — Dubplates
 
 1. Secure persistent catalog, audio preparation, media routes and streaming ZIP export.
