@@ -119,7 +119,7 @@ test('radio collection and every era have truthful public metadata, canonical li
         assert.equal(era.status, 200); assert.equal(era.indexable, true);
         assert.equal(era.kind, 'item'); assert.equal(era.heading, title);
         assert.equal(era.canonical, `https://muvs.dev/radio?item=${slug}`);
-        assert.equal(era.image, `https://muvs.dev/images/radio/radio-${art}-v1.webp`);
+        assert.equal(era.image, `https://muvs.dev/images/radio/radio-${art}-${art === 'modern' ? 'v2' : 'v1'}.webp`);
         assert.match(era.description, /Coming soon\./);
         assert.deepEqual(era.items, []);
         assert.match(renderPublicSeoHead(era), /rel="canonical"/);

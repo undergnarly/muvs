@@ -30,6 +30,6 @@ export const RADIO_STATIONS = Object.freeze([
         artists: '2015–NOW', era: '2015–NOW',
         genres: ['Modern bass', 'Future dub', 'Fresh releases'],
         description: 'Modern bass, future dub and fresh releases. Music from 2015 to now.<br />Coming soon.',
-        coverImage: '/images/radio/radio-modern-v1.webp', order: 2,
+        coverImage: '/images/radio/radio-modern-v2.webp', order: 2,
     }),
 ]);

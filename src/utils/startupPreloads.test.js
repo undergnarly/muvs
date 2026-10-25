@@ -69,7 +69,7 @@ test('Radio warms only its own selected hero at high priority after loader paint
         assert.deepEqual(radio.links, []);
         radio.paint();
         assert.deepEqual(radio.links.filter(link => link.as === 'image' && link.fetchPriority === 'high').map(link => link.href),
-            [`/images/radio/radio-${name}-v1.webp`]);
+            [`/images/radio/radio-${name}-${name === 'modern' ? 'v2' : 'v1'}.webp`]);
     }
     const home = head(html); home.paint();
     assert.ok(home.links.every(link => !link.href.includes('/radio/')));

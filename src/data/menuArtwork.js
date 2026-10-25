@@ -2,13 +2,13 @@ import musicFallback from '../assets/menu-fallback/music.webp?inline';
 import mixesFallback from '../assets/menu-fallback/mixes.webp?inline';
 import codeFallback from '../assets/menu-fallback/code.webp?inline';
 import aboutFallback from '../assets/menu-fallback/about-v1.webp?inline';
-import radioModernFallback from '../assets/menu-fallback/radio-modern-v1.webp?inline';
+import radioModernFallback from '../assets/menu-fallback/radio-modern-v2.webp?inline';
 import radioOldschoolFallback from '../assets/menu-fallback/radio-oldschool-v1.webp?inline';
 import radioY2kFallback from '../assets/menu-fallback/radio-y2k-v1.webp?inline';
 
 export const MENU_ARTWORK = Object.freeze([
     '/images/menu/music2.webp', '/images/menu/mixes-trans.webp', '/images/menu/code2.webp', '/images/menu/about-portrait-v1.webp',
-    '/images/radio/radio-modern-v1.webp',
+    '/images/radio/radio-modern-v2.webp',
 ]);
 const fallbacks = Object.freeze({
     [MENU_ARTWORK[0]]: musicFallback,
