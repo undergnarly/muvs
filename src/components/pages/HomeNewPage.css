@@ -603,7 +603,8 @@ body.home-new-active {
     width: 360px;
     max-height: 5em;
     overflow: hidden;
-    color: #666666;
+    color: var(--menu-caption-color, #ffffff);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     letter-spacing: 0.035em;
 }
 .hn-code-short p,
