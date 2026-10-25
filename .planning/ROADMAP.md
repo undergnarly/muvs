@@ -99,3 +99,5 @@ Plan/summary: `phases/05-production-readiness/05-01-PLAN.md`, `05-01-SUMMARY.md`
 - [ ] Owner auditions the first draft on headphones/phone and chooses final timbre and loudness; physical Xiaomi/iPhone Safari not tested here.
 
 Plan/summary: `phases/06-menu-sound/06-01-PLAN.md`, `06-01-SUMMARY.md`.
+
+- [x] 06-02 — White-by-default hub captions with saved native color / HEX / preview in Visual style; strict normalization, menu-only scope, existing presets preserved. 468 tests, independent reviews, real isolated API persistence, responsive/native/recovery and live exact-asset/data checks. See 06-02 plan/summary.
