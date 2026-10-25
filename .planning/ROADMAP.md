@@ -90,3 +90,12 @@ Revision plan/summary: `phases/04-living-background/04-02-PLAN.md`, `04-02-SUMMA
 - [ ] Owner launch gates: exact Cloudflare robots purge + SearchConsole, actual release/Test content approval, off-host backup destination. Source/operations work is delivered; full SEO signoff waits for the CDN's stale HTML copy to clear.
 
 Plan/summary: `phases/05-production-readiness/05-01-PLAN.md`, `05-01-SUMMARY.md`.
+
+## Phase 06 — Menu sound-design draft
+
+- [x] Licensed compact CC0 ambient pad/vinyl texture and four short section cues; reproducible preparation and objective asset verification.
+- [x] Lazy gesture-unlocked engine, bottom-right accessible toggle and accepted-navigation wiring; section/player/visibility/loader safety and truthful recovery.
+- [x] 465 tests / 461 pass / 4 existing skips, independent review, native mobile/desktop/failure QA, guarded deployment and live PCM/asset/content-preservation verification.
+- [ ] Owner auditions the first draft on headphones/phone and chooses final timbre and loudness; physical Xiaomi/iPhone Safari not tested here.
+
+Plan/summary: `phases/06-menu-sound/06-01-PLAN.md`, `06-01-SUMMARY.md`.
