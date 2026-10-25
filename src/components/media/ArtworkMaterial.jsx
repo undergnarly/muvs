@@ -11,6 +11,9 @@ export default function ArtworkMaterial({ posterTexture, video }) {
         if (alphaMap?.image) gl.initTexture(alphaMap);
     }, [gl, map, alphaMap]);
 
+    // These are finished photo/video cutouts, not surfaces to recolor with scene
+    // fog. Keep their real texture during camera travel; scene visibility still
+    // controls when distant artwork is hidden.
     return <meshBasicMaterial key={`${map?.uuid || 'empty'}:${alphaMap?.uuid || 'rgba'}`}
-        map={map} alphaMap={alphaMap} color="#ffffff" transparent alphaTest={0.01} opacity={map ? 1 : 0} toneMapped={false} />;
+        map={map} alphaMap={alphaMap} color="#ffffff" transparent alphaTest={0.01} opacity={map ? 1 : 0} toneMapped={false} fog={false} />;
 }
