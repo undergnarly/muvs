@@ -2879,7 +2879,7 @@ export const Scene3DShell = ({
     if (!cfgReady) return <div className="home-new-page" aria-hidden="true" />;
 
     return (
-        <div className="home-new-page">
+        <div className="home-new-page" style={{ '--menu-caption-color': visualEffects.menuCaptions.color }}>
             <FilmLeakOverlay routeKey={filmLocation.pathname} settings={visualEffects} />
             {hub && <MenuSound active={hubPhase === 'menu'} section={HUB_ITEMS[ringIndex].key} playerActive={sectionControls || mixPlaying} />}
             {(hub || effectiveItems.length > 0) && (

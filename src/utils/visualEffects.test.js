@@ -1,6 +1,44 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeVisualEffects, VISUAL_EFFECTS_DEFAULTS, VISUAL_EFFECTS_LIMITS } from './visualEffects.js';
+import { isMenuCaptionColor, normalizeMenuCaptionColor, normalizeVisualEffects, VISUAL_EFFECTS_DEFAULTS, VISUAL_EFFECTS_LIMITS } from './visualEffects.js';
+
+test('menu caption colors accept only short or full opaque hex and normalize to canonical lowercase', () => {
+    for (const [input, expected] of [
+        ['#fff', '#ffffff'], ['#ABC', '#aabbcc'], ['#a1B', '#aa11bb'],
+        ['#000000', '#000000'], ['#C0FFEE', '#c0ffee'], [' \t#AbC123\n', '#abc123'],
+    ]) {
+        assert.equal(isMenuCaptionColor(input), true);
+        assert.equal(normalizeMenuCaptionColor(input), expected);
+    }
+    for (const invalid of [
+        undefined, null, false, 0, 0xffffff, [], {}, () => '#fff',
+        '', ' ', 'fff', '#ff', '#ffff', '#fffffff', '#ffffffff', '#ggg', '#fff x',
+        'white', 'transparent', 'currentColor', 'rgb(255, 255, 255)',
+        'rgba(255,255,255,.5)', 'var(--color)', 'url(https://example.invalid/color)',
+        '#fff; background: url(x)', '#ff\nf',
+    ]) {
+        assert.equal(isMenuCaptionColor(invalid), false, String(invalid));
+        assert.equal(normalizeMenuCaptionColor(invalid), '#ffffff', String(invalid));
+    }
+});
+
+test('old presets gain white menu captions while valid saved colors remain independent of numeric effects', () => {
+    const old = { transition: { opacity: .42 }, shadows: { directionDegrees: 143.25 } };
+    const previous = normalizeVisualEffects(old);
+    assert.deepEqual(previous.menuCaptions, { color: '#ffffff' });
+    const saved = Object.freeze({ ...old, menuCaptions: Object.freeze({ color: ' #A1b ', enabled: false, unknown: 12 }) });
+    const next = normalizeVisualEffects(saved);
+    assert.deepEqual(next.menuCaptions, { color: '#aa11bb' });
+    for (const group of Object.keys(VISUAL_EFFECTS_LIMITS)) assert.deepEqual(next[group], previous[group]);
+    assert.equal(VISUAL_EFFECTS_LIMITS.menuCaptions, undefined);
+    assert.equal(saved.menuCaptions.color, ' #A1b ');
+    assert.equal(VISUAL_EFFECTS_DEFAULTS.menuCaptions.color, '#ffffff');
+    assert.equal(Object.isFrozen(VISUAL_EFFECTS_DEFAULTS.menuCaptions), true);
+    assert.deepEqual(normalizeVisualEffects(next), next);
+    for (const menuCaptions of [null, [], false, '#123', { color: 'red' }, { color: '#abcd' }]) {
+        assert.deepEqual(normalizeVisualEffects({ menuCaptions }).menuCaptions, { color: '#ffffff' });
+    }
+});
 
 test('absent, old and invalid settings retain the current public appearance', () => {
     for (const input of [undefined, null, false, 0, '', [], {}, { handheld: [], filmDust: null }]) {

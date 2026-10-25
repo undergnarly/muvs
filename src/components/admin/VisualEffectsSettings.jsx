@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { normalizeVisualEffects, VISUAL_EFFECTS_DEFAULTS, VISUAL_EFFECTS_LIMITS } from '../../utils/visualEffects';
+import { normalizeMenuCaptionColor, normalizeVisualEffects, VISUAL_EFFECTS_DEFAULTS, VISUAL_EFFECTS_LIMITS } from '../../utils/visualEffects';
 import Button from '../ui/Button';
 import { formatVisualNumber, validateVisualEffectsDraft, visualEffectsDraftEqual } from './visualEffectsAdminHelpers';
 import './VisualEffectsSettings.css';
@@ -69,6 +69,36 @@ function ShadowDirectionField({ prefix, draft, onChange }) {
     </div>;
 }
 
+function MenuCaptionColorField({ prefix, draft, errors, onChange, disabled }) {
+    const id = `${prefix}-menuCaptions-color`;
+    const error = errors['menuCaptions.color'];
+    const color = normalizeMenuCaptionColor(draft.menuCaptions.color);
+    return <fieldset className="ves-group ves-caption-group" disabled={disabled}>
+        <legend>Подписи меню</legend>
+        <p id={`${id}-help`} className="ves-caption-help">Цвет текста под 3D-объектами Music, Mixes, Code и About. Описания проектов внутри Code не меняются.</p>
+        <div className="ves-fields ves-caption-fields">
+            <div className="ves-field">
+                <label htmlFor={id}>Цвет подписей меню (HEX)</label>
+                <div className="ves-color-controls">
+                    <input type="color" value={color} aria-label="Выбрать цвет подписей меню"
+                        aria-describedby={`${id}-help`}
+                        onChange={event => onChange('menuCaptions', 'color', event.target.value)} />
+                    <input id={id} type="text" value={draft.menuCaptions.color} maxLength={7}
+                        autoComplete="off" autoCapitalize="off" spellCheck={false} required
+                        aria-invalid={Boolean(error)} aria-describedby={`${id}-hint${error ? ` ${id}-error` : ''}`}
+                        onChange={event => onChange('menuCaptions', 'color', event.target.value)} />
+                </div>
+                <small id={`${id}-hint`} className="ves-hint">Выберите цвет или укажите HEX, например #ffffff. По умолчанию — белый. Проверьте читаемость на светлом фоне сайта.</small>
+                {error && <p id={`${id}-error`} className="ves-field-error">{error}</p>}
+            </div>
+            <div className="ves-caption-preview" aria-label="Предпросмотр цвета подписей">
+                <small>Предпросмотр</small>
+                <p style={{ color }}>Listen, support the journey.<br />Enjoy &amp; stay tuned.</p>
+            </div>
+        </div>
+    </fieldset>;
+}
+
 function VisualEffectsEditor({ initialValue, updateSiteSettings }) {
     const [draft, setDraft] = useState(() => normalizeVisualEffects(initialValue));
     const [saved, setSaved] = useState(() => normalizeVisualEffects(initialValue));
@@ -133,6 +163,7 @@ function VisualEffectsEditor({ initialValue, updateSiteSettings }) {
         <p className="ves-apply-note">После сохранения обновите открытую страницу сайта. Переходы имеют приоритет: фоновые вставки могут появиться позже заданного интервала.</p>
         <form ref={formRef} onSubmit={save} noValidate aria-busy={saving} aria-describedby={`${prefix}-save-status`}>
             <div className="ves-editor">
+                <MenuCaptionColorField {...fields} disabled={saving} />
                 {GROUPS.map(group => <fieldset key={group.key} className="ves-group" disabled={saving}>
                     <legend>{group.title}</legend>
                     <div className="ves-group-top">

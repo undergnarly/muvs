@@ -1,4 +1,4 @@
-import { normalizeVisualEffects, VISUAL_EFFECTS_LIMITS } from '../../utils/visualEffects.js';
+import { isMenuCaptionColor, normalizeVisualEffects, VISUAL_EFFECTS_LIMITS } from '../../utils/visualEffects.js';
 
 const numeric = value => (
     typeof value === 'number' || (typeof value === 'string' && value.trim()) ? Number(value) : NaN
@@ -22,6 +22,9 @@ export function validateVisualEffectsDraft(draft) {
             errors[`${group}.intervalMinSeconds`] = 'Минимальный интервал не должен превышать максимальный.';
             errors[`${group}.intervalMaxSeconds`] = 'Максимальный интервал не должен быть меньше минимального.';
         }
+    }
+    if (!isMenuCaptionColor(draft?.menuCaptions?.color)) {
+        errors['menuCaptions.color'] = 'Укажите цвет в формате #RGB или #RRGGBB.';
     }
     return errors;
 }

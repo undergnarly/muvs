@@ -90,3 +90,29 @@ test('shadow depth changes are dirty, validate both signs, and return to clean a
     draft.shadows.depthOffset = '0';
     assert.equal(visualEffectsDraftEqual(draft, saved), true);
 });
+
+test('menu caption color validates before fallback and equivalent hex forms are not dirty', () => {
+    const saved = normalizeVisualEffects({ menuCaptions: { color: '#aabbcc' } });
+    const draft = normalizeVisualEffects(saved);
+    for (const color of ['#ABC', ' #AaBbCc ', '#abc']) {
+        draft.menuCaptions.color = color;
+        assert.deepEqual(validateVisualEffectsDraft(draft), {});
+        assert.equal(visualEffectsDraftEqual(draft, saved), true);
+    }
+    draft.menuCaptions.color = '#000';
+    assert.deepEqual(validateVisualEffectsDraft(draft), {});
+    assert.equal(visualEffectsDraftEqual(draft, saved), false);
+    assert.equal(normalizeVisualEffects(draft).menuCaptions.color, '#000000');
+    const defaults = normalizeVisualEffects();
+    defaults.menuCaptions.color = '#FFF';
+    assert.equal(visualEffectsDraftEqual(defaults, VISUAL_EFFECTS_DEFAULTS), true);
+    for (const color of [undefined, null, '', ' ', '#ffff', '#ffffff80', 'white', 'transparent', 'url(x)', 'var(--caption)']) {
+        defaults.menuCaptions.color = color;
+        assert.ok(validateVisualEffectsDraft(defaults)['menuCaptions.color']);
+        assert.equal(visualEffectsDraftEqual(defaults, VISUAL_EFFECTS_DEFAULTS), false);
+    }
+    delete defaults.menuCaptions;
+    assert.ok(validateVisualEffectsDraft(defaults)['menuCaptions.color']);
+    assert.equal(visualEffectsDraftEqual(defaults, VISUAL_EFFECTS_DEFAULTS), false);
+    assert.equal(saved.menuCaptions.color, '#aabbcc');
+});

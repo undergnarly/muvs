@@ -4,6 +4,7 @@ export const VISUAL_EFFECTS_DEFAULTS = Object.freeze({
     filmDust: Object.freeze({ enabled: true, durationSeconds: 2.4, opacity: .5, intervalMinSeconds: 6, intervalMaxSeconds: 7 }),
     handheld: Object.freeze({ enabled: true, strength: 1, speed: 1 }),
     shadows: Object.freeze({ enabled: true, opacity: .26, directionDegrees: 143, length: .55, blur: .5, depthOffset: 0 }),
+    menuCaptions: Object.freeze({ color: '#ffffff' }),
 });
 
 export const VISUAL_EFFECTS_LIMITS = Object.freeze({
@@ -15,13 +16,24 @@ export const VISUAL_EFFECTS_LIMITS = Object.freeze({
 });
 
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+export const isMenuCaptionColor = value => (
+    typeof value === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim())
+);
+
+export function normalizeMenuCaptionColor(value) {
+    if (!isMenuCaptionColor(value)) return VISUAL_EFFECTS_DEFAULTS.menuCaptions.color;
+    const color = value.trim().toLowerCase();
+    return color.length === 4 ? `#${[...color.slice(1)].map(character => character.repeat(2)).join('')}` : color;
+}
+
 export function normalizeVisualEffects(input) {
     const source = object(input);
     const output = {};
-    for (const [group, defaults] of Object.entries(VISUAL_EFFECTS_DEFAULTS)) {
+    for (const [group, fields] of Object.entries(VISUAL_EFFECTS_LIMITS)) {
+        const defaults = VISUAL_EFFECTS_DEFAULTS[group];
         const values = object(source[group]);
         const next = { enabled: typeof values.enabled === 'boolean' ? values.enabled : defaults.enabled };
-        for (const [key, [min, max]] of Object.entries(VISUAL_EFFECTS_LIMITS[group])) {
+        for (const [key, [min, max]] of Object.entries(fields)) {
             const raw = values[key];
             const number = typeof raw === 'number' || (typeof raw === 'string' && raw.trim()) ? Number(raw) : NaN;
             next[key] = Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : defaults[key];
@@ -31,5 +43,6 @@ export function normalizeVisualEffects(input) {
         }
         output[group] = next;
     }
+    output.menuCaptions = { color: normalizeMenuCaptionColor(object(source.menuCaptions).color) };
     return output;
 }

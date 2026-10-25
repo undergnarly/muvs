@@ -28,6 +28,11 @@
 .mp3d-rich-caption b,
 .mp3d-rich-caption strong { font-weight: 700; }
 
+.mp3d-menu-caption {
+    color: var(--menu-caption-color, #ffffff);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
 .mp3d-counter {
     position: fixed;
     right: 24px;
