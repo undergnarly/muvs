@@ -20,6 +20,8 @@ import { scenePublicPath } from '../../utils/scenePublicPath';
 import { phoneTextFitScale } from '../../utils/phoneTextFit';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
+import MenuSound from '../media/MenuSound';
+import { dispatchMenuSoundNavigation } from '../../audio/menuSoundEvents';
 import ArtworkMaterial from '../media/ArtworkMaterial';
 import SpriteShadow from '../media/SpriteShadow';
 import { useData } from '../../context/DataContext';
@@ -55,7 +57,7 @@ const stripHtml = (html) =>
 
 const RELEASE_SPACING = 14;
 const ownsSceneGesture = event => !document.querySelector('.staggered-menu-panel[aria-hidden="false"]')
-    && !event.target?.closest?.('.hn-player, .ap, input, textarea, select, [contenteditable], [role="slider"]');
+    && !event.target?.closest?.('.hn-player, .ap, .menu-sound-control, input, textarea, select, [contenteditable], [role="slider"]');
 // Matches body font-family (Urbanist). Same family at multiple weights so
 // drei Text renders with the same look as DOM elements.
 const FONT_HANDWRITTEN = '/fonts/yuliana.ttf';
@@ -2550,7 +2552,8 @@ export const Scene3DShell = ({
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
         approachSection('enter');
-        beginSceneMotion('hub-entry');
+        const motionId = beginSceneMotion('hub-entry');
+        dispatchMenuSoundNavigation({ id: motionId, section: HUB_ITEMS[hubMod(st.menuIndex)].key });
         captureHubTravelLane(st);
         goTo(entryStop, true, entryStop);
         st.phase = 'travel';
@@ -2562,7 +2565,8 @@ export const Scene3DShell = ({
     const startForeign = useCallback((item) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu') return;
-        beginSceneMotion('hub-route');
+        const motionId = beginSceneMotion('hub-route');
+        dispatchMenuSoundNavigation({ id: motionId, section: item.key });
         captureHubTravelLane(st);
         st.phase = 'foreign';
         st.dir = 1;
@@ -2589,7 +2593,8 @@ export const Scene3DShell = ({
     const hubRotateBy = useCallback((d) => {
         const st = hubStateRef.current;
         if (!st || st.phase !== 'menu' || !Number.isFinite(d) || d === 0) return;
-        beginSceneMotion('hub-item');
+        const motionId = beginSceneMotion('hub-item');
+        dispatchMenuSoundNavigation({ id: motionId, section: HUB_ITEMS[hubMod(st.menuIndex + d)].key, direction: d });
         st.menuIndex += d;
         setRingIndex(hubMod(st.menuIndex));
     }, []);
@@ -2876,6 +2881,7 @@ export const Scene3DShell = ({
     return (
         <div className="home-new-page">
             <FilmLeakOverlay routeKey={filmLocation.pathname} settings={visualEffects} />
+            {hub && <MenuSound active={hubPhase === 'menu'} section={HUB_ITEMS[ringIndex].key} playerActive={sectionControls || mixPlaying} />}
             {(hub || effectiveItems.length > 0) && (
                 <div className="home-new-canvas">
                     <Canvas
