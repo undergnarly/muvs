@@ -3,13 +3,14 @@ export const MENU_TITLE_VIEWPORT_FRACTION = 0.74;
 export const MENU_TITLE_BREATH_PERIOD = 3.8;
 export const MENU_TITLE_BREATH_MIN = 0.95;
 
-export function createMenuTitleStretch() {
+export function createMenuTitleStretch(count = 4) {
     let previousIndex = -1;
     let elapsed = 0;
     let breathElapsed = 0;
     let active = false;
-    const progressByIndex = new Float64Array(4);
-    const widthFactorByIndex = new Float64Array(4).fill(1);
+    const itemCount = Number.isInteger(count) && count > 0 ? count : 4;
+    const progressByIndex = new Float64Array(itemCount);
+    const widthFactorByIndex = new Float64Array(itemCount).fill(1);
     return {
         index: -1,
         progress: 0,

@@ -101,3 +101,44 @@ test('sitemap is bounded escaped XML containing unique current canonical pages a
     assert.equal(new Set(urls).size, urls.length);
     assert.ok(urls.every(url => url.startsWith('https://muvs.dev/')));
 });
+
+test('radio collection and every era have truthful public metadata, canonical links and shared navigation', () => {
+    const data = catalog(); const before = JSON.stringify(data);
+    const page = buildPublicSeo({ pathname: '/RADIO/', search: '?utm_source=friend', data });
+    assert.equal(page.status, 200); assert.equal(page.indexable, true);
+    assert.equal(page.canonical, 'https://muvs.dev/radio');
+    assert.equal(page.title, 'Radio — MUVS'); assert.equal(page.kind, 'collection');
+    assert.match(page.description, /Coming soon\./);
+    assert.deepEqual(page.items.map(item => item.url), ['/radio?item=roots', '/radio?item=y2k', '/radio?item=new-era']);
+    assert.ok(page.items.every(item => item.description.includes('Coming soon.')));
+    assert.ok(page.navigation.some(link => link.title === 'Radio' && link.url === '/radio'));
+    assert.match(renderPublicFallback(page), /href="\/radio\?item=roots"/);
+    assert.equal(page.schema['@type'], 'WebPage', 'do not claim an active broadcast service');
+    for (const [slug, title, art] of [['roots', 'ROOTS', 'oldschool'], ['y2k', 'Y2K RADIO', 'y2k'], ['new-era', 'NEW ERA', 'modern']]) {
+        const era = buildPublicSeo({ pathname: '/radio', search: `?utm_source=friend&item=${slug}`, data });
+        assert.equal(era.status, 200); assert.equal(era.indexable, true);
+        assert.equal(era.kind, 'item'); assert.equal(era.heading, title);
+        assert.equal(era.canonical, `https://muvs.dev/radio?item=${slug}`);
+        assert.equal(era.image, `https://muvs.dev/images/radio/radio-${art}-v1.webp`);
+        assert.match(era.description, /Coming soon\./);
+        assert.deepEqual(era.items, []);
+        assert.match(renderPublicSeoHead(era), /rel="canonical"/);
+        assert.ok(renderPublicFallback(era).includes('Coming soon.'));
+    }
+    assert.equal(buildPublicSeo({ pathname: '/radio', search: '?item=unknown', data }).canonical, 'https://muvs.dev/radio');
+    assert.equal(JSON.stringify(data), before, 'radio navigation must not mutate the live CMS snapshot');
+});
+
+test('radio is reserved from release slugs and its three declared eras are unique sitemap destinations', () => {
+    const data = catalog();
+    data.releases.push({ title: 'Radio', slug: 'radio', artists: 'NOT A STATION' });
+    const page = buildPublicSeo({ pathname: '/radio', data });
+    assert.equal(page.kind, 'collection'); assert.equal(page.title, 'Radio — MUVS');
+    assert.ok(!renderPublicSitemap(data).includes('NOT A STATION'));
+    const urls = [...renderPublicSitemap(data).matchAll(/<loc>(.*?)<\/loc>/g)].map(match => match[1]);
+    for (const tail of ['', '?item=roots', '?item=y2k', '?item=new-era']) {
+        assert.equal(urls.filter(url => url === `https://muvs.dev/radio${tail}`).length, 1);
+    }
+    assert.equal(buildPublicSeo({ pathname: '/radio/missing', data }).status, 404);
+    assert.ok(!urls.some(url => /dubplates|admin|login/.test(url)));
+});

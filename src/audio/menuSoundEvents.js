@@ -1,6 +1,6 @@
 export const MENU_SOUND_NAVIGATION_EVENT = 'muvs:menu-sound-navigation';
 export const MENU_SOUND_STORAGE_KEY = 'muvs:menu-sound:v1';
-const SECTIONS = new Set(['music', 'mixes', 'code', 'about']);
+const SECTIONS = new Set(['music', 'mixes', 'code', 'about', 'radio']);
 
 export function dispatchMenuSoundNavigation({ id, section, direction = 0 } = {}, target = globalThis.window) {
     if (!Number.isFinite(id) || !SECTIONS.has(section) || !target?.dispatchEvent || !target.CustomEvent) return false;

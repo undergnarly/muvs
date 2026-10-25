@@ -4,6 +4,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import {
     createWorldDustField, updateWorldDustField, sampleWorldDust, worldDustDistanceOpacity,
     WORLD_DUST_CELL_SIZE, WORLD_DUST_COUNT, WORLD_DUST_WRAP_X, advanceWorldDustField, worldDustRiseGain, sampleWorldDustFrame,
+    createWorldDustRebaseFrame, sampleWorldDustRebase,
 } from './worldDust.js';
 
 const close = (a, b, epsilon = 0.00003) => assert.ok(Math.abs(a - b) < epsilon, `${a} != ${b}`);
@@ -120,6 +121,70 @@ test('56-unit menu recentering preserves projected layout, sizes and rising phas
         close(wrapped[index].radius, first[index].radius);
         close(wrapped[index].opacity, first[index].opacity);
     }
+});
+
+test('hub dust rebase frame reuses its objects and bounds only the horizontal world offset', () => {
+    const frame = createWorldDustRebaseFrame();
+    const camera = frame.camera;
+    for (const rebase of [0, 70, -70, 140, -140, 56 * 1000 + 70, NaN, Infinity]) {
+        assert.equal(sampleWorldDustRebase(frame, { x: 84, y: 2.6, z: -20 }, rebase), frame);
+        assert.equal(frame.camera, camera);
+        assert.ok(frame.offsetX >= 0 && frame.offsetX < WORLD_DUST_WRAP_X);
+        assert.equal(frame.camera.x + frame.offsetX, 84);
+        assert.equal(frame.camera.y, 2.6);
+        assert.equal(frame.camera.z, -20);
+    }
+    sampleWorldDustRebase(frame, { x: 84, y: 2.6, z: -20 });
+    assert.equal(frame.offsetX, 0);
+    assert.equal(frame.camera.x, 84);
+});
+
+test('actual 70-unit carousel wraps preserve projected dust, integrated phases and nonzero wind', () => {
+    const baseline = { x: 70, y: 2.6, z: -20 };
+    const physical = { ...baseline };
+    const reference = fieldAt(baseline.x, baseline.y, baseline.z);
+    const wrapped = fieldAt(baseline.x, baseline.y, baseline.z);
+    const frame = createWorldDustRebaseFrame();
+    const wind = { x: 0.17, y: 0.09, z: -0.08 };
+    const expected = {}, actual = {};
+    let elapsed = 0, accumulated = 0;
+    for (let i = 0; i < 45; i++) {
+        advanceWorldDustField(reference, baseline, 1 / 30);
+        advanceWorldDustField(wrapped, baseline, 1 / 30);
+        elapsed += 1 / 30;
+    }
+    assert.notDeepEqual(wrapped.rise, wrapped.motion.filter((_value, index) => index % 4 === 0));
+    for (const shift of [70, 70, -70, -70, -70, 70, 140, -140, 56, -56]) {
+        physical.x += shift;
+        accumulated += shift;
+        sampleWorldDustRebase(frame, physical, accumulated);
+        const held = wrapped.rise.slice();
+        updateWorldDustField(wrapped, frame.camera);
+        assert.deepEqual(wrapped.rise, held, 'recycling never resets accumulated rise');
+        for (let step = 0; step < 3; step++) {
+            advanceWorldDustField(reference, baseline, 1 / 30);
+            advanceWorldDustField(wrapped, frame.camera, 1 / 30);
+            elapsed += 1 / 30;
+        }
+        for (let index = 0; index < WORLD_DUST_COUNT; index++) {
+            sampleWorldDustFrame(reference, index, elapsed, wind, expected);
+            sampleWorldDustFrame(wrapped, index, elapsed, wind, actual);
+            close(actual.x + frame.offsetX - physical.x, expected.x - baseline.x);
+            close(actual.y, expected.y);
+            close(actual.z, expected.z);
+            close(actual.radius, expected.radius);
+            close(actual.opacity, expected.opacity);
+            close(wrapped.rise[index], reference.rise[index]);
+            const dx = actual.x + frame.offsetX - physical.x;
+            const dy = actual.y - physical.y;
+            const dz = actual.z - physical.z;
+            close(worldDustDistanceOpacity(Math.hypot(dx, dy, dz)),
+                worldDustDistanceOpacity(Math.hypot(expected.x - baseline.x, expected.y - baseline.y, expected.z - baseline.z)));
+        }
+    }
+    assert.equal(WORLD_DUST_COUNT, 1500);
+    assert.equal(WORLD_DUST_CELL_SIZE, 8);
+    assert.equal(WORLD_DUST_WRAP_X, 56);
 });
 
 test('depth uses true camera projection: near discs are larger, rise faster and parallax farther', () => {

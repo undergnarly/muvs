@@ -75,7 +75,7 @@ function MenuCaptionColorField({ prefix, draft, errors, onChange, disabled }) {
     const color = normalizeMenuCaptionColor(draft.menuCaptions.color);
     return <fieldset className="ves-group ves-caption-group" disabled={disabled}>
         <legend>Подписи меню</legend>
-        <p id={`${id}-help`} className="ves-caption-help">Цвет текста под 3D-объектами главного меню и карточками проектов внутри Code. Заголовки и основной текст не меняются.</p>
+        <p id={`${id}-help`} className="ves-caption-help">Цвет текста под 3D-объектами главного меню, карточками проектов внутри Code и приёмниками Radio. Заголовки и основной текст не меняются.</p>
         <div className="ves-fields ves-caption-fields">
             <div className="ves-field">
                 <label htmlFor={id}>Цвет подписей меню (HEX)</label>

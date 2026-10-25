@@ -7,7 +7,7 @@ test('scene route ownership normalizes router variants and excludes library/priv
     assert.equal(normalizeSceneFilmPath('/Dubplates/'), '/dubplates');
     assert.equal(normalizeSceneFilmPath('/ADMIN/Dubplates/'), '/admin/dubplates');
     assert.equal(normalizeSceneFilmPath('/Login/'), '/login');
-    for (const path of ['/', '/music', '/mixes/', '/code/', '/about/', '/CODE/', '/veiled/']) {
+    for (const path of ['/', '/music', '/mixes/', '/code/', '/about/', '/radio/', '/RADIO/', '/CODE/', '/veiled/']) {
         assert.equal(isSceneFilmRoute(path, [{ title: 'Veiled' }]), true, path);
     }
     for (const path of ['/dubplates', '/admin/dubplates', '/login/', '/code-old', '/news', '/unpublished/']) {

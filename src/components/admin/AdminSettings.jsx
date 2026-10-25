@@ -3,6 +3,7 @@ import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import { FaCog, FaImages, FaLock, FaSave, FaTrash, FaUpload } from 'react-icons/fa';
 import { compressImage, validateImageFile } from '../../utils/imageCompression';
+import { RADIO_MENU_CAPTION } from '../../data/radio';
 import MediaGallery from './MediaGallery';
 import RichTextEditor from './RichTextEditor';
 import VisualEffectsSettings from './VisualEffectsSettings';
@@ -13,6 +14,7 @@ const MENU_CAPTION_DEFAULTS = {
     mixes: 'SECTION 02 — MIXES',
     code: 'SECTION 03 — CODE',
     about: 'SECTION 04 — ABOUT',
+    radio: RADIO_MENU_CAPTION,
 };
 
 const MENU_CAPTION_FIELDS = [
@@ -20,6 +22,7 @@ const MENU_CAPTION_FIELDS = [
     { key: 'mixes', label: 'Mixes' },
     { key: 'code', label: 'Code' },
     { key: 'about', label: 'About' },
+    { key: 'radio', label: 'Radio' },
 ];
 
 const MENU_PARTICLE_DEFAULTS = {

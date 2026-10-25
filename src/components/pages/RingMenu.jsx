@@ -25,6 +25,7 @@ import './RingMenu.css';
 
 export const HUB_ITEMS = [
     { key: 'music', label: 'MUSIC', route: ROUTES.MUSIC },
+    { key: 'radio', label: 'RADIO', route: ROUTES.RADIO },
     { key: 'about', label: 'ABOUT', route: ROUTES.ABOUT },
     { key: 'code',  label: 'CODE',  route: ROUTES.CODE },
     { key: 'mixes', label: 'MIXES', route: ROUTES.MIXES },
@@ -284,7 +285,7 @@ const RingItem = ({ item, index, logicalIndex, titleTimeline, decorationTimeline
 const LOOP_COPIES = [-1, 0, 1];
 
 export const RingMenu = ({ hub, covers, captions, particleSettings, onSelect, activeIndex = 0, activeOnly = false, captionsVisible = true, particlesVisible = true, videosEnabled = false, decorationsEnabled = videosEnabled, stateRef, shadowSettings }) => {
-    const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch() }), []);
+    const titleTimeline = useMemo(() => ({ current: createMenuTitleStretch(HUB_COUNT) }), []);
     const decorationTimeline = useMemo(() => createMenuDecorationTimeline(), []);
     const titleFrame = React.useRef({ delta: 0, index: 0, mobile: false, menu: false, phase: '', ready: false, settled: false, visible: true, skip: false });
     useFrame(({ size }, delta) => {

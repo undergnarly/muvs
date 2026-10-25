@@ -11,7 +11,7 @@ export function scenePublicPath({ hub, phase, section, item, search = '' }) {
         if (section === 'music') {
             const slug = normalizePublicSlug(item?.slug || item?.title);
             path = slug ? `/${encodeURIComponent(slug)}` : '/music';
-        } else if (section === 'code' || section === 'mixes') {
+        } else if (section === 'code' || section === 'mixes' || section === 'radio') {
             path = `/${section}`;
             const slug = normalizePublicSlug(item?.slug || item?.title || item?.id);
             if (slug) query.set('item', slug);

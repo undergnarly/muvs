@@ -3,6 +3,7 @@ export const ROUTES = {
     MUSIC: '/music',
     MIXES: '/mixes',
     CODE: '/code',
+    RADIO: '/radio',
     NEWS: '/news',
     CV: '/cv',
     ABOUT: '/about',

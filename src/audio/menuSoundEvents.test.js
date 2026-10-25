@@ -14,6 +14,16 @@ test('accepted navigation carries exact motion ID and target section, bounded di
     assert.equal(events.length, 1);
 });
 
+test('radio navigation is accepted by key without changing existing section identities', () => {
+    const events = [];
+    const target = { CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } }, dispatchEvent: event => events.push(event) };
+    for (const [id, section] of ['music', 'mixes', 'code', 'about', 'radio'].entries()) {
+        assert.equal(dispatchMenuSoundNavigation({ id, section, direction: 3 }, target), true);
+        assert.deepEqual(events.at(-1).detail, { id, section, direction: 1 });
+    }
+    assert.equal(events.length, 5);
+});
+
 test('remembered preference is optional storage, not browser permission or an automatic start', () => {
     const storage = { value: null, getItem() { return this.value; }, setItem(_key, value) { this.value = value; } };
     assert.equal(readMenuSoundPreference(storage), false);

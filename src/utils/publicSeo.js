@@ -1,3 +1,5 @@
+import { RADIO_STATIONS } from '../data/radio.js';
+
 export const PUBLIC_ORIGIN = 'https://muvs.dev';
 export const PUBLIC_ROBOTS = 'index, follow, max-image-preview:large';
 export const PRIVATE_ROBOTS = 'noindex, nofollow, noarchive';
@@ -6,8 +8,9 @@ const DEFAULT_IMAGE = '/images/menu/music2.webp';
 const CORE_NAVIGATION = Object.freeze([
     { title: 'Home', url: '/' }, { title: 'Music', url: '/music' },
     { title: 'Mixes', url: '/mixes' }, { title: 'Code', url: '/code' }, { title: 'About', url: '/about' },
+    { title: 'Radio', url: '/radio' },
 ]);
-const RESERVED = new Set(['music', 'mixes', 'code', 'about', 'news', 'cv', 'lecture', 'lecture-text',
+const RESERVED = new Set(['music', 'mixes', 'code', 'about', 'radio', 'news', 'cv', 'lecture', 'lecture-text',
     'admin', 'login', 'projects', 'dubplates', 'test', 'api', 'assets', 'uploads', 'images', 'videos', 'fonts',
     'home-old', 'music-old', 'mixes-old', 'code-old', 'about-old', 'news-old', 'cv-old', 'lecture-old', 'lecture-text-old']);
 const LEGACY = Object.freeze({ 'home-old': '/', 'music-old': '/music', 'mixes-old': '/mixes', 'code-old': '/code',
@@ -145,6 +148,17 @@ export function buildPublicSeo({ pathname = '/', search = '', data = {} } = {}) 
             image: cleanImage(selected?.coverImage || selected?.thumbnail || (isCode ? '/images/menu/code2.webp' : '/images/menu/mixes-trans.webp')),
             description: (description || `${heading} by ${brand}.`).slice(0, 220), paragraphs: description ? [description] : [],
             items: selected ? [] : items.map(item => entry(item, `${path}?item=${encodeURIComponent(itemSlug(item))}`)) });
+    } else if (path === '/radio') {
+        const requested = new URLSearchParams(string(search)).get('item');
+        const selected = requested ? RADIO_STATIONS.find(station => station.slug === normalizePublicSlug(requested)) : null;
+        const heading = selected ? selected.title : 'Radio';
+        const description = selected ? publicPlainText(selected.description, 700)
+            : 'Three eras. One frequency. Roots reggae, dub, dancehall, old-school jungle and modern bass. Coming soon.';
+        Object.assign(result, { kind: selected ? 'item' : 'collection', heading, title: `${heading} — ${brand}`,
+            canonical: absolute(`/radio${selected ? `?item=${selected.slug}` : ''}`),
+            image: cleanImage(selected?.coverImage || RADIO_STATIONS[2].coverImage),
+            description: description.slice(0, 220), paragraphs: [description],
+            items: selected ? [] : RADIO_STATIONS.map(station => entry(station, `/radio?item=${station.slug}`)) });
     } else if (path === '/about') {
         const about = object(data.about);
         const heading = publicPlainText(about.title, 140) || `About ${brand}`;
@@ -194,7 +208,8 @@ export function renderPublicRobots() {
 export function renderPublicSitemap(data = {}) {
     data = object(data);
     const releases = releaseEntries(data);
-    const paths = ['/', '/mixes', '/code', '/about', ...(releases.length ? releases.map(item => `/${releaseSlug(item)}`) : ['/music'])];
+    const paths = ['/', '/mixes', '/code', '/about', '/radio', ...RADIO_STATIONS.map(station => `/radio?item=${station.slug}`),
+        ...(releases.length ? releases.map(item => `/${releaseSlug(item)}`) : ['/music'])];
     for (const key of ['mixes', 'projects']) for (const item of published(data, key)) {
         const slug = itemSlug(item);
         if (slug) paths.push(`/${key === 'projects' ? 'code' : 'mixes'}?item=${encodeURIComponent(slug)}`);

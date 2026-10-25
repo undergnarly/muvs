@@ -17,6 +17,7 @@ const SECTION_PROFILES = Object.freeze({
   mixes: { gain: 0.94, cutoff: 1250, tone: 165 },
   code: { gain: 0.82, cutoff: 2100, tone: 330 },
   about: { gain: 0.78, cutoff: 1000, tone: 220 },
+  radio: { gain: 0.88, cutoff: 1450, tone: 196 },
 })
 const bounded = (value, fallback, max) => Number.isFinite(Number(value))
   ? Math.min(max, Math.max(0, Number(value))) : fallback

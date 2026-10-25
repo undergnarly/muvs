@@ -5,7 +5,7 @@ import { Routes, Route, useLocation, useParams } from 'react-router-dom';
 import MusicPage from './components/pages/MusicPage';
 import MixesPage from './components/pages/MixesPage';
 import CodePage from './components/pages/CodePage';
-import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage, AboutHubPage } from './components/pages/HomeNewPage';
+import HomeNewPage, { MusicNewPage, MixesHubPage, CodeHubPage, AboutHubPage, RadioHubPage } from './components/pages/HomeNewPage';
 import NewsPage3D from './components/pages/NewsPage3D';
 import CVPage3D from './components/pages/CVPage3D';
 import LecturePage3D from './components/pages/LecturePage3D';
@@ -48,6 +48,7 @@ import { settleWithin } from './utils/menuStartupGate';
 import { cancelSplashDrawing, completeSplashDrawing } from './utils/splashProgress';
 import { departSplash, finishStartupDive, guardStartupInput } from './utils/startupDive';
 import { MENU_ARTWORK, getObjectFallbackSrc } from './data/menuArtwork';
+import { RADIO_STATIONS } from './data/radio';
 
 const StartupFallback = () => (
     <main style={{ position: 'fixed', inset: 0, zIndex: 9998, overflow: 'auto', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', color: '#222', background: 'linear-gradient(to bottom, #696969, #a3a3a3 22%, #d8d8d8 46%, #fff 64%)' }}>
@@ -57,7 +58,15 @@ const StartupFallback = () => (
             <p role="status">The 3D view couldn’t load. Your music is still here.</p>
             <nav aria-label="Static site navigation" style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', margin: '20px 0' }}>
                 <a href={ROUTES.MUSIC_OLD}>Music</a><a href={ROUTES.MIXES_OLD}>Mixes</a><a href={ROUTES.CODE_OLD}>Code</a>
+                <a href="#radio-fallback">Radio</a>
             </nav>
+            <section id="radio-fallback" aria-label="Radio preview" style={{ margin: '24px auto', maxWidth: 500 }}>
+                <h2>Radio — Coming soon</h2>
+                <p>Three eras. One frequency.</p>
+                <ul style={{ padding: 0, listStyle: 'none' }}>{RADIO_STATIONS.map(station => (
+                    <li key={station.id} style={{ margin: '12px 0' }}><strong>{station.title}</strong> · {station.era}<br />{station.genres.join(' · ')}</li>
+                ))}</ul>
+            </section>
             <a href="/" style={{ display: 'inline-block', padding: '12px 20px', border: '1px solid currentColor', borderRadius: 30 }}>Reload 3D menu</a>
         </div>
     </main>
@@ -202,6 +211,7 @@ function AppRoot() {
         ROUTES.NEWS,
         ROUTES.MIXES,
         ROUTES.CODE,
+        ROUTES.RADIO,
         ROUTES.CV,
         ROUTES.LECTURE,
         ROUTES.LECTURE_TEXT,
@@ -231,6 +241,7 @@ function AppRoot() {
                 <Route path={ROUTES.NEWS} element={<NewsPage3D />} />
                 <Route path={ROUTES.MIXES} element={<MixesHubPage />} />
                 <Route path={ROUTES.CODE} element={<CodeHubPage />} />
+                <Route path={ROUTES.RADIO} element={<RadioHubPage />} />
                 <Route path={ROUTES.LECTURE} element={<LecturePage3D />} />
                 <Route path={ROUTES.LECTURE_TEXT} element={<LectureTextPage3D />} />
                 <Route path={ROUTES.CV} element={<CVPage3D />} />

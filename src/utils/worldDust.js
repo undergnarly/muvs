@@ -12,6 +12,16 @@ const smoothstep = (low, high, value) => {
     return t * t * (3 - 2 * t);
 };
 
+export const createWorldDustRebaseFrame = () => ({ offsetX: 0, camera: { x: 0, y: 0, z: 0 } });
+
+export function sampleWorldDustRebase(frame, camera, rebaseX = 0) {
+    frame.offsetX = mod(finite(rebaseX), WORLD_DUST_WRAP_X);
+    frame.camera.x = finite(camera?.x) - frame.offsetX;
+    frame.camera.y = finite(camera?.y);
+    frame.camera.z = finite(camera?.z);
+    return frame;
+}
+
 function random(cellX, cellY, cellZ, index, channel) {
     let value = (Math.imul(mod(cellX, WORLD_DUST_WRAP_X / WORLD_DUST_CELL_SIZE) + 31, 374761393)
         ^ Math.imul(cellY + 113, 668265263) ^ Math.imul(cellZ + 7919, 2147483647)

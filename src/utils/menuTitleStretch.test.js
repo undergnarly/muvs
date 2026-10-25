@@ -56,6 +56,45 @@ test('new logical selection replays incoming only and preserves outgoing ring co
     assert.equal(timeline.progressFor(0), outgoing);
 });
 
+test('a fifth title retains its entrance and breathing state through travel and switching', () => {
+    const timeline = createMenuTitleStretch(5);
+    advance(timeline, MENU_TITLE_STRETCH_DURATION, { index: 4 });
+    assert.equal(timeline.progressFor(4), 1);
+    advance(timeline, 0.8, { index: 4 });
+    const breathing = timeline.widthFactorFor(4);
+    assert.ok(breathing < 1 && breathing > 0.95);
+    advance(timeline, 0.4, { index: 4, menu: false, phase: 'travel' });
+    assert.equal(timeline.progressFor(4), 1);
+    assert.equal(timeline.widthFactorFor(4), breathing);
+    for (const index of [0, 3, 1, 2]) {
+        const incoming = timeline.sample({ ...frame, index });
+        assert.ok(incoming > 0 && incoming < 1);
+        assert.equal(timeline.progressFor(index), incoming);
+        assert.equal(timeline.progressFor(4), 1);
+        assert.equal(timeline.widthFactorFor(4), breathing);
+    }
+    const incoming = timeline.sample({ ...frame, index: 4 });
+    assert.ok(incoming > 0 && incoming < 1);
+    assert.equal(timeline.progressFor(4), incoming);
+    assert.equal(timeline.widthFactorFor(4), 1);
+});
+
+test('fifth-index reduced-motion snapshots and count fallbacks remain bounded', () => {
+    const timeline = createMenuTitleStretch(5);
+    assert.equal(timeline.sample({ ...frame, index: 4, skip: true }), 1);
+    assert.equal(timeline.progressFor(4), 1);
+    assert.equal(timeline.widthFactorFor(4), 1);
+    assert.equal(timeline.sample({ ...frame, index: 4, mobile: false }), 0);
+    assert.equal(timeline.progressFor(4), 0);
+    assert.equal(timeline.sample({ ...frame, index: 4, skip: true }), 1);
+    assert.equal(timeline.progressFor(4), 1);
+    for (const count of [undefined, NaN, 0, -1, 2.5]) {
+        const legacy = createMenuTitleStretch(count);
+        assert.ok(legacy.sample({ ...frame, index: 3 }) > 0);
+        assert.equal(legacy.progressFor(3), legacy.progress);
+    }
+});
+
 test('hidden time freezes and desktop is never stretched without clearing mobile snapshots', () => {
     const timeline = createMenuTitleStretch();
     for (let i = 0; i < 25; i++) timeline.sample(frame);

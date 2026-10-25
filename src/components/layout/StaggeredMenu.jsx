@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaInstagram, FaSoundcloud, FaBandcamp, FaTelegramPlane } from 'react-icons/fa';
 import { ROUTES } from '../../utils/constants';
+import { RADIO_STATIONS } from '../../data/radio';
 import { useData } from '../../context/DataContext';
 import { isPlainMenuClick, menuFocusables, menuTabTarget } from '../../utils/menuAccessibility';
 import './StaggeredMenu.css';
@@ -125,6 +126,13 @@ export const StaggeredMenu = ({ theme = 'light', swipeHintTarget = null }) => {
                 })),
         },
         { key: 'about', label: 'ABOUT', path: ROUTES.ABOUT, children: [] },
+        {
+            key: 'radio', label: 'RADIO', path: ROUTES.RADIO,
+            children: RADIO_STATIONS.map((station) => ({
+                key: station.id, label: station.title, meta: station.era,
+                path: `${ROUTES.RADIO}?item=${station.slug}`,
+            })),
+        },
     ], [mixes, projects, releases]);
 
     const handleLinkClick = (e, path) => {

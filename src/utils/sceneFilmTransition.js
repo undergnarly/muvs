@@ -12,7 +12,7 @@ export const normalizeSceneFilmPath = pathname => String(pathname || '/').replac
 
 export function isSceneFilmRoute(pathname, releases = []) {
     const path = normalizeSceneFilmPath(pathname);
-    if (['/', '/music', '/mixes', '/code', '/about'].includes(path)) return true;
+    if (['/', '/music', '/mixes', '/code', '/about', '/radio'].includes(path)) return true;
     if (path.slice(1).includes('/')) return false;
     const slug = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     return releases.some(release => release.active !== false && slug(release.slug || release.title) === slug(path.slice(1)));

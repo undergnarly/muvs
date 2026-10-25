@@ -17,6 +17,7 @@ import { startSettlingFrame } from '../../utils/settlingFrame';
 import { initialSectionApproached, sectionApproachReducer } from '../../utils/sectionApproach';
 import { keyboardSeek } from '../../utils/playerSeek';
 import { scenePublicPath } from '../../utils/scenePublicPath';
+import { sampleSceneCameraStops as sampleStops } from '../../utils/sceneCameraStops';
 import { phoneTextFitScale } from '../../utils/phoneTextFit';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import AlbumPlayer from '../media/AlbumPlayer';
@@ -32,6 +33,7 @@ import { preloadImage, useProgressiveTexture } from '../../hooks/useProgressiveT
 import { useObjectVideoTexture } from '../../hooks/useObjectVideoTexture';
 import { getObjectPosterSrc } from '../../data/objectLoops';
 import { MENU_ARTWORK, getObjectFallbackSrc } from '../../data/menuArtwork';
+import { RADIO_MENU_CAPTION, RADIO_STATIONS } from '../../data/radio';
 import { markMenuArtworkRendered, waitForMenuArtwork } from '../../utils/menuStartup';
 import { getStartupDiveProgress } from '../../utils/startupDive';
 import { applyStartupDivePose } from '../../utils/startupDivePose';
@@ -146,6 +148,17 @@ const DEFAULT_CFG = {
     hub: DEFAULT_HUB,
 };
 
+// Receivers include a tall antenna and need their own authored framing, not a
+// release/CD preset. Owner-saved Radio/item presets can still override this.
+const DEFAULT_RADIO_CFG = {
+    ...DEFAULT_CFG,
+    stops: [{ pos: { x: 0, y: 3, z: 7 }, look: { x: 0, y: 2.6, z: -10.7 }, fov: 56 }],
+    billboard: { ...DEFAULT_BILLBOARD, coverSize: 2.55, coverY: -0.05,
+        titleY: 2.1, titleZ: -1.55, artistY: 2.65, artistZ: -1.55 },
+    codeCaption: { ...DEFAULT_CODE_CAPTION, pos: { x: 0, y: .25, z: -2.55 },
+        tilt: 65, fontSize: 18, lineHeight: 1.35, letterSpacing: 0, maxHeight: 23.5 },
+};
+
 const PLATFORMS = [
     { key: 'spotify',    label: 'SPOTIFY',    color: '#1ed760', urlField: 'spotifyUrl' },
     { key: 'soundcloud', label: 'SOUNDCLOUD', color: '#ff5500', urlField: 'soundcloudUrl' },
@@ -195,18 +208,20 @@ const buildLogoTexture = (key, color) => {
 };
 
 const CFG_STORAGE_KEY = 'muvs:home-new:cfg:v1';
-const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code', 'about']);
+const HUB_IN_CANVAS = new Set(['music', 'mixes', 'code', 'about', 'radio']);
 const HUB_SECTION_CONFIG_KEYS = {
     music: 'musicNewConfig',
     mixes: 'mixesNewConfig',
     code: 'codeNewConfig',
     about: 'aboutNewConfig',
+    radio: 'radioNewConfig',
 };
 const SECTION_SWIPE_TARGETS = {
     music: 'RELEASE',
     about: 'ABOUT',
     code: 'PROJECT',
     mixes: 'MIX',
+    radio: 'RADIO',
 };
 const hubDynamicEase = (t) => hubSmoothstep(hubSmoothstep(t));
 
@@ -966,26 +981,6 @@ const SupportFloorText = ({ x, support }) => (
     </group>
 );
 
-const lerp = (a, b, t) => a + (b - a) * t;
-const lerpVec = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
-
-// Interpolated camera pose along the section stops at progress p (0..1).
-const sampleStops = (stops, p) => {
-    const segCount = stops.length - 1;
-    const pc = THREE.MathUtils.clamp(p, 0, 1);
-    const segFloat = pc * segCount;
-    const segIdx = Math.min(Math.floor(segFloat), segCount - 1);
-    const lt = segFloat - segIdx;
-    const e = lt * lt * (3 - 2 * lt);
-    const a = stops[segIdx];
-    const b = stops[segIdx + 1];
-    return {
-        pos: lerpVec(a.pos, b.pos, e),
-        look: lerpVec(a.look, b.look, e),
-        fov: lerp(a.fov, b.fov, e),
-    };
-};
-
 const useCameraHandheld = () => {
     const rig = useMemo(() => createHandheldCamera(), []);
     const enabled = useRef(false);
@@ -1051,9 +1046,11 @@ const HubCamera = ({ cfgRef, stRef, progressRef, releaseOffsetRef, onPhase, onFo
                 if (st.menuIndex < count) {
                     st.menuIndex += count;
                     st.angle += count * HUB_SPACING;
+                    st.dustRebaseX = (st.dustRebaseX || 0) + count * HUB_SPACING;
                 } else if (st.menuIndex >= count * 2) {
                     st.menuIndex -= count;
                     st.angle -= count * HUB_SPACING;
+                    st.dustRebaseX = (st.dustRebaseX || 0) - count * HUB_SPACING;
                 }
             }
         }
@@ -1471,7 +1468,7 @@ const Scene = ({ releases, activeItemIndex = 0, activeItemOnly = false, sectionA
             <directionalLight position={[6, 12, 8]} intensity={0.55} />
             <SceneGrainient floorView={floorView} />
             <Floor big={!!hub} />
-            <WorldDust />
+            <WorldDust hubStateRef={hub?.stateRef} />
             {hub && (
                 <group ref={ringRef}>
                     <RingMenu
@@ -1886,12 +1883,13 @@ const MixSwitcher = ({ mixes, currentIndex, onIndex, playing, onTogglePlay }) =>
 
 // ================ bottom action ================
 
-const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext, light = false }) => {
+const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext, light = false, disabled = false, status = null }) => {
     const onClick = () => {
         if (href) window.open(href, '_blank', 'noopener,noreferrer');
     };
     return (
         <div className={`hn-player${light ? ' hn-player-light' : ''}`}>
+            {status && <span className="hn-a11y-status" role="status">{status}</span>}
             <div className="hn-player-bar-row">
                 <button className="hn-player-nav" onClick={onPrev} disabled={!canPrev} aria-label="Previous">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -1899,7 +1897,10 @@ const BottomAction = ({ label, href, onPrev, onNext, canPrev, canNext, light = f
                     </svg>
                 </button>
 
-                <button className="hn-action-pill" onClick={onClick}>{label}</button>
+                <button type="button" className="hn-action-pill" onClick={onClick} disabled={disabled}>
+                    {disabled && <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>}
+                    {label}
+                </button>
 
                 <button className="hn-player-nav" onClick={onNext} disabled={!canNext} aria-label="Next">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -2156,7 +2157,7 @@ const DebugPanel = ({
             </div>}
 
             {inSection && editIdx === sectionEntryStop && showCodeCaption && <div className="dbg-block">
-                <div className="dbg-title">code short description</div>
+            <div className="dbg-title">object caption</div>
                 <Row label="x" value={cfg.codeCaption.pos.x} min={-15} max={15} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, x: v } } })} />
                 <Row label="y" value={cfg.codeCaption.pos.y} min={-2} max={8} step={0.01} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, y: v } } })} />
                 <Row label="z" value={cfg.codeCaption.pos.z} min={-15} max={20} step={0.05} onChange={(v) => setCfg({ ...cfg, codeCaption: { ...cfg.codeCaption, pos: { ...cfg.codeCaption.pos, z: v } } })} />
@@ -2345,6 +2346,7 @@ export const Scene3DShell = ({
         menuIndex: hubInit.idx + HUB_ITEMS.length,
         angle: (hubInit.idx + HUB_ITEMS.length) * HUB_SPACING,
         menuOffset: 0,
+        dustRebaseX: 0,
         travelAnchorX: (hubInit.idx + HUB_ITEMS.length) * HUB_SPACING,
         foreignKey: null,
         done: false,
@@ -2354,7 +2356,8 @@ export const Scene3DShell = ({
         { hub, phase: hubPhase }, initialSectionApproached);
     const [ringIndex, setRingIndex] = useState(hubInit?.idx ?? 0);
     const [activeKey, setActiveKey] = useState(hubInit?.entered || 'music');
-    const activeStopCount = hub && activeKey === 'music' ? Math.min(3, stopCount) : stopCount;
+    const activeStopCount = hub && activeKey === 'radio' ? 1
+        : hub && activeKey === 'music' ? Math.min(3, stopCount) : stopCount;
     useLayoutEffect(() => {
         cfgRef.current = { ...cfg, stops: cfg.stops.slice(0, activeStopCount) };
     }, [activeStopCount, cfg]);
@@ -2444,6 +2447,17 @@ export const Scene3DShell = ({
             entryStop: 1,
             hideBillboard: true,
         },
+        radio: {
+            items: RADIO_STATIONS,
+            simple: true,
+            tvMixes: null,
+            portfolio: null,
+            richText: true,
+            showCodeCaption: true,
+            fullDescriptionOnly: true,
+            comingSoon: true,
+            bottomAction: { label: 'COMING SOON', disabled: true },
+        },
     }), [musicSection, mixesItems, codeItems, aboutItems, requestUrl]);
     const activeSection = hub ? (hubSections[activeKey] || musicSection) : musicSection;
     const effectiveItems = activeSection.items;
@@ -2522,6 +2536,8 @@ export const Scene3DShell = ({
         }
 
         const sectionCfg = hydrateCfg(sectionServerCfg, stopCount)
+            // A new radio scene must not inherit an unrelated CMS release pose.
+            || (cfgContext === 'radio' ? hydrateCfg(DEFAULT_RADIO_CFG, stopCount) : null)
             || hydrateCfg(legacyServerCfg, stopCount)
             || localFallback
             || initialCfg;
@@ -2722,6 +2738,7 @@ export const Scene3DShell = ({
             mixes: '/images/menu/mixes-trans.webp',
             code: '/images/menu/code2.webp',
             about: MENU_ARTWORK[3],
+            radio: MENU_ARTWORK[4],
         };
         const releaseCovers = HUB_ITEMS.map((_, i) => {
             const r = displayItems.length ? displayItems[i % displayItems.length] : null;
@@ -2739,7 +2756,7 @@ export const Scene3DShell = ({
         // below-menu CMS covers must not compete with the first scene's assets.
         waitForMenuArtwork().then(() => {
             if (cancelled) return;
-            [displayItems[0], mixesItems[0], codeItems[0], aboutItems[0]]
+            [displayItems[0], mixesItems[0], codeItems[0], aboutItems[0], RADIO_STATIONS[0]]
                 .map(primaryItemImage).filter(Boolean)
                 .forEach((url) => preloadImage(url, 'low'));
         }).catch(() => {});
@@ -2758,7 +2775,7 @@ export const Scene3DShell = ({
     const hubProps = hub ? {
         cfg: cfg.hub || DEFAULT_HUB,
         covers: hubCovers,
-        captions: siteSettings?.menuCaptions,
+        captions: { radio: RADIO_MENU_CAPTION, ...siteSettings?.menuCaptions },
         particleSettings: siteSettings?.menuParticles,
         phase: hubPhase,
         activeIndex: ringIndex,
@@ -2936,7 +2953,7 @@ export const Scene3DShell = ({
                 theme={!hub || hubPhase === 'section' ? (currentIndex === 0 ? 'light' : 'dark') : 'light'}
                 swipeHintTarget={swipeHintTarget}
             />
-            {sectionControls && (
+            {sectionControls && activeStopCount > 1 && (
                 <StopIndicator count={activeStopCount} currentIndex={currentIndex} goTo={selectStop} startIndex={sectionEntryStop} />
             )}
 
@@ -3026,13 +3043,15 @@ export const Scene3DShell = ({
                 <BottomAction
                     label={activeSection.bottomAction.label}
                     href={activeSection.bottomAction.href}
+                    disabled={activeSection.bottomAction.disabled}
+                    status={activeKey === 'radio' ? `${currentRelease?.title}. ${currentRelease?.era}. ${releaseSwitcher.current + 1} of ${effectiveItems.length}. Coming soon.` : null}
                     onPrev={releaseSwitcher.prev}
                     onNext={releaseSwitcher.next}
                     canPrev={releaseSwitcher.current > 0}
                     canNext={releaseSwitcher.current < effectiveItems.length - 1}
-                    light={activeKey === 'code'}
+                    light={activeKey === 'code' || activeKey === 'radio'}
                 />
-            ) : (!simple && currentRelease && sectionControls && (
+            ) : (!activeSection.simple && currentRelease && sectionControls && (
                 <AlbumPlayer
                     release={currentRelease}
                     releases={effectiveItems}
@@ -3100,5 +3119,6 @@ export const MusicNewPage = ({ releaseSlug = null }) => <HubSectionPage initialK
 export const MixesHubPage = () => <HubSectionPage initialKey="mixes" />;
 export const CodeHubPage = () => <HubSectionPage initialKey="code" />;
 export const AboutHubPage = () => <HubSectionPage initialKey="about" />;
+export const RadioHubPage = () => <HubSectionPage initialKey="radio" />;
 
 export default HomeNewPage;

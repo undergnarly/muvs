@@ -3,7 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { DynamicDrawUsage, NormalBlending, Vector3 } from 'three';
 import { observeAtmosphereMotion } from '../../utils/atmosphere';
 import {
-    advanceWorldDustField, createWorldDustField, updateWorldDustField, WORLD_DUST_COUNT, WORLD_DUST_REVEAL_SECONDS,
+    advanceWorldDustField, createWorldDustField, createWorldDustRebaseFrame, sampleWorldDustRebase,
+    updateWorldDustField, WORLD_DUST_COUNT, WORLD_DUST_REVEAL_SECONDS,
 } from '../../utils/worldDust';
 import { createDustWind, impulseDustWind, observeDustGestures, resetDustWind, stepDustWind } from '../../utils/dustWind';
 
@@ -55,7 +56,7 @@ const fragmentShader = `
     }
 `;
 
-export default function WorldDust() {
+export default function WorldDust({ hubStateRef } = {}) {
     const camera = useThree((state) => state.camera);
     const mesh = useRef(null);
     const anchors = useRef(null);
@@ -64,6 +65,7 @@ export default function WorldDust() {
     const material = useRef(null);
     const rise = useRef(null);
     const field = useMemo(() => createWorldDustField(), []);
+    const rebaseFrame = useMemo(() => createWorldDustRebaseFrame(), []);
     const uniforms = useMemo(() => ({ uTime: { value: 0 }, uReveal: { value: 0 }, uWind: { value: new Vector3() } }), []);
     const runtime = useRef({ mode: 'waiting', reveal: 0, elapsed: 0, wind: createDustWind() });
 
@@ -85,17 +87,19 @@ export default function WorldDust() {
         const state = runtime.current;
         mesh.current.visible = state.mode === 'running';
         if (state.mode !== 'running') return;
+        const rebased = sampleWorldDustRebase(rebaseFrame, activeCamera.position, hubStateRef?.current?.dustRebaseX);
+        mesh.current.position.x = rebased.offsetX;
         const step = Math.min(delta, 0.1);
         state.elapsed += step;
         state.reveal = Math.min(1, state.reveal + step / WORLD_DUST_REVEAL_SECONDS);
         material.current.uniforms.uTime.value = state.elapsed;
         material.current.uniforms.uReveal.value = state.reveal * state.reveal * (3 - 2 * state.reveal);
-        if (updateWorldDustField(field, activeCamera.position)) {
+        if (updateWorldDustField(field, rebased.camera)) {
             anchors.current.needsUpdate = true;
             motion.current.needsUpdate = true;
             style.current.needsUpdate = true;
         }
-        advanceWorldDustField(field, activeCamera.position, step);
+        advanceWorldDustField(field, rebased.camera, step);
         rise.current.needsUpdate = true;
         stepDustWind(state.wind, step);
         material.current.uniforms.uWind.value.set(state.wind.x, state.wind.y, state.wind.z);
